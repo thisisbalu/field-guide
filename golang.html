@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go (Golang) — Field Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#00ADD8;--accent2:#d95a1e;--accent3:#375EAB; --highlight-bg:#e4f4f9;--highlight-text:#00ADD8;--highlight-border:#00ADD8; --your-exp-bg:rgba(55,94,171,.06);--your-exp-border:rgba(55,94,171,.2);--your-exp-text:#375EAB; --acc-hover:rgba(0,173,216,.04);--acc-open-border:#00ADD8;--acc-open-bg:rgba(0,173,216,.04); --num-color:#00ADD8;--num-bg:rgba(0,173,216,.1); --tag-color:#00ADD8;--tag-bg:rgba(0,173,216,.08);--tag-border:rgba(0,173,216,.2); --flow-arrow:#00ADD8;--h1-from:#375EAB;--h1-to:#00ADD8; --badge-color:#375EAB;--stat-num:#375EAB; --tab-active-color:#00ADD8;--tab-active-bg:rgba(0,173,216,.08);--tab-active-border:#00ADD8; --section-title:#00ADD8;--concept-title:#375EAB; --cheat-head-bg:#375EAB;--cheat-head-text:#ffffff;--cheat-key:#375EAB; --cmd-bg:#e4f4f9;--cmd-text:#375EAB; }
+  [data-theme="dark"]{ --accent:#29BDD8;--accent2:#ff6b35;--accent3:#5b7fc4; --highlight-bg:#071929;--highlight-text:#29BDD8;--highlight-border:#29BDD8; --your-exp-bg:rgba(91,127,196,.1);--your-exp-border:rgba(91,127,196,.3);--your-exp-text:#90abdd; --acc-hover:rgba(41,189,216,.04);--acc-open-border:#29BDD8;--acc-open-bg:rgba(41,189,216,.03); --num-color:#29BDD8;--num-bg:rgba(41,189,216,.08); --tag-color:#29BDD8;--tag-bg:rgba(41,189,216,.08);--tag-border:rgba(41,189,216,.2); --flow-arrow:#29BDD8;--h1-from:#5b7fc4;--h1-to:#29BDD8; --badge-color:#29BDD8;--stat-num:#29BDD8; --tab-active-color:#29BDD8;--tab-active-bg:rgba(41,189,216,.08);--tab-active-border:#29BDD8; --section-title:#29BDD8;--concept-title:#29BDD8; --cheat-head-bg:#071929;--cheat-head-text:#29BDD8;--cheat-key:#29BDD8; --cmd-bg:#071929;--cmd-text:#29BDD8; }
+  [data-theme="light"] .toggle-knob{background:#00ADD8;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#29BDD8;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Stats row ───────────────────────────────────────────────────────────── */
+.stats{display:flex;gap:.75rem;margin-bottom:2rem;flex-wrap:wrap;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.65rem 1rem;text-align:center;flex:1;min-width:90px;}
+.stat-num{font-size:1.6rem;font-weight:800;color:var(--stat-num);font-family:'IBM Plex Mono',monospace;line-height:1;}
+.stat-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:'IBM Plex Mono',monospace;margin-top:.25rem;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .4s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{max-height:3000px;padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+}
+
+</style>
+</head>
+<body>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>Go (Golang)</h1>
+  <p class="subtitle">// goroutines · channels · interfaces · GC · concurrency patterns · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
+  <div class="tab" onclick="switchTab('deepdive',this)">Deep Dive</div>
+  <div class="tab" onclick="switchTab('qa',this)">Q &amp; A</div>
+  <div class="tab" onclick="switchTab('scenarios',this)">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">🔄 Goroutines & the Scheduler</div>
+      <div class="concept-body">
+        A <strong>goroutine</strong> is a lightweight thread managed by the Go runtime, starting at ~2 KB of stack (grows dynamically). The runtime uses an <strong>M:N scheduler</strong>: M goroutines multiplexed over N OS threads (<code>GOMAXPROCS</code> OS threads, defaults to CPU count). The scheduler is cooperative-preemptive — goroutines yield at function calls, channel ops, and since Go 1.14, at safe points during long loops. <code>go f()</code> costs ~1 µs; spawning millions is practical.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Goroutine (G)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">P (logical processor)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">M (OS thread)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">CPU core</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">M:N scheduling</span>
+          
+          <span class="tag">~2 KB initial stack</span>
+          
+          <span class="tag orange">GOMAXPROCS</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📡 Channels & CSP</div>
+      <div class="concept-body">
+        Go's concurrency model is based on <strong>Communicating Sequential Processes (CSP)</strong>: share memory by communicating, don't communicate by sharing memory. A channel is a typed conduit between goroutines. <strong>Unbuffered</strong>: sender blocks until receiver is ready — synchronization point. <strong>Buffered</strong>: sender blocks only when the buffer is full — decouples pace. <code>close(ch)</code> signals no more values; <code>range ch</code> drains and exits on close.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Sender goroutine</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">chan T (buffer)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Receiver goroutine</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag purple">CSP model</span>
+          
+          <span class="tag">unbuffered = sync</span>
+          
+          <span class="tag green">buffered = async</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🧩 Interfaces & Implicit Satisfaction</div>
+      <div class="concept-body">
+        Go interfaces are <strong>satisfied implicitly</strong> — no <code>implements</code> keyword. Any type with the required method set satisfies the interface. This enables duck typing with compile-time safety. The empty interface (<code>any</code> / <code>interface{}</code>) accepts all types. <strong>Composition</strong> is the Go idiom: embed small interfaces (<code>io.Reader</code>, <code>io.Writer</code>) and compose larger ones. Avoid large interfaces — they couple callers to implementations.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">implicit satisfaction</span>
+          
+          <span class="tag purple">composition over inheritance</span>
+          
+          <span class="tag">accept interfaces, return structs</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🗑️ Memory Model & GC</div>
+      <div class="concept-body">
+        Go uses a concurrent <strong>tri-color mark-and-sweep GC</strong> with very short stop-the-world (STW) pauses (typically &lt;1 ms). The GC is triggered by heap growth (controlled by <code>GOGC</code>, default 100 — GC runs when heap doubles since last collection). <strong>Escape analysis</strong> decides whether a variable lives on the stack (fast, no GC) or heap (GC managed). Values that outlive their function or are too large escape to heap. Check with <code>go build -gcflags="-m"</code>.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">concurrent GC</span>
+          
+          <span class="tag">GOGC controls frequency</span>
+          
+          <span class="tag orange">escape analysis = stack vs heap</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">⚠️ Error Handling</div>
+      <div class="concept-body">
+        Errors are plain values implementing the <code>error</code> interface. Functions return <code>(result, error)</code> — callers must check. <strong>Sentinel errors</strong>: <code>var ErrNotFound = errors.New(...)</code> for equality checks. <strong>Error wrapping</strong> (<code>fmt.Errorf("doing X: %w", err)</code>) preserves the chain. <code>errors.Is</code> walks the chain for equality; <code>errors.As</code> walks it for type assertion. <code>panic</code> is for unrecoverable programmer errors (nil dereference, index out of bounds) — not a control-flow mechanism.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">errors are values</span>
+          
+          <span class="tag orange">%w wrapping</span>
+          
+          <span class="tag">errors.Is / errors.As</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🎯 Context & Cancellation</div>
+      <div class="concept-body">
+        <code>context.Context</code> carries deadlines, cancellation signals, and request-scoped values across API boundaries. <strong>Always</strong> accept <code>ctx context.Context</code> as the first parameter of any function doing I/O or waiting. <code>context.WithCancel</code> returns a cancel function you must call (defer it). <code>context.WithTimeout</code> and <code>context.WithDeadline</code> auto-cancel. A cancelled context propagates through the whole call chain — the correct way to stop a goroutine tree without goroutine leaks.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">context.Background()</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">WithTimeout / WithCancel</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Propagate via function args</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Check ctx.Done()</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">first arg convention</span>
+          
+          <span class="tag orange">defer cancel()</span>
+          
+          <span class="tag purple">goroutine tree cancellation</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Goroutine leaks — the silent memory drain</span>
+      A goroutine blocked forever on a channel send/receive with no reader/writer leaks memory until the process restarts. Common causes: HTTP handlers spawning goroutines without a done channel, worker goroutines ignoring context cancellation, range over a channel that is never closed. Detect with <code>runtime.NumGoroutine()</code> or <code>pprof</code>'s goroutine profile. Fix by passing context and checking <code>ctx.Done()</code> in every long-running goroutine.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Nil interface != nil pointer</span>
+      An interface value holds a (type, pointer) pair. A nil pointer wrapped in an interface is NOT nil — the interface has a type. <code>var e *MyError = nil; var err error = e; err != nil</code> evaluates to <strong>true</strong>. Return bare <code>nil</code> from functions returning <code>error</code>, never a typed nil pointer. This trips up almost every Go developer at some point.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Loop variable capture in goroutines</span>
+      In Go &lt; 1.22, all iterations of a for loop share the same variable. Goroutines launched in a loop that capture the variable by reference all see its final value. Fix (pre-1.22): shadow the variable inside the loop (<code>i := i</code>) or pass it as a function argument. In Go 1.22+, each iteration creates a new variable — this gotcha is eliminated for range loops.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Slice aliasing — unexpected mutation</span>
+      Slices share an underlying array until one grows beyond capacity (triggering a copy). Appending to a sub-slice modifies the original array if capacity allows. Functions that receive a slice can mutate the caller's data. When you need a true independent copy, use <code>make</code> + <code>copy</code>. Be explicit about whether a function takes ownership of a slice or just reads it.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Maps are not concurrent-safe</span>
+      Concurrent reads are safe, but any concurrent write (including delete) causes a race and runtime panic (<code>concurrent map read and map write</code>). Protect with <code>sync.RWMutex</code> or use <code>sync.Map</code> (optimized for high-read, low-write and stable key sets). The race detector (<code>-race</code>) catches this at runtime — always run tests with it in CI.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">defer in loops doesn't run at loop end</span>
+      <code>defer</code> runs at <strong>function return</strong>, not at the end of a loop iteration. Deferring a <code>file.Close()</code> inside a loop that opens many files will exhaust file descriptors before any are closed. Fix: extract the body into a function and defer inside it, or close explicitly without defer in the loop.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use Go When</div>
+      <ul>
+        
+        <li>High-concurrency network services — HTTP servers, gRPC services, proxies</li>
+        
+        <li>Infrastructure tooling, CLIs, and daemons (Go's standard library is excellent here)</li>
+        
+        <li>Microservices where fast startup, small binary, and predictable latency matter</li>
+        
+        <li>Systems programming where you need control but not Rust's borrow checker complexity</li>
+        
+        <li>Teams that want simple, readable concurrency without callback hell or async/await</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use Go When</div>
+      <ul>
+        
+        <li>Heavy numerical computing or ML — Python/NumPy ecosystem is far richer</li>
+        
+        <li>Rapid UI prototyping — Go has no mainstream GUI or frontend framework</li>
+        
+        <li>When you need JVM ecosystem integration (existing Java/Kotlin libraries)</li>
+        
+        <li>Code-heavy scripting where Python's brevity and REPL workflow is a better fit</li>
+        
+        <li>When team is already expert in another language and the concurrency needs are low</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">🔧 Key Language Primitives</div>
+      <table>
+        
+        <tr><td>goroutine</td><td>go f() — ~2 KB initial stack, grows to GB, managed by runtime scheduler.</td></tr>
+        
+        <tr><td>chan T</td><td>make(chan T) unbuffered; make(chan T, n) buffered. Send: ch<-v. Recv: v:=<-ch.</td></tr>
+        
+        <tr><td>select</td><td>Non-deterministically picks a ready channel case. Default case = non-blocking.</td></tr>
+        
+        <tr><td>defer</td><td>Executes at function return, in LIFO order. Args evaluated at defer site.</td></tr>
+        
+        <tr><td>interface</td><td>Implicit satisfaction. nil interface ≠ typed nil pointer. Prefer small interfaces.</td></tr>
+        
+        <tr><td>struct embedding</td><td>Not inheritance — promotion of methods. Compose behavior without subclassing.</td></tr>
+        
+        <tr><td>slice</td><td>make([]T, len, cap). Three-word header: ptr, len, cap. Shares backing array.</td></tr>
+        
+        <tr><td>map</td><td>make(map[K]V). Not concurrent-safe. Zero value is nil (panic on write). Init before use.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">🔒 sync Package Reference</div>
+      <table>
+        
+        <tr><td>sync.Mutex</td><td>Mutual exclusion. Lock() / Unlock(). Use defer mu.Unlock() after Lock().</td></tr>
+        
+        <tr><td>sync.RWMutex</td><td>Multiple concurrent readers, one writer. RLock/RUnlock for reads.</td></tr>
+        
+        <tr><td>sync.WaitGroup</td><td>Add(n) before spawning, Done() in each goroutine, Wait() to block until all done.</td></tr>
+        
+        <tr><td>sync.Once</td><td>Executes a function exactly once across goroutines. Lazy init pattern.</td></tr>
+        
+        <tr><td>sync.Map</td><td>Concurrent map optimized for stable keys with many reads. Prefer Mutex+map for writes.</td></tr>
+        
+        <tr><td>sync.Pool</td><td>Pool of reusable objects to reduce GC pressure. Not a cache — items may be collected.</td></tr>
+        
+        <tr><td>atomic</td><td>sync/atomic for lock-free primitives (Add, Load, Store, CompareAndSwap) on int/ptr.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">⚡ GC & Performance Knobs</div>
+      <table>
+        
+        <tr><td>GOGC</td><td>Target heap growth ratio before GC triggers. Default 100 (100% = double). Lower = less memory, more CPU. GOGC=off disables.</td></tr>
+        
+        <tr><td>GOMEMLIMIT</td><td>Soft memory cap (Go 1.19+). GC aggressively reclaims when near limit. Set to ~90% of container limit.</td></tr>
+        
+        <tr><td>GOMAXPROCS</td><td>Number of OS threads for goroutines. Defaults to CPU count. Set equal to vCPU for most workloads.</td></tr>
+        
+        <tr><td>go build -gcflags=-m</td><td>Print escape analysis decisions. Variables that escape to heap increase GC pressure.</td></tr>
+        
+        <tr><td>pprof</td><td>CPU, heap, goroutine, mutex, block profiles. import _ net/http/pprof for /debug/pprof endpoint.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">📦 Module & Dependency Commands</div>
+      <table>
+        
+        <tr><td>go mod init module/path</td><td>Initialize a new module. Creates go.mod.</td></tr>
+        
+        <tr><td>go get pkg@version</td><td>Add or upgrade a dependency. Use @latest or @v1.2.3.</td></tr>
+        
+        <tr><td>go mod tidy</td><td>Add missing and remove unused module requirements.</td></tr>
+        
+        <tr><td>go mod vendor</td><td>Copy dependencies into vendor/ for offline or reproducible builds.</td></tr>
+        
+        <tr><td>go mod graph</td><td>Print the module dependency graph.</td></tr>
+        
+        <tr><td>go list -m all</td><td>List all modules in the build (direct and transitive).</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">💻 CLI Commands</div>
+      <div class="cmd-block">
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Build & Run</div>
+          
+          <span class="cmd">go run ./cmd/server          # compile + run, no artifact</span>
+          
+          <span class="cmd">go build -o bin/server ./... # build all packages</span>
+          
+          <span class="cmd">go install ./...             # build + install to $GOPATH/bin</span>
+          
+          <span class="cmd">CGO_ENABLED=0 GOOS=linux go build -o app ./cmd/server  # static Linux binary</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Testing</div>
+          
+          <span class="cmd">go test ./...                          # run all tests</span>
+          
+          <span class="cmd">go test -v -run TestFoo ./pkg/...      # run matching tests, verbose</span>
+          
+          <span class="cmd">go test -race ./...                    # run with data race detector (always in CI)</span>
+          
+          <span class="cmd">go test -count=1 ./...                 # disable test caching</span>
+          
+          <span class="cmd">go test -coverprofile=cover.out ./...  # generate coverage</span>
+          
+          <span class="cmd">go tool cover -html=cover.out          # open coverage in browser</span>
+          
+          <span class="cmd">go test -bench=. -benchmem ./...       # run benchmarks with memory stats</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Analysis & Quality</div>
+          
+          <span class="cmd">go vet ./...                    # built-in static analysis</span>
+          
+          <span class="cmd">go build -gcflags='-m -m' ./... # show escape analysis (verbose)</span>
+          
+          <span class="cmd">golangci-lint run ./...         # multi-linter (recommended for CI)</span>
+          
+          <span class="cmd">staticcheck ./...               # advanced static analysis</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Profiling</div>
+          
+          <span class="cmd">go tool pprof http://localhost:6060/debug/pprof/heap    # heap profile</span>
+          
+          <span class="cmd">go tool pprof http://localhost:6060/debug/pprof/profile # 30s CPU profile</span>
+          
+          <span class="cmd">go tool pprof -http=:8080 profile.out                   # serve profile UI</span>
+          
+          <span class="cmd">go tool trace trace.out                                   # execution tracer</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Go vs Java vs Rust — Concurrency & Operations</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+            <th>Dimension</th>
+            
+            <th>Go</th>
+            
+            <th>Java (modern)</th>
+            
+            <th>Rust</th>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Concurrency model</td>
+            
+            <td>Goroutines + channels (CSP); M:N scheduler</td>
+            
+            <td>Virtual threads (JDK 21+) or reactive streams</td>
+            
+            <td>Async/await or OS threads; no data races by design</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Memory management</td>
+            
+            <td>Concurrent GC; ~1 ms STW pauses</td>
+            
+            <td>G1/ZGC; sub-ms pauses possible</td>
+            
+            <td>No GC; ownership + borrow checker; zero runtime overhead</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Startup time</td>
+            
+            <td>~10 ms; small static binary</td>
+            
+            <td>~100 ms–1 s (JVM warmup)</td>
+            
+            <td>~1 ms; single binary</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Binary size</td>
+            
+            <td>~5–15 MB (statically linked)</td>
+            
+            <td>Fat JAR + JVM</td>
+            
+            <td>~1–5 MB</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Error handling</td>
+            
+            <td>Explicit (error return values)</td>
+            
+            <td>Exceptions (checked/unchecked)</td>
+            
+            <td>Result<T,E> type; no exceptions</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Generics</td>
+            
+            <td>Since 1.18; good for collections/algorithms; no specialization</td>
+            
+            <td>Mature generics with type erasure</td>
+            
+            <td>Full monomorphized generics</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Learning curve</td>
+            
+            <td>Low; ~1 week for basics</td>
+            
+            <td>Medium; rich ecosystem to learn</td>
+            
+            <td>High; borrow checker requires mental shift</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best for</td>
+            
+            <td>Network services, CLIs, infrastructure</td>
+            
+            <td>Enterprise, large teams, JVM ecosystem</td>
+            
+            <td>Systems programming, safety-critical, zero-overhead FFI</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">How does Go's goroutine scheduler work? What is GOMAXPROCS and how does work-stealing fit in?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Go uses an <strong>M:N scheduler</strong>: M goroutines run on N OS threads, managed by logical processors <strong>P</strong> (GOMAXPROCS, defaults to CPU count). Each P has a <strong>local run queue</strong> of goroutines. An OS thread M must hold a P to run goroutines. When a goroutine blocks on a syscall, M releases P so another M can acquire it and keep running goroutines — no OS thread is wasted waiting.
+<strong>Work-stealing</strong>: when a P's local queue is empty, it steals half of another P's run queue. This keeps all processors busy under uneven load without global locking.
+Since Go 1.14, the scheduler is <strong>asynchronously preemptible</strong> — goroutines in tight loops are interrupted at safe points, preventing one goroutine from starving others.
+Setting <code>GOMAXPROCS</code> below CPU count can help in environments that charge by CPU (e.g., you have 2 vCPUs allocated in a 64-core host). Setting it above physical cores is rarely useful.</div>
+        
+        <div class="staff-add">In containerized environments, Go historically read CPU count from the host, not the cgroup limit. If your pod has a 2-CPU limit on a 64-core node, Go defaults <code>GOMAXPROCS</code> to 64 — causing massive context-switching and throttling. Fix with <code>GOMAXPROCS=2</code> explicitly or the <code>go.uber.org/automaxprocs</code> library, which reads cgroup quotas at startup. This is a frequent and impactful production footgun.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">Explain buffered vs unbuffered channels. When does each block?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Unbuffered channel</strong> (<code>make(chan T)</code>): sender blocks until a receiver is ready, and vice versa. Acts as a synchronization point — both sides rendezvous. Use when you want to guarantee the receiver has started processing before the sender continues.
+<strong>Buffered channel</strong> (<code>make(chan T, n)</code>): sender blocks only when the buffer is full; receiver blocks only when it's empty. Decouples sender and receiver pace up to the buffer capacity.
+Common patterns: - Unbuffered for signaling/synchronization (done channels, semaphores with 1-capacity) - Buffered for work queues where you want to absorb bursts - A channel of capacity 1 used with a non-blocking send (<code>select + default</code>) is a simple
+  "coalesce" — only signal if nobody is already notified</div>
+        
+        <div class="staff-add">Buffer size is a design decision with observable consequences. A buffer that's too small causes the producer to block frequently (backpressure, which is sometimes intentional). Too large and you lose the signal that a downstream is slow — the buffer absorbs the problem until it's suddenly full. Make buffer sizes explicit and derived from expected throughput and latency SLAs. Monitor channel saturation in production — if a buffered channel is consistently full, it's a signal the consumer can't keep up.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">What causes goroutine leaks and how do you detect and fix them?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">A goroutine leaks when it blocks indefinitely and nothing will ever unblock it: - <strong>Abandoned channel sender/receiver</strong>: goroutine sends to a channel that no receiver ever reads - <strong>Context not propagated</strong>: goroutine does blocking I/O but ignores context cancellation - <strong>WaitGroup misuse</strong>: <code>Add</code> called incorrectly, <code>Wait</code> blocks forever - <strong>Mutex deadlock</strong>: two goroutines each hold a lock the other needs
+<strong>Detection</strong>: <code>runtime.NumGoroutine()</code> trend over time; <code>pprof</code> goroutine profile (<code>/debug/pprof/goroutine</code>) shows stack traces of all live goroutines — leaked ones appear blocked at the same site repeatedly. The <code>goleak</code> package (test helper) fails tests if goroutines remain after the test.
+<strong>Fix pattern</strong>: every long-running goroutine should <code>select</code> on <code>ctx.Done()</code> and exit cleanly. Design goroutine lifetimes explicitly — who creates it, who cancels it, how does it signal done.</div>
+        
+        <div class="staff-add">Goroutine leaks compound over time. A service handling 1000 req/s that leaks one goroutine per request exceeding a timeout will accumulate 60K goroutines per minute under incidents — exactly when you're already under pressure. Structured concurrency patterns help: wrap related goroutines in an <code>errgroup.Group</code> (golang.org/x/sync/errgroup) so the group's context cancels all members on first error. This makes goroutine lifetime scoped to a logical unit of work rather than spread across the codebase.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">Value receivers vs pointer receivers — how do you decide which to use?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Pointer receiver</strong> (<code>func (s *S) Method()</code>): the method receives a pointer to the struct, so it can mutate the value and its changes are visible to the caller. Required when the method needs to modify the receiver, or when the struct is large (avoids copying).
+<strong>Value receiver</strong> (<code>func (s S) Method()</code>): gets a copy of the struct. Changes don't affect the original. Suitable for small, read-only methods and primitive-like types.
+<strong>Rules of thumb</strong>: - If any method on a type uses a pointer receiver, use pointer receivers for all methods
+  (consistency for the method set; a <code>*T</code> value satisfies both pointer and value receiver
+  interfaces, but a <code>T</code> value only satisfies value receiver interfaces)
+- Mutating methods must use pointer receivers - Large structs should use pointer receivers to avoid copying overhead - Small immutable structs (like <code>time.Time</code>) can use value receivers</div>
+        
+        <div class="staff-add">The interface satisfaction rule is the subtle one. If <code>*T</code> has a method defined with a pointer receiver, you cannot pass a plain <code>T</code> value where the interface is expected — only <code>*T</code> satisfies it. This means if you ever want to satisfy an interface with your type, decide early whether it'll be <code>T</code> or <code>*T</code> that implements it, and stay consistent. In practice, use pointer receivers as the default for non-trivial structs.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">Walk through how defer works, including LIFO order, argument evaluation, and named return interactions.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><code>defer</code> pushes a function call onto a stack that executes <strong>LIFO</strong> when the surrounding function returns (including via <code>panic</code>).
+<strong>Argument evaluation</strong>: arguments to the deferred function are evaluated at the <code>defer</code> statement, not at execution. <code>defer fmt.Println(x)</code> captures <code>x</code>'s current value. To defer with the latest value, use a closure: <code>defer func() { fmt.Println(x) }()</code>.
+<strong>Named returns</strong>: a deferred function can read and modify named return values. <code>go func double(n int) (result int) {
+    defer func() { result *= 2 }()
+    result = n
+    return  // returns n*2, not n
+}</code> This is powerful for cleanup that depends on whether an error occurred.
+<strong>Common patterns</strong>: <code>defer mu.Unlock()</code>, <code>defer file.Close()</code>, <code>defer span.End()</code>. Defer in a loop is a bug — it accumulates deferred calls until function return.</div>
+        
+        <div class="staff-add">Defer has a small but real overhead — each deferred call allocates a <code>_defer</code> record on the heap (or stack in modern Go with stack-allocated defers). In hot paths called millions of times per second, explicit <code>Close()</code> calls can be meaningfully faster. Profile before optimizing; for most code the clarity of defer outweighs the cost.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">Explain Go's error wrapping with %w, errors.Is, and errors.As. When do you use each?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong><code>fmt.Errorf("... %w", err)</code></strong>: wraps <code>err</code> inside a new error, preserving the chain. The original error is accessible via <code>errors.Unwrap</code>.
+<strong><code>errors.Is(err, target)</code></strong>: walks the error chain and returns true if any error in the chain equals <code>target</code>. Use for sentinel error comparison: <code>errors.Is(err, sql.ErrNoRows)</code>.
+<strong><code>errors.As(err, &amp;target)</code></strong>: walks the chain looking for an error assignable to <code>target</code>'s type. Use to extract a typed error: <code>var ne *net.Error; errors.As(err, &amp;ne)</code> then read <code>ne.Timeout()</code>.
+<strong>Sentinel errors</strong> (<code>var ErrNotFound = errors.New("not found")</code>): for equality checks. Don't use <code>==</code> for error comparison when wrapping is involved — always use <code>errors.Is</code>.
+<strong>Typed errors</strong> (structs implementing <code>error</code>): when callers need structured data from the error (e.g., HTTP status code, retry-after duration).</div>
+        
+        <div class="staff-add">Define your error taxonomy at package boundaries. Public errors (those callers will check) should be either exported sentinels or exported types. Internal errors you don't expect callers to inspect can be plain <code>fmt.Errorf</code>. Adding context to errors (<code>fmt.Errorf("parsing config: %w", err)</code>) creates a traceable chain from API boundary down to root cause — equivalent to a stack trace in prose form. Avoid stripping the error chain (<code>errors.New(err.Error())</code>) — it loses the chain and makes debugging production issues significantly harder.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">How do you use context.Context correctly? What are the most common misuses?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><code>context.Context</code> is the idiomatic way to carry deadlines, cancellation, and request-scoped values across goroutines and API boundaries.
+<strong>Rules</strong>: - Always accept <code>ctx context.Context</code> as the <strong>first parameter</strong> of functions doing I/O or waiting - Never store context in a struct field — pass it explicitly - Always call the cancel function returned by <code>WithCancel</code>/<code>WithTimeout</code> (use <code>defer cancel()</code>) - Check <code>ctx.Err()</code> or <code>ctx.Done()</code> in any blocking loop - Use <code>context.WithValue</code> sparingly — only for request-scoped data (trace IDs, auth tokens),
+  not for optional function parameters</p>
+<p><strong>Common misuses</strong>: - Ignoring the cancel function → context and its resources leak - Storing context in a struct and using it across requests → wrong context for the request - Passing <code>context.Background()</code> instead of the request context → deadline/cancellation lost - Using <code>context.WithValue</code> with string keys → collisions; use unexported type keys</p></div>
+        
+        <div class="staff-add">Context propagation is where Go service meshes and observability hook in. OpenTelemetry, gRPC interceptors, and middleware all propagate trace spans via context. If your functions accept and pass <code>ctx</code> correctly, adding distributed tracing later is a near-zero-code-change. If you bypassed context propagation early, retrofitting it means touching every layer. Treat context propagation as infrastructure, not application code.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">How does Go's GC work, and how do you tune and diagnose GC problems in production?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Go uses a <strong>concurrent tri-color mark-and-sweep GC</strong>. The mark phase runs concurrently with the program; short stop-the-world (STW) pauses happen only to start/stop marking (~100 µs). The GC is triggered when heap size reaches <code>GOGC</code>% above the live heap size after the last collection (default: 100 — heap doubles before GC runs).
+<strong>Key knobs</strong>: - <code>GOGC</code>: lower → GC runs more often → less memory, more CPU. <code>GOGC=off</code> disables. - <code>GOMEMLIMIT</code> (Go 1.19+): a soft ceiling; GC works harder as you approach it. Set to ~90%
+  of container memory limit to prevent OOM kills.
+- <code>runtime/debug.SetGCPercent()</code> and <code>SetMemoryLimit()</code> at runtime for dynamic tuning.
+<strong>Diagnostics</strong>: - <code>GODEBUG=gctrace=1</code>: prints a line per GC cycle with pause times, heap sizes - <code>pprof</code> heap profile: see what's allocated and by whom - <code>go tool trace</code>: fine-grained execution trace with GC events - Look for <code>scvg</code> events (OS memory release) and large heap retention
+<strong>Reducing GC pressure</strong>: reuse allocations with <code>sync.Pool</code>, prefer value types over pointers (stack allocation), avoid interface boxing of small values in hot paths.</div>
+        
+        <div class="staff-add">In containerized services, GC tuning is often more impactful than algorithmic optimization. A service with 512 MB limit, GOGC=100, and 200 MB live heap will GC every time it grows to 400 MB — burning CPU at exactly the worst time (load spike). Setting <code>GOMEMLIMIT=460MiB</code> and <code>GOGC=off</code> delegates control entirely to the memory limit, reducing CPU waste and eliminating the "GC death spiral" pattern where GC overhead exceeds useful work under load. Benchmark the tradeoff for your workload's allocation rate and latency profile.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">Describe the common concurrency patterns in Go: worker pool, fan-out/fan-in, pipeline. When do you choose each?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Worker pool</strong>: a fixed set of goroutines consuming from a shared work channel. Controls parallelism and resource usage (DB connections, file handles). Goroutines block on <code>for job := range jobs</code>, processing one at a time. Use when downstream resources are limited or you need to bound memory/CPU.
+<strong>Fan-out</strong>: distribute work across N goroutines, each doing independent processing. <code>errgroup.Group</code> is the idiomatic wrapper — starts goroutines, collects first error, cancels all via context on any error. Use for concurrent independent I/O (N API calls that don't depend on each other).
+<strong>Fan-in</strong>: merge multiple channels into one. A goroutine per input channel forwards values to a merged output channel; a WaitGroup closes the output when all inputs are done. Use when N producers feed one consumer.
+<strong>Pipeline</strong>: stages connected by channels where each stage transforms data. Each stage reads from an upstream channel and writes to a downstream channel. Cancellation propagates upstream by closing channels. Use for data transformation sequences where stages have different processing rates.</div>
+        
+        <div class="staff-add">The patterns compose. A real service might have: an HTTP handler that fan-outs to 3 downstream service calls (fan-out) → results merged (fan-in) → each result fed through a normalization pipeline (pipeline) → written by a worker pool to a DB. The power of channels is that each stage is independently testable with fake channels, and context cancellation flows through without explicit wiring. For complex orchestration, <code>golang.org/x/sync/errgroup</code> with a shared context is almost always the right primitive over raw goroutines + WaitGroup.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">How do you design Go code for testability? What are the patterns for dependency injection and mocking interfaces?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Accept interfaces, return structs</strong>: functions that accept <code>io.Reader</code> or a custom <code>UserStore</code> interface instead of concrete types can be tested with fake implementations without a real database or network.
+<strong>Constructor injection</strong>: pass dependencies into struct constructors. Avoid <code>init()</code> and package-level state — they make tests order-dependent and hard to parallelize.
+<strong>Table-driven tests</strong>: Go idiomatic. Define a slice of <code>{name, input, want}</code> structs and range over them, calling <code>t.Run(tc.name, ...)</code> for subtests. Run with <code>-v</code> to see each case.
+<strong>Mocking</strong>: generate mocks with <code>mockgen</code> (gomock) or use hand-written fakes that satisfy the interface. Prefer fakes for complex behaviors, mocks for simple call assertions.
+<strong><code>httptest</code></strong>: <code>httptest.NewRecorder()</code> and <code>httptest.NewServer()</code> for testing HTTP handlers and clients without a real server.
+<strong><code>t.Helper()</code></strong>: call in assertion helpers so failures report the caller's line, not the helper.</div>
+        
+        <div class="staff-add">Interface design is where testability and architecture intersect. Define interfaces at the point of use (not in the package that implements them) — a <code>storage</code> package exporting a <code>Repository</code> interface for its users, not for itself. Small, focused interfaces are easier to satisfy in tests and easier to change. If your mock needs 20 methods, your interface is probably too large. When teams struggle with testing, the root cause is almost always dependency injection not being applied at the design phase — retrofitting it later is expensive.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-04</span>
+        <span class="acc-question">What are the trade-offs of using sync.Map vs a sync.RWMutex-protected map?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong><code>sync.Map</code></strong> is optimized for two specific access patterns: 1. A given key is written once and read many times (stable key set) 2. Multiple goroutines read/write disjoint key sets
+It uses an internal read-only snapshot + dirty map with a mutex only for dirty reads/writes. API is more verbose (<code>Load</code>, <code>Store</code>, <code>Delete</code>, <code>Range</code>) and not generic (pre-generics stores <code>any</code>).
+<strong><code>sync.RWMutex + map</code></strong>: more flexible, type-safe (with generics: <code>map[K]V</code> protected by mutex), simpler to reason about. <code>RLock/RUnlock</code> for reads allows multiple concurrent readers. Better when write rate is non-trivial, keys change frequently, or you need atomic read-modify-write operations (Lock → read → modify → write → Unlock as a unit).
+<strong>Rule of thumb</strong>: start with <code>RWMutex + map</code>. Profile before considering <code>sync.Map</code>. The <code>sync.Map</code> optimization only pays off when the map is read-dominated and the key set is stable — benchmarks show it underperforms a plain mutex+map for write-heavy workloads.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How do you structure a large Go service for long-term maintainability? What's your approach to package layout?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The Go community has largely converged around a <strong>domain-centric</strong> layout rather than layer-centric (no <code>/controllers</code>, <code>/models</code>, <code>/services</code> folders at the top level).
+<strong>Common structure</strong>: <code>cmd/server/      ← main package, wires dependencies, thin internal/        ← private packages; enforced by compiler (external import fails)
+  domain/        ← pure business logic, no external imports
+  storage/       ← database adapters implementing domain interfaces
+  transport/     ← HTTP/gRPC handlers
+  config/        ← configuration loading
+pkg/             ← public library code others can import</code>
+<strong>Principles</strong>: - <code>cmd/</code> packages are thin wiring — no business logic - <code>internal/</code> enforces boundaries; prefer it aggressively - Define interfaces in the package that <strong>uses</strong> them, not the package that implements them - Avoid circular imports — they reveal design problems; don't work around them with hacks - <code>domain/</code> should have zero external imports — testable without infrastructure
+The <code>internal/</code> directory is Go's only compiler-enforced encapsulation. Use it freely. Don't follow the "flat package" or "one giant package" extremes — find the natural seams in your domain and put them there.</div>
+        
+        <div class="staff-add">Package boundaries are load-bearing architecture decisions. Getting them wrong is expensive to fix later — a circular import means two packages are too coupled. When reviewing a new service design, I look at the import graph: does <code>domain</code> import <code>storage</code>? That's a red flag (business logic depending on infrastructure, not the other way around). The dependency rule (domain doesn't depend on adapters) makes the service replaceable — swap the DB from Postgres to DynamoDB by writing a new adapter, not by modifying business logic.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-02</span>
+        <span class="acc-question">How do you instrument a Go service for production observability? Walk through your approach from day one.</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Three pillars from the start</strong>:
+<strong>Metrics</strong> (<code>prometheus/client_golang</code>): instrument at service, not infrastructure level. Request rate, error rate, latency histograms (p50/p95/p99), goroutine count, GC stats. Use <code>promhttp.Handler()</code> for <code>/metrics</code>. Label carefully — high-cardinality labels (per-user-ID) destroy Prometheus performance.
+<strong>Structured logging</strong> (<code>log/slog</code>, Go 1.21+, or <code>zap</code>): JSON output. Every log line should carry <code>trace_id</code>, <code>service</code>, <code>level</code>, and relevant context fields. No <code>fmt.Println</code> in production code. Log at entry/exit of external calls (latency + error) not at every internal step.
+<strong>Distributed tracing</strong> (OpenTelemetry SDK): propagate <code>context.Context</code> carrying spans. Instrument HTTP clients and servers with OTel middleware. Connect to Jaeger/Tempo.
+<strong>Practical wiring</strong>: an <code>observability</code> package initialized at startup injects a <code>*slog.Logger</code>, an OTel <code>TracerProvider</code>, and registers Prometheus metrics. All other packages receive these via dependency injection — no package-level globals.</div>
+        
+        <div class="staff-add">The most expensive observability mistake is adding it after the fact to a service that doesn't propagate context. Retrofitting trace IDs across 40 functions that take concrete types and no context is weeks of work. The second mistake is logging at DEBUG level for everything in production — when you're in an incident at 3am and your Elasticsearch query times out filtering 10B log lines, you learn to be selective. Define your logging contract up front: WARN for recoverable anomalies that need attention, ERROR for failures that affect users, and be ruthless about INFO volume.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">High-Concurrency Aggregation API</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Design an HTTP API endpoint that, for each request, calls 4 independent downstream services (inventory, pricing, reviews, recommendations), aggregates results, and returns within 200 ms. The service handles 5,000 req/s. Any downstream can be slow or fail.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>P99 response time ≤ 200 ms end-to-end</li><li>Partial results are acceptable if non-critical services fail</li><li>No goroutine leaks under sustained load</li><li>Downstream services have independent SLOs (inventory: 99.9%, others: 99%)</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Fan-out pattern with errgroup</strong>: launch all 4 downstream calls concurrently in an <code>errgroup.Group</code> with the request context. Each call runs in its own goroutine. The group's context is derived from the request context — if the HTTP request is cancelled (client disconnects), all downstream calls are cancelled via context propagation.</li><li><strong>Per-call timeouts</strong>: derive a child context with <code>context.WithTimeout</code> for each downstream call, separate from the request deadline. A slow recommendations service shouldn't eat the entire 200 ms budget — give it 150 ms, fail fast, return a degraded response.</li><li><strong>Partial failure handling</strong>: not all services are equally critical. Inventory missing = show error; recommendations missing = omit the section. Use a result struct with an error field per service, not the errgroup's fatal-on-first-error mode.</li><li><strong>Goroutine lifecycle</strong>: the errgroup ensures all goroutines complete before <code>Wait()</code> returns. No goroutines outlive the request handler. Verify with a goroutine count check in load tests.</li><li><strong>Connection pooling</strong>: <code>http.Client</code> with a tuned transport (<code>MaxIdleConnsPerHost</code>, timeouts). One shared client per downstream, not one per request.</li><li><strong>Circuit breakers</strong>: after repeated failures, break fast instead of waiting for timeout. <code>github.com/sony/gobreaker</code> or a similar library. Avoids cascading latency when a downstream is degraded.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Sequential downstream calls — 4×50ms = 200ms with no budget for anything else</li><li>Creating a new <code>http.Client</code> per request — exhausts file descriptors</li><li>No per-call timeout — one slow downstream can cause all requests to hit the total deadline</li><li>Goroutines without cancellation — leaked goroutines accumulate during incidents when downstreams are slow</li><li>Using <code>context.Background()</code> instead of the request context — cancellation lost</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Bounded Worker Pool for Job Processing</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A service reads jobs from a queue (SQS/Kafka) and processes each job by calling an external API and writing results to a database. The external API allows at most 100 concurrent requests. Jobs arrive in bursts; processing takes 50–500 ms per job.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>At most 100 concurrent external API calls at any time</li><li>Job processing must be at-least-once (failures should be retried)</li><li>Graceful shutdown: in-flight jobs complete; no new jobs accepted</li><li>Dead-letter jobs that fail 3 times</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Worker pool sizing</strong>: create exactly 100 goroutines at startup, each reading from a <code>jobs</code> channel. The channel acts as the work queue; its capacity controls bursting. Workers block on the channel when idle — no busy-waiting.</li><li><strong>Graceful shutdown with WaitGroup</strong>: on SIGTERM, stop consuming from the queue source and close the <code>jobs</code> channel (signals workers no more work is coming). Workers drain and exit <code>range jobs</code>. A <code>sync.WaitGroup</code> tracks in-flight workers; main goroutine calls <code>wg.Wait()</code> before exiting. Give a deadline (30 s) for drain.</li><li><strong>Retry with exponential backoff</strong>: each job struct carries a <code>RetryCount</code>. On failure, re-enqueue with <code>RetryCount++</code> and a delay. After 3 failures, write to DLQ topic/table with error context. Don't retry indefinitely — unbounded retry queues are memory leaks.</li><li><strong>Backpressure</strong>: if the <code>jobs</code> channel is full (all 100 workers busy), the reader goroutine blocks. This is intentional — backpressure signals the queue source to slow consumption. Make the channel capacity small (e.g., 2× worker count) to limit in-memory buffering.</li><li><strong>Observability</strong>: emit metrics per worker (idle time, processing time, error rate). A consistently idle pool means over-provisioned workers; consistently full queue means under-provisioned.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Spawning a new goroutine per job — no bound on concurrency, OOM under burst</li><li>Ignoring shutdown signal — jobs in flight dropped mid-processing</li><li>Infinite retry loop in the goroutine — one bad job ties up a worker forever</li><li>Sharing a single http.Client across all 100 workers without tuning MaxIdleConnsPerHost — connection pool exhaustion</li><li>No DLQ — failed jobs silently lost after max retries</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Zero-Downtime Deploy of a Stateful Go Service</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Your Go HTTP service holds in-memory state (a cache populated at startup) and handles ~10,000 req/s. You need to deploy a new version without dropping requests or serving stale data during the transition.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>No dropped connections during deploy</li><li>Cache must be warm at startup before accepting traffic</li><li>Rollback must complete in under 60 seconds if the new version fails health checks</li><li>Running in Kubernetes with a Deployment and a LoadBalancer Service</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Graceful shutdown</strong>: on SIGTERM, call <code>server.Shutdown(ctx)</code> with a timeout (e.g., 30 s). <code>Shutdown</code> stops accepting new connections and waits for in-flight requests to complete. Never <code>os.Exit</code> directly — it drops all in-flight requests instantly.</li><li><strong>Readiness vs liveness probes</strong>: readiness probe must fail until the cache is warm. On startup, populate cache, then signal ready (flip a boolean, expose via <code>/ready</code>). Kubernetes won't route traffic until readiness succeeds — pod starts, loads cache, becomes ready, receives traffic.</li><li><strong>Rolling deployment</strong>: Kubernetes default. New pods start (readiness not yet true), old pods keep serving. New pods become ready, old pods receive SIGTERM (graceful drain), new pods receive traffic. <code>minReadySeconds</code> ensures new pods stabilize before old pods are removed.</li><li><strong>PodDisruptionBudget (PDB)</strong>: ensures at least N pods remain available during voluntary disruptions. Without it, Kubernetes might evict all pods during a node drain.</li><li><strong>Cache warm-up strategy</strong>: if cold start takes &gt;10 s, consider seeding from a persistent cache (Redis) or a pre-warm endpoint hit by a startup probe. Long warm-up times are the main risk for rolling deploys — they make the transition window longer.</li><li><strong>Connection draining delay</strong>: Kubernetes removes the pod from the Endpoints list before sending SIGTERM, but there's a propagation delay. Add a <code>preStop</code> hook with a 5-second sleep before graceful shutdown begins — this absorbs the propagation lag and prevents a small window of dropped connections.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Sending SIGKILL immediately (terminationGracePeriodSeconds too low) — drops in-flight requests</li><li>No readiness probe — pod receives traffic before cache is warm, serving errors</li><li>No preStop sleep hook — 2–5 s window of dropped connections on every deploy</li><li>Rebuilding the entire cache from scratch synchronously — minutes of not-ready time</li><li>Storing session state only in-memory — all user sessions lost on pod restart</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>function toggleTheme(){
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  h.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+function switchTab(name, el){
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+}
+
+function toggleAcc(header){
+  const item = header.parentElement;
+  item.classList.toggle('open', !item.classList.contains('open'));
+}
+</script>
+</body>
+</html>

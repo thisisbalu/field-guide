@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apache Kafka — Field Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#0077aa;--accent2:#d95a1e;--accent3:#5b21b6; --highlight-bg:#e8edf3;--highlight-text:#0077aa;--highlight-border:#0099bb; --your-exp-bg:rgba(91,33,182,.06);--your-exp-border:rgba(91,33,182,.2);--your-exp-text:#5b21b6; --acc-hover:rgba(0,119,170,.04);--acc-open-border:#0099bb;--acc-open-bg:rgba(0,153,187,.04); --num-color:#0077aa;--num-bg:rgba(0,119,170,.1); --tag-color:#0077aa;--tag-bg:rgba(0,119,170,.08);--tag-border:rgba(0,119,170,.2); --flow-arrow:#0077aa;--h1-from:#1a6b3a;--h1-to:#0077aa; --badge-color:#1a6b3a;--stat-num:#1a6b3a; --tab-active-color:#0099bb;--tab-active-bg:rgba(0,153,187,.08);--tab-active-border:#0099bb; --section-title:#0077aa;--concept-title:#1a6b3a; --cheat-head-bg:#1a6b3a;--cheat-head-text:#ffffff;--cheat-key:#1a6b3a; --cmd-bg:#e8edf3;--cmd-text:#1a6b3a; }
+  [data-theme="dark"]{ --accent:#00d4ff;--accent2:#ff6b35;--accent3:#7c3aed; --highlight-bg:#1a2235;--highlight-text:#10b981;--highlight-border:#10b981; --your-exp-bg:rgba(124,58,237,.1);--your-exp-border:rgba(124,58,237,.3);--your-exp-text:#c4b5fd; --acc-hover:rgba(16,185,129,.04);--acc-open-border:#10b981;--acc-open-bg:rgba(16,185,129,.03); --num-color:#10b981;--num-bg:rgba(16,185,129,.08); --tag-color:#10b981;--tag-bg:rgba(16,185,129,.08);--tag-border:rgba(16,185,129,.2); --flow-arrow:#10b981;--h1-from:#10b981;--h1-to:#00d4ff; --badge-color:#10b981;--stat-num:#10b981; --tab-active-color:#10b981;--tab-active-bg:rgba(16,185,129,.08);--tab-active-border:#10b981; --section-title:#10b981;--concept-title:#10b981; --cheat-head-bg:#1a2235;--cheat-head-text:#10b981;--cheat-key:#10b981; --cmd-bg:#1a2235;--cmd-text:#10b981; }
+  [data-theme="light"] .toggle-knob{background:#1a6b3a;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#10b981;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Stats row ───────────────────────────────────────────────────────────── */
+.stats{display:flex;gap:.75rem;margin-bottom:2rem;flex-wrap:wrap;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.65rem 1rem;text-align:center;flex:1;min-width:90px;}
+.stat-num{font-size:1.6rem;font-weight:800;color:var(--stat-num);font-family:'IBM Plex Mono',monospace;line-height:1;}
+.stat-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:'IBM Plex Mono',monospace;margin-top:.25rem;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .4s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{max-height:3000px;padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+}
+
+</style>
+</head>
+<body>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>Apache Kafka</h1>
+  <p class="subtitle">// event streaming · partitions · consumer groups · delivery semantics · stream processing · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
+  <div class="tab" onclick="switchTab('deepdive',this)">Deep Dive</div>
+  <div class="tab" onclick="switchTab('qa',this)">Q &amp; A</div>
+  <div class="tab" onclick="switchTab('scenarios',this)">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">📡 What Kafka Is</div>
+      <div class="concept-body">
+        A distributed, append-only log used as a high-throughput, durable message bus. Producers write events; consumers read them at their own pace. Events are persisted to disk — a slow or offline consumer doesn't lose data, it just has lag. Kafka is optimized for sequential disk I/O, which is why it outperforms in-memory queues at scale.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">event streaming</span>
+          
+          <span class="tag">durable</span>
+          
+          <span class="tag orange">high-throughput</span>
+          
+          <span class="tag purple">distributed log</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📦 Topics, Partitions & Offsets</div>
+      <div class="concept-body">
+        A <strong>topic</strong> is a named channel (e.g. <code>payments</code>). Each topic is split into <strong>partitions</strong> — ordered, immutable sequences of records. Each record has an <strong>offset</strong>, its unique position within a partition. Ordering is guaranteed within a partition; none across partitions. Consumers track their own offset — they can replay from any point.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Topic</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Partition 0..N</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Offset 0..∞</span>
+          
+        </div>
+        
+        
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">👥 Consumer Groups</div>
+      <div class="concept-body">
+        Consumers in the same group share the work — each partition is consumed by exactly one consumer in the group. More consumers than partitions = idle consumers. Different groups each get all messages independently — fan-out is free. Max parallelism per group = partition count.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Partition 0</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Consumer A</span>
+          
+        </div>
+        
+        <div class="flow">
+          
+          <span class="flow-step">Partition 1</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Consumer B</span>
+          
+        </div>
+        
+        
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🏗️ Brokers, Leaders & Replication</div>
+      <div class="concept-body">
+        A Kafka cluster is a set of <strong>brokers</strong>. Each partition has one <strong>leader</strong> (handles all reads/writes) and zero or more <strong>followers</strong> (replicas). The <strong>ISR</strong> (In-Sync Replicas) is the set of replicas caught up with the leader. If the leader fails, a follower in the ISR is elected. Replication factor controls durability — typically 3 in production.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">RF=3 tolerates 2 broker failures</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">✅ Delivery Guarantees</div>
+      <div class="concept-body">
+        <strong>At-most-once</strong> — send and forget. May lose messages, never duplicates. Fastest.
+<strong>At-least-once</strong> — retry on failure. No data loss, but duplicates possible. Default for most systems.
+<strong>Exactly-once (EOS)</strong> — idempotent producer + transactional API. No loss, no duplicates. Highest cost. Covers Kafka-to-Kafka only; your sink must also be idempotent for true end-to-end EOS.
+        
+        
+        <div class="tags">
+          
+          <span class="tag red">at-most-once</span>
+          
+          <span class="tag orange">at-least-once</span>
+          
+          <span class="tag green">exactly-once (EOS)</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔁 Log Retention vs Log Compaction</div>
+      <div class="concept-body">
+        <strong>Time/size retention</strong> — delete records older than <code>retention.ms</code> or beyond <code>retention.bytes</code>. Use when you care about the event stream up to a time window.
+<strong>Log compaction</strong> — retain only the latest value per key. Tombstone (null-value) records signal deletion. Use for changelog topics and materializing current state.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">compaction = KV store</span>
+          
+          <span class="tag orange">retention = time-bounded log</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔌 Kafka Connect</div>
+      <div class="concept-body">
+        A framework for moving data between Kafka and external systems without writing producer/consumer code. Source connectors pull data in (databases via CDC, S3, APIs); sink connectors push data out (Elasticsearch, JDBC, S3). Connectors run as distributed workers and handle parallelism and fault tolerance. Use Connect before writing a custom consumer for standard integrations.
+        
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🌊 Kafka Streams & ksqlDB</div>
+      <div class="concept-body">
+        Kafka Streams is a Java library for stateful stream processing — aggregations, joins, windowing — embedded in your application with no external cluster. ksqlDB is a SQL layer on top for simpler transformations. Both materialize state in local RocksDB stores backed by Kafka changelog topics for fault tolerance. Use for real-time aggregations, enrichment, and event-driven pipelines. Not for heavy ML inference or complex batch workloads — use Flink or Spark there.
+        
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Ordering is per-partition only</span>
+      Cross-partition ordering is your domain's responsibility. If you need global order, you need one partition — which caps throughput at one consumer and one broker. Most systems that think they need global order actually need per-entity order (model it as a key).
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Rebalancing pauses all consumers in the group</span>
+      Eager rebalancing (default before 2.4) stops all consumers, drops partitions, then reassigns everything. A group of 50 consumers rebalancing takes seconds of downtime. Migrate to <code>CooperativeStickyAssignor</code>. Monitor rebalance frequency — frequent rebalancing is a consumer stability problem, not a Kafka problem.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Hot partitions from bad key choice</span>
+      Choosing a low-cardinality key (e.g. country code for a US-heavy workload) concentrates load on a few partitions. One broker becomes the bottleneck. Diagnose with broker-level disk and network metrics. Fix by adding entropy to the key or using a custom partitioner.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">max.poll.interval.ms thrashing</span>
+      If processing a batch takes longer than this timeout, the broker kicks the consumer out and rebalances. The consumer rejoins, reprocesses from last committed offset, hits the timeout again — a rebalancing loop with no progress. Fix by reducing <code>max.poll.records</code>, optimizing processing, or moving slow work off the poll loop.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">auto.offset.reset=latest is a silent data loss footgun</span>
+      A new consumer group with <code>latest</code> misses all historical data and starts only from the moment it's deployed. Teams often don't notice until days later. For any consumer that needs a complete view, use <code>earliest</code>. Always verify committed offsets exist before deploying new consumer groups to production.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Exactly-once at the consumer is harder than at the broker</span>
+      Kafka's EOS covers Kafka-to-Kafka flows only. If your consumer writes to a database or calls an HTTP API, you're outside the transaction boundary. True end-to-end EOS requires an idempotent sink — upsert by event ID, deduplication table, or conditional writes.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use Kafka When</div>
+      <ul>
+        
+        <li>High-throughput event streaming (millions of events/sec)</li>
+        
+        <li>Multiple independent consumers need the same data (fan-out)</li>
+        
+        <li>You need replay — consumers can re-read historical events</li>
+        
+        <li>Decoupling producers from consumers with different processing rates</li>
+        
+        <li>Event sourcing or audit log that must be durable and ordered per entity</li>
+        
+        <li>Stream processing pipelines (aggregation, enrichment, joining streams)</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use Kafka When</div>
+      <ul>
+        
+        <li>Request/reply RPC — Kafka is not a synchronous messaging system</li>
+        
+        <li>Low-volume, low-latency task queues — RabbitMQ or SQS are simpler</li>
+        
+        <li>Sub-millisecond latency requirements — broker round-trips add overhead</li>
+        
+        <li>Large payloads (images, videos) — store in S3, put the reference in Kafka</li>
+        
+        <li>You need per-message TTL or priority queues — Kafka supports neither natively</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">⚙️ Producer Config Reference</div>
+      <table>
+        
+        <tr><td>acks</td><td>0 = none, 1 = leader, all = full ISR. Use `all` for durability.</td></tr>
+        
+        <tr><td>enable.idempotence</td><td>true — broker deduplicates retries using PID + sequence number.</td></tr>
+        
+        <tr><td>retries</td><td>Set high with idempotence. Default MAX_INT in modern clients.</td></tr>
+        
+        <tr><td>linger.ms</td><td>Wait before flushing a batch. Higher = better throughput, more latency.</td></tr>
+        
+        <tr><td>batch.size</td><td>Max bytes per batch per partition. Larger batches = better compression.</td></tr>
+        
+        <tr><td>compression.type</td><td>none / gzip / snappy / lz4 / zstd. snappy or lz4 for throughput; zstd for ratio.</td></tr>
+        
+        <tr><td>max.in.flight.requests</td><td>Keep ≤5 with idempotence. >1 without idempotence risks reordering on retry.</td></tr>
+        
+        <tr><td>buffer.memory</td><td>Total bytes the producer can buffer before blocking. Tune for burst traffic.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">🔄 Consumer Config Reference</div>
+      <table>
+        
+        <tr><td>auto.offset.reset</td><td>earliest (full replay) / latest (from now) / none (throw if no offset). Set intentionally.</td></tr>
+        
+        <tr><td>enable.auto.commit</td><td>false for correctness. Commit manually after processing.</td></tr>
+        
+        <tr><td>max.poll.interval.ms</td><td>Max time between poll() calls. Processing must complete within this window.</td></tr>
+        
+        <tr><td>max.poll.records</td><td>Max records per poll. Tune down if processing is slow.</td></tr>
+        
+        <tr><td>session.timeout.ms</td><td>Max time without heartbeat before broker considers consumer dead.</td></tr>
+        
+        <tr><td>heartbeat.interval.ms</td><td>How often the consumer sends a heartbeat. ~1/3 of session timeout.</td></tr>
+        
+        <tr><td>isolation.level</td><td>read_committed — only see committed transactions. Required for EOS consumers.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">🏗️ Broker / Topic Config Reference</div>
+      <table>
+        
+        <tr><td>replication.factor</td><td>3 in production. 1 = no fault tolerance.</td></tr>
+        
+        <tr><td>min.insync.replicas</td><td>2 with RF=3 is the standard safety setting.</td></tr>
+        
+        <tr><td>retention.ms</td><td>How long to keep messages. Default 7 days. Set per topic.</td></tr>
+        
+        <tr><td>cleanup.policy</td><td>delete (time/size retention) or compact (keep latest per key).</td></tr>
+        
+        <tr><td>unclean.leader.election</td><td>false (default). Never elect an out-of-ISR replica — avoids data loss.</td></tr>
+        
+        <tr><td>replica.lag.time.max.ms</td><td>How long before a straggling replica is dropped from ISR.</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">💻 CLI Commands</div>
+      <div class="cmd-block">
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Topic management</div>
+          
+          <span class="cmd">kafka-topics.sh --create --topic my-topic --partitions 12 --replication-factor 3 --bootstrap-server broker:9092</span>
+          
+          <span class="cmd">kafka-topics.sh --describe --topic my-topic --bootstrap-server broker:9092</span>
+          
+          <span class="cmd">kafka-topics.sh --alter --topic my-topic --partitions 24 --bootstrap-server broker:9092</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Consumer group inspection</div>
+          
+          <span class="cmd">kafka-consumer-groups.sh --describe --group my-group --bootstrap-server broker:9092</span>
+          
+          <span class="cmd">kafka-consumer-groups.sh --list --bootstrap-server broker:9092</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Offset management</div>
+          
+          <span class="cmd">kafka-consumer-groups.sh --reset-offsets --group my-group --topic my-topic --to-earliest --execute --bootstrap-server broker:9092</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Testing / debugging</div>
+          
+          <span class="cmd">kafka-console-producer.sh --topic my-topic --bootstrap-server broker:9092</span>
+          
+          <span class="cmd">kafka-console-consumer.sh --topic my-topic --from-beginning --bootstrap-server broker:9092</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">⚖️ Kafka vs RabbitMQ vs Amazon SQS vs Apache Pulsar</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+            <th>Dimension</th>
+            
+            <th>Apache Kafka</th>
+            
+            <th>RabbitMQ</th>
+            
+            <th>Amazon SQS</th>
+            
+            <th>Apache Pulsar</th>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Throughput</td>
+            
+            <td>Very high (millions/sec)</td>
+            
+            <td>Medium (tens of thousands/sec)</td>
+            
+            <td>Medium (managed, auto-scales)</td>
+            
+            <td>Very high — comparable to Kafka</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Message ordering</td>
+            
+            <td>Guaranteed within a partition</td>
+            
+            <td>Per queue (single consumer)</td>
+            
+            <td>No guarantee (FIFO queue: per group ID)</td>
+            
+            <td>Guaranteed within a partition</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Retention & replay</td>
+            
+            <td>Configurable days/weeks. Full replay anytime.</td>
+            
+            <td>Consumed = deleted. No replay.</td>
+            
+            <td>Consumed = deleted. Max 14-day retention.</td>
+            
+            <td>Tiered storage — near-unlimited retention.</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Consumer model</td>
+            
+            <td>Pull. Consumer groups share partitions.</td>
+            
+            <td>Push or pull. Competing consumers.</td>
+            
+            <td>Pull (long-poll). Competing consumers.</td>
+            
+            <td>Push + pull. Shared, failover, key-shared.</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Delivery semantics</td>
+            
+            <td>At-least-once default. Exactly-once via transactions.</td>
+            
+            <td>At-least-once with manual acks.</td>
+            
+            <td>At-least-once. Standard queue can duplicate.</td>
+            
+            <td>At-least-once default. Exactly-once with transactions.</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Ops complexity</td>
+            
+            <td>High — cluster management, partition tuning.</td>
+            
+            <td>Medium — easier at smaller scale.</td>
+            
+            <td>Very low — fully managed by AWS.</td>
+            
+            <td>High — BookKeeper adds operational complexity.</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best for</td>
+            
+            <td>Event streaming, audit logs, multi-consumer fan-out.</td>
+            
+            <td>Task queues, work distribution, complex routing.</td>
+            
+            <td>Cloud-native decoupling, serverless triggers.</td>
+            
+            <td>Kafka replacement with tiered storage, multi-tenancy.</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">How does Kafka guarantee message ordering, and what breaks it?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Kafka guarantees ordering only within a partition — records are appended in order and read in order. A producer sending records with the same key always routes to the same partition (consistent hashing of the key), so all events for a given entity (user, order, account) arrive in order at the consumer.
+What breaks it: sending without a key causes round-robin routing across partitions, so two records for the same entity can land in different partitions and be consumed out of order. A partition count change after data exists also remaps keys. Sticky partitioning (default since 2.4) batches keyless records to the same partition per batch — this improves throughput, but is not an ordering guarantee.</div>
+        
+        <div class="staff-add">Cross-partition ordering is your domain's responsibility, not Kafka's. The key design question is: do you actually need global ordering across all entities, or just ordering per entity? Almost always it's the latter — and that's exactly what key-based partitioning gives you. If you think you need global order, push back: a single partition caps your throughput to one consumer and one leader broker. Model the domain so ordering is required only within a natural key boundary.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">What is consumer group rebalancing, when does it happen, and how do you minimize its impact?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">A rebalance happens when the group membership changes: a consumer joins or leaves, a consumer times out (<code>max.poll.interval.ms</code> exceeded or missed heartbeat), or partition count changes. During an eager rebalance (default pre-2.4), all consumers stop consuming, drop all partitions, and wait for the group coordinator to reassign — a full stop-the-world pause. Cooperative rebalancing (<code>CooperativeStickyAssignor</code>) only revokes and moves the partitions that need to change, leaving the rest untouched. Minimize impact: use cooperative rebalancing, tune <code>session.timeout.ms</code> and <code>heartbeat.interval.ms</code> appropriately, and ensure <code>max.poll.records</code> is low enough that processing finishes within <code>max.poll.interval.ms</code>.</div>
+        
+        <div class="staff-add">Frequent rebalancing is a consumer stability problem, not a Kafka problem. At scale, a group of 50 consumers rebalancing takes several seconds — during which consumer lag grows. Design for it: make consumers idempotent (rebalances cause re-processing of uncommitted offsets), and monitor rebalance frequency as a first-class metric. If rebalances are triggered by <code>max.poll.interval.ms</code>, the real fix is reducing batch size or moving slow processing off the poll loop — not raising the timeout.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">What is an idempotent producer, and how does Kafka prevent duplicate messages from retries?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Without idempotence, a producer that retries a failed send may cause the broker to write the same record twice if the first write succeeded but the ack was lost. With <code>enable.idempotence=true</code>, the broker assigns each producer a PID (Producer ID) and tracks a sequence number per partition. If a message arrives with the same PID and sequence number as one already written, the broker silently deduplicates it. This gives exactly-once semantics at the producer-to-broker level. Modern Kafka clients enable idempotence automatically when <code>acks=all</code> and retries is high.</div>
+        
+        <div class="staff-add">Idempotent producer only covers the producer-to-broker hop. It doesn't help when a consumer processes a message, writes to a database, and crashes before committing its offset — on restart it re-reads and re-processes the same message. Covering that gap requires either Kafka transactions (for Kafka-to-Kafka flows) or an idempotent sink — upsert by event ID, conditional writes, or a deduplication table. Most production systems use at-least-once + idempotent sinks. Kafka transactions add latency and operational complexity that's rarely justified outside Kafka Streams topologies.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">What is ISR, and what happens when a replica falls out of ISR?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">ISR (In-Sync Replicas) is the set of replicas that are fully caught up with the partition leader. A replica falls out of ISR when it hasn't fetched from the leader within <code>replica.lag.time.max.ms</code> (default 30s) — typically due to being overloaded, slow disk, or a network partition. <code>min.insync.replicas</code> defines the minimum ISR members that must acknowledge a write before the leader returns success (when <code>acks=all</code>). If ISR drops below <code>min.insync.replicas</code>, the partition becomes unavailable for writes — producers receive <code>NotEnoughReplicasException</code>.</div>
+        
+        <div class="staff-add">The triangle of <code>replication.factor</code>, <code>min.insync.replicas</code>, and <code>acks=all</code> is how you tune the availability vs. durability dial. Standard production setup: RF=3, <code>min.insync.replicas=2</code>, <code>acks=all</code> — you tolerate one broker failure while still requiring two replicas to ack every write. You lose write availability before you lose data. Setting <code>min.insync.replicas=1</code> restores availability but loses the durability guarantee. Know this triangle cold — it comes up in every Kafka reliability discussion.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">How do you choose partition count for a topic, and what are the tradeoffs?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">More partitions = more consumer parallelism (one consumer per partition per group) and higher throughput, but more overhead: more open file handles on brokers, more memory in clients, longer leader election time. You cannot reduce partition count once set — you can only add. Adding partitions on a live topic remaps key-based routing, breaking ordering for in-flight messages. Rule of thumb: target throughput ÷ throughput per partition. Common starting points: 6–12 for moderate load, 24–48 for high-throughput topics.</div>
+        
+        <div class="staff-add">Partition count is a capacity decision that also sets your parallelism ceiling. If you have 12 partitions, a consumer group can have at most 12 active members. Over-partitioning has real costs: Confluent benchmarks show significant metadata overhead past ~4000 partitions per broker. If you must repartition a critical live topic, the safest approach is a new topic with a migration period, not in-place resize.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">What is log compaction, how does it work internally, and when do you choose it over time-based retention?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Log compaction retains the latest value for each key and discards older values. A background cleaner thread scans dirty (uncompacted) log segments and rewrites them, keeping only the most recent record per key. A null-value record (tombstone) signals deletion — retained for <code>delete.retention.ms</code> so consumers can observe deletions. Use compaction when you care about current state, not history: entity state changes, user settings, feature flags, CDC events where only the latest row matters.</div>
+        
+        <div class="staff-add">Compaction has subtleties that matter in production. Compaction doesn't run continuously — it waits until the dirty ratio (<code>log.cleaner.min.dirty.ratio</code>, default 0.5) is reached, so the active segment is never compacted and can still contain duplicates. Tombstones are retained after compaction for <code>delete.retention.ms</code> — consumers must read them or they'll miss deletes during bootstrap. If you're using a compacted topic to rebuild state (Kafka Streams, cache reload), test the bootstrap path explicitly — it's where compaction-based systems quietly lose data.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">What causes consumer lag, and how do you diagnose and address it?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Consumer lag = end offset − committed offset for a partition. It grows when: producer throughput bursts beyond the consumer's processing rate; consumer processing is slow (expensive DB writes, synchronous HTTP calls, GC pauses); rebalancing paused consumption; or a consumer is stuck on a poison-pill message. Monitor lag per consumer group per partition — a single hot partition's lag is invisible in aggregates. Tools: <code>kafka-consumer-groups.sh --describe</code>, Datadog Kafka integration, Burrow.</div>
+        
+        <div class="staff-add">Lag is a leading indicator — alert on it before it becomes an incident. Response depends on root cause: burst → temporary, monitor for recovery; slow consumer → scale out (up to partition count), optimize processing, or profile the bottleneck; stuck on poison pill → implement a DLQ pattern so the consumer can skip and continue; systematic growth over days → capacity problem. Design your lag SLA per topic: "payments lag must not exceed 30s" is meaningful. Set alert thresholds derived from business impact, not arbitrary numbers.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-08</span>
+        <span class="acc-question">What is a Dead Letter Queue in a Kafka context, and how do you implement one correctly?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">A DLQ is a separate topic where messages that fail processing after N retries are written, so a bad message doesn't block the main consumer indefinitely. Pattern: consumer reads from <code>payments</code>, processing fails → write to <code>payments.DLQ</code> with headers capturing original topic, partition, offset, error type, retry count, and timestamp → commit the offset on the main topic so the consumer advances. A separate DLQ consumer handles alerting, inspection, and reprocessing. Committing the offset is critical — without it, you loop on the same record forever.</div>
+        
+        <div class="staff-add">DLQ design deserves the same rigor as the main path. Decisions to make explicitly: which exceptions go to DLQ vs. retry? (Transient network errors should retry; deserialization errors are poison pills that should DLQ immediately.) How long is DLQ retention? Who monitors it and gets alerted? How does reprocessing work? For financial or compliance events, a message silently sitting in DLQ with no action is a data integrity risk, not just technical debt.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-09</span>
+        <span class="acc-question">A consumer is being repeatedly kicked out of the group due to max.poll.interval.ms. What causes this and how do you fix it?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><code>max.poll.interval.ms</code> is the maximum time a consumer can go between <code>poll()</code> calls. If processing a batch takes longer than this, the coordinator considers the consumer dead, triggers a rebalance, and reassigns the partition to another consumer — which starts from the last committed offset, picks up the same slow batch, and also times out. The result is a rebalance loop with no progress. Root causes: batch size too large (<code>max.poll.records</code>), individual record processing is expensive, or GC pauses interrupting the poll loop. Don't just raise the timeout — that masks the problem.</div>
+        
+        <div class="staff-add">This is a design smell. Kafka consumers are designed for fast, lightweight processing. If processing routinely takes seconds per record, the consumer model is wrong. Fix patterns: reduce <code>max.poll.records</code>; move slow downstream I/O to an async worker with careful offset management; or redesign the pipeline — consume fast into an internal queue, let a thread pool process, commit after confirmed completion. If the bottleneck is an external API with rate limits, consider whether a task queue is better suited than Kafka for this consumer.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-10</span>
+        <span class="acc-question">Walk through acks=0, acks=1, and acks=all — what you gain and lose at each.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>acks=0</strong>: producer doesn't wait for any acknowledgment. Highest throughput, lowest latency, zero durability — leader crash means data loss with no visibility. Use only for non-critical metrics or logs where some loss is acceptable.
+<strong>acks=1</strong>: leader acknowledges before replicating to followers. Loss is possible if the leader crashes before followers catch up. Reasonable middle ground.
+<strong>acks=all</strong> (or -1): all ISR members must acknowledge. Data survives any single broker failure in a RF=3 cluster. Higher latency but correct for any data you cannot lose.</div>
+        
+        <div class="staff-add"><code>acks=all</code> means "durable as long as ISR is healthy." If ISR shrinks below <code>min.insync.replicas</code>, producers block with <code>NotEnoughReplicasException</code> — this is intended behavior, trading availability for safety. Design your producer error handling for this: should producers block and retry (tolerate backpressure), circuit-break and write to a local buffer, or fail fast to the caller? The answer depends on whether availability or consistency is the stronger requirement for that topic. Make it an explicit decision.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-11</span>
+        <span class="acc-question">What does enable.auto.commit=false force you to think about? What are the failure modes of manual offset management?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">With auto.commit (default true), offsets are committed on a schedule regardless of whether processing succeeded — you can commit an offset for a record whose processing failed (at-most-once behavior). With manual commit, you commit only after confirming processing succeeded (at-least-once). The failure mode: if you commit before processing completes (commit-before-write), a crash after commit but before write means data loss. If you process then crash before committing (the correct order), you reprocess on restart — duplicates, which your sink must handle idempotently.</div>
+        
+        <div class="staff-add">Manual offset management is a contract with your sink. Once you commit, you're telling Kafka "this was handled." If your sink write fails after a commit, you have a gap with no retry mechanism. The canonical pattern: write to sink (idempotently) → then commit offset. There's no way to make this transactional without Kafka transactions — and even then, only for Kafka-to-Kafka. Teams that get into trouble here treat offset commits as a progress marker rather than a durability contract.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-12</span>
+        <span class="acc-question">What is a Kafka transaction — what does it guarantee, and what does it not cover?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Kafka transactions let a producer write to multiple partitions atomically — either all writes commit or none do. The transactional producer registers a <code>transactional.id</code>, coordinates with a transaction coordinator broker, and uses a two-phase commit. Consumers with <code>isolation.level=read_committed</code> only see committed transaction messages. In a consume-transform-produce pattern (Kafka Streams), the consumer offset commit and producer writes can happen in the same transaction — giving exactly-once for Kafka-to-Kafka flows.</div>
+        
+        <div class="staff-add">Transactions are expensive and operationally complex. They add latency (coordinator round-trips), and aborted transactions occupy log space until cleanup. More critically: Kafka transactions do not cover external sinks. If your consumer writes to PostgreSQL or calls an HTTP API, that write is not inside the transaction boundary. The practical answer for most systems is at-least-once + idempotent sink — simpler to reason about and operate. Use transactions when you need atomic multi-partition writes and all sinks are Kafka topics.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-13</span>
+        <span class="acc-question">What happens when you increase partition count on a live topic?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Adding partitions to a live topic causes: all consumer groups rebalance (brief processing pause); and key-based routing changes — keys that hashed to partition 3 may now go to partition 7. Historical data and new data for the same key are now in different partitions. Any consumer depending on key-based ordering (entity processing, Kafka Streams) will see inconsistency during and after the transition. You cannot decrease partition count — only increase.</div>
+        
+        <div class="staff-add">The safest approach to repartitioning a critical topic: create a new topic with the target partition count, run a dual-write period (produce to both simultaneously), cutover consumers once they've caught up, then decommission the old topic. For Kafka Streams stateful applications, you must rebuild all state stores after a repartition — plan for that rebuild time in your migration window. Never resize a high-value production topic without a documented rollback plan.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-14</span>
+        <span class="acc-question">How does auto.offset.reset interact with consumer groups, and what are the dangerous failure scenarios?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><code>auto.offset.reset</code> only applies when a consumer group has no committed offsets for a partition — either a brand new group, or a group whose committed offsets have expired. <code>earliest</code>: start from offset 0 (full replay). <code>latest</code>: start from the current end (miss all history). <code>none</code>: throw <code>NoOffsetForPartitionException</code>. A group with existing committed offsets ignores this setting entirely. Dangerous scenario: a consumer group's committed offsets expire (default offset retention is 7 days). On restart, the group has no offsets, <code>auto.offset.reset=latest</code> kicks in, and the consumer silently starts from the current end — missing potentially days of events.</div>
+        
+        <div class="staff-add"><code>auto.offset.reset=latest</code> is the default in many framework setups and is a footgun for teams building event-sourced or stateful systems. For any consumer that builds state from the event history, always use <code>earliest</code> and test the bootstrap path explicitly. Operationally: before deploying a new consumer group to production, verify committed offsets exist with <code>kafka-consumer-groups.sh --describe</code>; if they don't, seed them with <code>--reset-offsets --to-earliest</code> before starting the consumer. Make this a deployment checklist item.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">Design exactly-once semantics end-to-end from producer through to a relational database sink.</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Kafka's EOS only covers Kafka-to-Kafka. For a database sink, the approach is at-least-once + idempotent consumer: the producer uses <code>enable.idempotence=true</code>. The consumer uses manual offset commit. Processing pattern: read record → upsert to database using the Kafka offset or a business key as the idempotency key → commit offset. An upsert (<code>INSERT ON CONFLICT UPDATE</code>) ensures that reprocessing the same record produces the same database state. The database transaction and the Kafka offset commit are separate — there's an at-least-once gap — which is why the upsert must be idempotent.</div>
+        
+        <div class="staff-add">The cleanest approach beyond upserts is the transactional outbox pattern: the consumer writes to the database in a transaction that also records a <code>processed_event_id</code>. On restart, the consumer queries this table before processing — if the event ID is already there, skip and commit the offset. This moves deduplication into the database layer, which is transactionally consistent. For high-throughput sinks, bloom filters or in-memory deduplication windows can replace the database check for recent events.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">How do you handle schema evolution across producers and consumers in production without downtime?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Use a schema registry (Confluent Schema Registry, AWS Glue Schema Registry) to store and version schemas separately from messages. Each message includes a schema ID in its header — consumers fetch the schema once and cache it. Schema evolution is governed by compatibility modes: BACKWARD (new schema can read old data — add optional fields with defaults), FORWARD (old schema can read new data), FULL (both directions). BACKWARD compatibility is the safest default — deploy new consumers before old producers are updated. Never use NONE compatibility in production — it allows breaking changes that corrupt consumers silently.</div>
+        
+        <div class="staff-add">Schema governance is an organizational problem as much as a technical one. In a system with dozens of producers and consumers, schema changes become a cross-team coordination event. The schema registry enforces compatibility at registration time, but teams still need a process: who approves schema changes, how are breaking changes communicated, and what's the migration path? For complex evolutions (rename a field, change a type), the cleanest pattern is a new topic version with a migration consumer that reads the old schema and re-publishes with the new one — avoiding in-place schema migration entirely.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">Design a multi-region Kafka topology. What are the options and what breaks first?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Two models. <strong>Active-passive</strong> — one primary cluster, a replica cluster in a second region via MirrorMaker 2 or Confluent Replicator. Consumers in the secondary region read from the replica. On failover, consumers are redirected to the secondary (offset translation required — offsets don't map 1:1 across clusters). <strong>Active-active</strong> — both regions produce and consume, with bidirectional replication and a namespace prefix per region. Complex to operate: cycle detection, ordering guarantees across regions are gone, and conflict resolution for shared state is your problem.</div>
+        
+        <div class="staff-add">What breaks first in multi-region Kafka: offset translation during failover. MirrorMaker 2 maintains offset mapping topics, but failover requires redirecting consumers to translated offsets — operationally complex and easy to get wrong under pressure. Test failover regularly, not just in theory. Active-active's real complexity is ordering: if a user's events are split between regions, rebuilding their state requires merging two ordered streams. For most use cases, active-passive with a well-tested failover runbook is the right answer.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-04</span>
+        <span class="acc-question">What is your Kafka observability strategy — which metrics matter and what do you alert on first?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Three tiers. <strong>Broker</strong>: under-replicated partitions (non-zero = durability risk, alert immediately), ISR shrink/expand rate, active controller count (must be exactly 1), bytes in/out per broker (detect hotspots), produce and fetch request latency. <strong>Consumer</strong>: lag per group per partition (primary SLI), rebalance rate, commit rate. <strong>Producer</strong>: record error rate, request latency, batch size (too small = inefficient). Don't aggregate lag across partitions as your primary alert — one partition with high lag is an incident; ten partitions with low lag is noise.</div>
+        
+        <div class="staff-add">Lag is a leading indicator; under-replicated partitions are a fire alarm. Build alerting in that order. Add ISR shrink/expand as a broker health signal (frequent shrink = broker instability) and consumer rebalance rate as a leading indicator of consumer instability. For capacity planning, track bytes in/out per broker over 30-day windows — clusters at 60%+ utilization on a single broker are one traffic spike away from a partition leadership cascade. Instrument your consumers to emit processing time and error rate alongside the Kafka client metrics.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-05</span>
+        <span class="acc-question">Your consumer must process Kafka events and call an external HTTP API exactly once. The API isn't idempotent. How do you design this?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">You cannot get true exactly-once with a non-idempotent external API — at-least-once delivery means retries are possible. Options: (1) Make the API call idempotent at the call site by including a client-generated idempotency key in the request (UUID derived from the Kafka offset or message key) — if the API supports it, duplicate calls with the same key are rejected or deduplicated. (2) Use an intermediate durable store: consumer writes a "pending" record to a database, a separate worker processes them and calls the API, marks them done. Kafka offset commits are tied to the database write, not the API call. (3) Accept at-least-once and build deduplication into a downstream reconciliation job.</div>
+        
+        <div class="staff-add">This is a fundamental distributed systems problem: you cannot have exactly-once across two systems without a shared transaction boundary or idempotency. The honest answer is: negotiate idempotency into the API design. If the API is internal, add an idempotency key header and implement deduplication on the server side. If it's a third-party API, document the at-least-once semantics and build a reconciliation process to detect and handle duplicates. "Exactly-once to a non-idempotent API" is not achievable without some form of deduplication — the question is where that deduplication lives and who owns it.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-06</span>
+        <span class="acc-question">Design a retry and DLQ strategy for a consumer processing critical financial events.</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Classify errors first: deserialization failures are non-retryable — DLQ immediately. Transient errors (DB unavailable, network timeout) are retryable — use exponential backoff with jitter up to a maximum retry count. Use retry topics for backoff: route failed records to <code>payments.retry-1</code> (retry after 1m), <code>payments.retry-2</code> (after 5m), <code>payments.retry-3</code> (after 30m), then <code>payments.DLQ</code>. Each retry topic is consumed by a worker that waits the appropriate delay before reprocessing. Headers on DLQ records carry: original topic, partition, offset, error cause, attempt count, timestamps.</div>
+        
+        <div class="staff-add">For financial events, the DLQ is not the end of the road — it's a queue requiring human or automated action. Design the operational path explicitly: who is alerted when records land in DLQ, what's the SLA for investigation, and how does reprocessing work? The retry topic pattern keeps ordering within a key intact during retry — but note that during the backoff window, newer records for the same key on the main topic have already been processed. If ordering across a key's lifecycle is critical, your retry design must account for this gap. Document the ordering guarantee you offer explicitly.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-07</span>
+        <span class="acc-question">Kafka Streams vs Apache Flink vs Spark Streaming — how do you decide?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Kafka Streams</strong>: embedded in your Java application, no separate cluster. Best for stateful processing within a single bounded domain — aggregations, enrichments, joins between a few topics. State is local RocksDB, backed by Kafka changelogs. Operationally simple. Limit: large state joins hit RocksDB memory limits; no native SQL.
+<strong>Apache Flink</strong>: dedicated cluster, rich stateful streaming with large state support, event-time processing, complex windowing. Best for complex CEP, large state joins, ML inference pipelines. Higher ops overhead.
+<strong>Spark Streaming</strong>: micro-batch model (not true streaming). Better for teams with existing Spark infrastructure or mixed batch+streaming workloads. Higher latency.</div>
+        
+        <div class="staff-add">The decision is as much organizational as technical. Kafka Streams requires no new infrastructure and integrates naturally with existing Kafka expertise — the right choice for 80% of stateful streaming use cases. Reach for Flink when: your state exceeds what Kafka Streams can manage locally, you need complex event time semantics with late data handling, or you're building a data platform that serves multiple teams. Spark Streaming is rarely the right greenfield choice if you can tolerate any latency overhead of micro-batching.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-08</span>
+        <span class="acc-question">When would you NOT use Kafka for a problem that looks like a fit?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Kafka is overkill when: volume is low and a database outbox or lightweight queue (SQS, RabbitMQ) would do — the operational overhead isn't justified for hundreds of events per hour; the pattern is request/reply RPC — Kafka can fake it but it's awkward and slower than HTTP or gRPC; you need per-message TTL or priority queues — Kafka supports neither natively; your team lacks Kafka operational expertise; or sub-millisecond latency is required.</div>
+        
+        <div class="staff-add">The "use Kafka for everything" instinct is common in organizations that have invested in a cluster. Push back when appropriate. The outbox pattern (write events to a database table, tail with CDC or a poller) often replaces a Kafka topic for intra-service coordination with fewer moving parts. Redis Streams cover low-volume real-time fan-out without a full Kafka cluster. The question to ask: do I need replay, high throughput, or multiple independent consumer groups? If the answer to all three is no, something simpler probably fits. Kafka's value comes from durability, replayability, and fan-out — if you're not using those properties, you're paying the operational cost without the benefit.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-09</span>
+        <span class="acc-question">Walk me through capacity planning for a Kafka cluster. What inputs do you need?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Inputs: peak bytes-in per second per topic (producer throughput), replication factor (disk and network multiplier — RF=3 means 3x write bytes on network), retention period (disk = bytes/s × retention_seconds × RF), number of partitions (drives file handles, memory, controller load), and number of consumer groups (each group consumes the full topic bytes — adds to network egress). Disk per broker = (total bytes/s × RF × retention_seconds) / broker_count. CPU is rarely the bottleneck; disk I/O and network are. Size for peak × 1.5–2x headroom.</div>
+        
+        <div class="staff-add">The tricky part is accounting for all consumer groups — teams add them informally and each one multiplies your egress. Establish a catalog of consumer groups per topic as part of your capacity model. Also model for the worst case: a consumer group that falls behind and catches up at maximum speed will consume your full retained history in a burst — that burst throughput must fit within your broker's disk read and network capacity. Run this calculation for your highest-retention, highest-throughput topics to surface wrong capacity assumptions.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-10</span>
+        <span class="acc-question">One broker in your cluster is consistently hot while others are idle. How do you diagnose and fix it without downtime?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Diagnose: check which partitions have their leader on the hot broker. Check if the broker holds a disproportionate number of high-throughput partition leaders — this happens when partition leaders aren't rebalanced after broker restarts. Check disk I/O, network, and CPU independently. Fix for leader imbalance: <code>kafka-leader-election.sh --election-type preferred</code> — triggers preferred leader election, redistributing leaders to their original assignment without moving data. For persistent imbalance, use <code>kafka-reassign-partitions.sh</code> to move partition replicas to underutilized brokers.</div>
+        
+        <div class="staff-add">Preferred leader election is the zero-risk fix when the hot broker holds too many leaders. Partition reassignment (moving replicas) requires data replication — generates significant network traffic and can itself become a performance event. Throttle reassignment with <code>--throttle</code> to avoid impacting producers and consumers. Longer-term: enable <code>auto.leader.rebalance</code> so leaders redistribute automatically after broker restarts. The root cause of persistent hot brokers is usually initial topic creation without considering broker distribution — address this in your topic provisioning process.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-11</span>
+        <span class="acc-question">How do you implement multi-tenancy on a shared Kafka cluster — and where does it break down at org scale?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Multi-tenancy relies on: topic naming conventions (team prefix enforced by policy or ACL), ACLs (per-topic read/write grants to service accounts), and quota enforcement (producer/consumer byte rate per client-id to prevent one tenant from saturating the cluster). Kafka's ACL system is coarse — no namespace isolation or resource group concept. Quota enforcement at the client-id level is the main protection against noisy neighbors.</div>
+        
+        <div class="staff-add">Multi-tenancy breaks down at org scale in predictable ways: ACL management becomes unmanageable without automation; quota tuning is a constant negotiation; a single cluster means every cluster upgrade and incident blast radius affects all tenants. The mature answer at large scale is cluster-per-team or cluster-per-domain. Multi-tenancy on a shared cluster is a reasonable starting point — define the scale at which you'll federate to multiple clusters before you hit that wall.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-12</span>
+        <span class="acc-question">Describe a production-grade Kafka security model — authentication, authorization, and encryption.</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Authentication</strong>: SASL/SCRAM-SHA-512 for username/password (stored hashed), or mTLS for mutual certificate-based authentication. mTLS is stronger but requires PKI management. SASL/PLAIN must never be used in production (credentials in plaintext).
+<strong>Authorization</strong>: ACLs via <code>kafka-acls.sh</code> grant DESCRIBE, READ, WRITE, CREATE per principal per topic/group. More fine-grained: Confluent RBAC or Ranger.
+<strong>Encryption</strong>: TLS (SSL listener) for data in transit between clients and brokers. Encryption at rest is handled at the disk/OS layer, not by Kafka natively.</div>
+        
+        <div class="staff-add">Security configuration is easy to get wrong and hard to audit. Common gaps: brokers with a plaintext listener alongside TLS — clients that don't specify TLS silently fall back. Require TLS-only listeners and remove plaintext in production. ACL sprawl: teams create service accounts with wildcard permissions to avoid ACL provisioning friction — enforce least-privilege via automation. Certificate rotation: mTLS requires a certificate rotation process; design for it from day one or you'll have an expiry incident. Kafka has no built-in audit log for data access — ship access logs to your SIEM if you have compliance requirements.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How do you evaluate whether to run self-managed Kafka vs. migrate to a managed service (Confluent Cloud, MSK, Aiven)?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Self-managed Kafka: full control over config, no per-GB egress pricing, data stays in your infrastructure. Cost is engineering time — cluster provisioning, upgrades, broker failure recovery, monitoring, and on-call burden (0.5–2 FTE depending on cluster count and size). Managed services shift operational burden to the vendor. Confluent Cloud is the most feature-complete (RBAC, ksqlDB, Connectors, Schema Registry, multi-region replication). MSK has lower egress within AWS, tighter IAM integration, lower baseline cost. Evaluate on: total cost (compute + storage + egress + engineering time), compliance requirements (data residency, certifications), and team's Kafka expertise depth.</div>
+        
+        <div class="staff-add">The hidden cost of self-managed Kafka is incident response. A cluster degradation at 2am requires engineers with deep Kafka operational knowledge — a rare skill set. Managed services shift that cost to a SLA contract. The calculation changes at very high scale: at hundreds of TB/day, the per-GB cost of Confluent Cloud may exceed self-managed infrastructure cost significantly. But below that threshold — which is most organizations — the operational savings from managed services usually outweigh the cost premium. Re-evaluate the decision annually; managed service cost curves have been dropping consistently.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-02</span>
+        <span class="acc-question">Kafka is becoming the central data bus for your org — 50 teams, 400 topics. What governance model do you put in place?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Governance axes: topic ownership (every topic has a declared owner team, SLA for availability, and retention policy), schema contracts (schema registry with enforced compatibility modes — no breaking schema changes without a deprecation period), consumer SLAs (producing teams document their throughput and retention commitments), and topic lifecycle (creation requires justification, partition count estimate, and retention policy). Access control: self-service topic creation within a team's namespace via automation, not manual ACL provisioning. A platform team owns the cluster and tooling; domain teams own their topics.</div>
+        
+        <div class="staff-add">The organizational failure mode is treating Kafka as shared infrastructure with no clear contracts between teams. A data catalog (Schema Registry + DataHub or Amundsen) makes contracts visible. More importantly: establish architectural review for topics that cross team boundaries — a "public" topic that other teams consume is a public API and should be treated with the same rigor as an HTTP endpoint. Conway's Law applies: your topic ownership map will reflect your team structure whether you design it that way or not.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-03</span>
+        <span class="acc-question">Design a disaster recovery strategy for Kafka with an RPO of 30 seconds and RTO of 5 minutes.</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">RPO=30s means you can lose at most 30 seconds of events. RTO=5min means consumers must resume within 5 minutes of declaring a disaster. Architecture: active-passive with near-synchronous replication via MirrorMaker 2 or Confluent Replicator, with replication lag monitored and alerted if it exceeds 15s. The secondary cluster is pre-warmed with consumers in standby state. Offset translation topic enables consumers to resume from the correct position. Failover runbook: detect degradation → declare disaster → redirect producers (DNS/load balancer update) → resume secondary consumers with translated offsets → verify lag converging. Automated where possible; manually triggered for safety.</div>
+        
+        <div class="staff-add">The 5-minute RTO will be violated the first time you run failover in production without rehearsal. Treat DR runbooks as code: version-controlled, tested quarterly with real traffic in staging, owned by the on-call rotation. The most common DR failures: offset translation doesn't work for compacted topics; producers can't redirect quickly due to hardcoded broker addresses; secondary consumers haven't been tested at production throughput and can't catch up within the RTO. RPO and RTO are commitments to your business — price them against the cost of the DR infrastructure and the test cadence required to actually achieve them.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-04</span>
+        <span class="acc-question">Your event-sourced system has been in production 3 years. The log is 2TB, replay takes 4 hours, and teams are coupling directly to internal event schemas. What do you do?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Three problems to solve separately. <strong>Replay time</strong>: 4-hour bootstrap is operationally risky. Address with snapshotting — periodically write a point-in-time state snapshot to S3 or a database. New consumers bootstrap from the snapshot + replaying only the delta since the snapshot. <strong>Schema coupling</strong>: introduce a public event contract layer — a separate set of topics with stable, versioned schemas that teams outside the domain may consume. Internal events can evolve freely; public events have a deprecation process. <strong>Migration</strong>: audit which external consumers are reading internal topics and migrate them to the public layer before enforcing access controls.</div>
+        
+        <div class="staff-add">This is the natural aging failure mode of event sourcing at scale: the log becomes a liability. The snapshot pattern solves replay without changing the event model. The public/private topic boundary solves coupling without a big-bang migration. Neither is quick — both are multi-quarter initiatives. Prioritize based on risk: if schema coupling is blocking feature development, that's higher priority. The deeper lesson for new event-sourced systems: design for snapshot-based bootstrap from day one, treat public event schemas as APIs from the first external consumer, and define retention policy as a first-class decision.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-05</span>
+        <span class="acc-question">How does Conway's Law apply to Kafka topic design?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Conway's Law: systems mirror the communication structure of the org that built them. In Kafka, topics tend to follow team boundaries, schemas evolve in ways that reflect internal team priorities rather than consumer needs, and cross-team topics become coordination bottlenecks that mirror org chart friction. You can read an org's team structure from its topic map. This is not a problem to eliminate — it's a signal to use. If your topic design should reflect domain boundaries, and domain boundaries should reflect your team structure (per Team Topologies), then Kafka topics are a forcing function for getting your service and team boundaries right.</div>
+        
+        <div class="staff-add">Use topic design as an architectural diagnostic. When two teams are producing to and consuming from each other's topics in a complex web, it reveals a team boundary problem. When a topic has 20 consumer groups from 15 different teams, it's a de facto platform API and should be treated as one — with a versioning policy, deprecation process, and SLA. The worst pattern is a "God topic" that carries events from multiple domains because it was convenient — it creates a coupling point that makes every schema change a cross-org event. Many small, domain-aligned topics are better than a few large, multi-purpose ones.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-06</span>
+        <span class="acc-question">An upstream service starts producing at 5x normal volume. Consumer lag cascades across unrelated consumer groups. How do you contain blast radius and prevent recurrence?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Immediate containment: throttle the misbehaving producer at the Kafka quota level (<code>kafka-configs.sh --entity-type clients --entity-name producer-id --add-config producer_byte_rate=...</code>) without restarting it. Check if the surge is intentional (a backfill job) or a bug. Scale out consumers that are lagging (up to partition count). If specific broker partitions are stressed, check broker disk I/O — high-retention topics competing for disk bandwidth. Prevent cascading to unrelated groups: separate high-throughput, bursty topics onto their own broker rack or cluster so a surge doesn't contend for shared broker resources.</div>
+        
+        <div class="staff-add">The architectural fix is isolation. Topics with different throughput profiles and SLAs should not share brokers or compete for the same disk and network budget. A burstable analytics topic on the same cluster as a payment processing topic means a sudden analytics workload can degrade payment consumer latency — this is a blast radius design failure. Long-term: quota enforcement on all producers by default (not retroactively applied), capacity buffers per cluster accounting for burst behavior, and separate clusters for topics with different reliability tiers. Ask "what's the blast radius if this topic surges?" at topic creation time, not after an incident.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-07</span>
+        <span class="acc-question">A team wants to use Kafka for request/reply RPC between services. How do you respond — technically and organizationally?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Technically: Kafka can do request/reply via a reply-to topic pattern (producer sends a request with a correlation ID and reply-to topic header; the consumer processes and publishes the response; the original caller polls filtering by correlation ID). It works, but it's awkward — the caller blocks waiting for a response, consumer group management becomes complex for reply topics, and debugging a lost response is painful. Latency is significantly higher than HTTP or gRPC. For anything requiring a response within hundreds of milliseconds, gRPC or HTTP is the right tool.</div>
+        
+        <div class="staff-add">The organizational response matters as much as the technical one. "We already have Kafka so let's use it for everything" is a common attractor. The principled answer: match the communication pattern to the tool. Kafka is for async event streaming where the producer doesn't need to know the outcome. Request/reply is synchronous by nature — use a synchronous protocol. Document this as an architectural decision record: Kafka for events, gRPC/HTTP for queries. Enforce it in architecture reviews, not one-off conversations.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">📊 Scenario 1 — Real-Time Fraud Detection Pipeline</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Design a system that processes payment events from a Kafka topic and flags potentially fraudulent transactions in near-real-time. Flagged transactions must be available for downstream review within 500ms of the payment event being produced.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Peak load: 50,000 payment events per second</li><li>End-to-end latency target: <500ms from produce to fraud verdict</li><li>Must not lose a payment event — detection can be delayed, not skipped</li><li>Fraud rules are updated frequently without system restart</li><li>False positive rate must be <0.1%</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Partitioning strategy:</strong> partition by account or user ID so all events for a given entity land in the same partition — enables stateful per-entity analysis in a single consumer without cross-partition coordination</li><li><strong>Consumer group design:</strong> dedicated consumer group for fraud detection, sized to partition count; separate consumer groups for downstream (audit log, analytics) to isolate failure domains</li><li><strong>Stateful processing:</strong> Kafka Streams or Flink for windowed aggregations (transaction velocity, unusual amounts, new device) — state must survive consumer restarts via changelog topics</li><li><strong>Rule updates:</strong> load fraud rules from a separate compacted topic (a Kafka Streams GlobalKTable) — rules update without restart</li><li><strong>DLQ:</strong> events that fail processing go to a DLQ topic with full context for reprocessing; never block the main consumer</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Single partition for 'global ordering' — immediately caps throughput at one consumer; fraud detection doesn't require global order, only per-entity order</li><li>Synchronous DB call on every event in the hot path — introduces latency and a hard dependency on DB availability; use async writes or in-memory state with periodic flush</li><li>No DLQ — a single malformed event blocks all processing for that partition indefinitely</li><li>Ignoring consumer lag as a metric — growing lag means fraud verdicts are silently delayed past the 500ms SLA</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">🛒 Scenario 2 — Event-Driven Order Processing System</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Decouple an order creation service from fulfillment, inventory reservation, and customer notification using Kafka. The system must handle 5,000 orders per minute at peak. Order state must be consistent — a confirmed order must eventually result in inventory being reserved and a notification being sent, even if downstream services are temporarily unavailable.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Eventual consistency is acceptable — not every step must be synchronous</li><li>Inventory reservation must not double-book — exactly-once reservation per order</li><li>Customer notification is best-effort but must be at-least-once</li><li>The order service must not fail if fulfillment or inventory is down</li><li>An order can be cancelled after creation but before fulfillment</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Topic design:</strong> one topic per domain event type (order-created, order-cancelled, inventory-reserved, inventory-reservation-failed) is cleaner than one multipurpose 'orders' topic — consumers subscribe only to what they need</li><li><strong>Saga pattern:</strong> coordinate multi-step workflows via a choreography saga — each service publishes domain events that trigger the next step; failure compensation (inventory-reservation-failed triggers order-failed, which triggers refund and notification)</li><li><strong>Inventory idempotency:</strong> inventory service must upsert by order ID to prevent double-booking on consumer replay; store reservation state with a unique constraint on order ID</li><li><strong>Cancellation:</strong> order-cancelled event consumed by inventory (release reservation) and notifications; consumers must handle out-of-order events — design state machines, not assumed ordering</li><li><strong>Partitioning:</strong> partition by order ID so all events for an order land in the same partition</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>One 'orders' topic with event type in the payload — consumers must consume everything and filter; schema evolution affects all consumers at once</li><li>Synchronous calls between saga steps — defeats the purpose of decoupling; if fulfillment is down, the order service call fails</li><li>No compensation logic for saga failures — an inventory-reservation-failed event with no handler means the customer was charged for an order that will never ship</li><li>No idempotency on inventory reservation — at-least-once delivery means a consumer restart can replay the reservation event, double-booking inventory</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">🚨 Scenario 3 — Production Incident: Consumer Lag Spiking Across All Groups</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">You receive an alert at 2am: consumer lag is growing across multiple consumer groups on different topics. The lag started 20 minutes ago and is accelerating. Some groups are for payment processing; others are for analytics. No deployments have happened in the past 6 hours.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Cannot restart Kafka brokers — they are shared with other teams in production</li><li>Payment processing consumer groups have a lag SLA of 30 seconds</li><li>Analytics lag can tolerate hours of delay</li><li>You have access to broker metrics, consumer group describe output, and application logs</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Is it a producer surge or consumer slowdown?</strong> Check bytes-in per broker — if producer throughput is elevated, consumers are simply outpaced; if bytes-in is normal, consumers are slower or stopped</li><li><strong>Broker health:</strong> check under-replicated partitions (non-zero = escalate immediately), active controller count (must be 1), and broker CPU/disk I/O for resource exhaustion</li><li><strong>Consumer group status:</strong> <code>kafka-consumer-groups.sh --describe</code> — look for partitions showing LAG=∞ or CONSUMER-ID=- (no active consumer assigned)</li><li><strong>Isolate payment groups first:</strong> triage by SLA — get payment consumers healthy before diagnosing analytics lag</li><li><strong>Common root causes at simultaneous multi-group impact:</strong> network partition between consumers and brokers, a broker going into resource bottleneck, or a shared downstream system (a database all consumers write to) becoming slow</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Restarting all consumers as the first action — triggers rebalances across all groups simultaneously, potentially making lag worse and causing a thundering herd on a stressed downstream resource</li><li>Increasing partition count on the live topic to add consumer parallelism — requires all consumers to rebalance, breaks key-based ordering, not a safe action under incident pressure</li><li>Treating analytics and payment lag with equal urgency — triage by SLA; payment lag at 30s is an incident; analytics lag is not</li><li>Scaling consumers past partition count — adding more consumers than partitions gains nothing; excess consumers sit idle while the others lag</li><li>Not checking broker health first when all groups are simultaneously affected — simultaneous impact across groups points to shared infrastructure, not a consumer bug</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>function toggleTheme(){
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  h.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+function switchTab(name, el){
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+}
+
+function toggleAcc(header){
+  const item = header.parentElement;
+  item.classList.toggle('open', !item.classList.contains('open'));
+}
+</script>
+</body>
+</html>

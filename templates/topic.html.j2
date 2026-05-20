@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ meta.title }} — Field Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ {{ colors.light_vars }} }
+  [data-theme="dark"]{ {{ colors.dark_vars }} }
+  [data-theme="light"] .toggle-knob{background:{{ colors.toggle_light }};transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:{{ colors.toggle_dark }};transform:translateX(16px);}
+
+  /* Shared component styles */
+  {{ shared_css }}
+</style>
+</head>
+<body>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>{{ meta.title }}</h1>
+  <p class="subtitle">{{ meta.subtitle }}</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
+  <div class="tab" onclick="switchTab('deepdive',this)">Deep Dive</div>
+  <div class="tab" onclick="switchTab('qa',this)">Q &amp; A</div>
+  <div class="tab" onclick="switchTab('scenarios',this)">Scenarios</div>
+</div>
+
+{# ═══════════════════════════════════════════════════════════════ OVERVIEW #}
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    {% for card in overview.concepts %}
+    <div class="concept-card">
+      <div class="concept-title">{{ card.title }}</div>
+      <div class="concept-body">
+        {{ card.body | md }}
+        {% if card.flows %}
+        {% for flow in card.flows %}
+        <div class="flow">
+          {% for step in flow %}
+          <span class="flow-step">{{ step }}</span>{% if not loop.last %}<span class="flow-arrow">→</span>{% endif %}
+          {% endfor %}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% if card.tags %}
+        <div class="tags">
+          {% for tag in card.tags %}
+          <span class="tag{% if tag.color %} {{ tag.color }}{% endif %}">{{ tag.text }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    {% for g in overview.gotchas %}
+    <div class="gotcha">
+      <span class="gotcha-title">{{ g.title }}</span>
+      {{ g.body | md }}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use {{ meta.title_short }} When</div>
+      <ul>
+        {% for item in overview.when_to_use %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use {{ meta.title_short }} When</div>
+      <ul>
+        {% for item in overview.when_not_to_use %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════ DEEP DIVE #}
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    {% for table in deep_dive.tables %}
+    <div class="cheat-block{% if table.full_width %} cheat-full{% endif %}">
+      <div class="cheat-block-title">{{ table.title }}</div>
+      <table>
+        {% for row in table.rows %}
+        <tr><td>{{ row.key }}</td><td>{{ row.value }}</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endfor %}
+
+    {% if deep_dive.cli %}
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">💻 CLI Commands</div>
+      <div class="cmd-block">
+        {% for group in deep_dive.cli %}
+        <div class="cmd-group">
+          <div class="cmd-label">{{ group.label }}</div>
+          {% for cmd in group.commands %}
+          <span class="cmd">{{ cmd }}</span>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if deep_dive.comparison %}
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">{{ deep_dive.comparison.title }}</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            {% for header in deep_dive.comparison.headers %}
+            <th>{{ header }}</th>
+            {% endfor %}
+          </tr>
+          {% for row in deep_dive.comparison.rows %}
+          <tr>
+            {% for cell in row %}
+            <td>{{ cell }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════ Q & A #}
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  {% if qa.senior %}
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    {% for q in qa.senior %}
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">{{ q.id }}</span>
+        <span class="acc-question">{{ q.question }}</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">{{ q.answer | md }}</div>
+        {% if q.staff_add %}
+        <div class="staff-add">{{ q.staff_add | md }}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if qa.staff %}
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    {% for q in qa.staff %}
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">{{ q.id }}</span>
+        <span class="acc-question">{{ q.question }}</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">{{ q.answer | md }}</div>
+        {% if q.staff_add %}
+        <div class="staff-add">{{ q.staff_add | md }}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if qa.principal %}
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    {% for q in qa.principal %}
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">{{ q.id }}</span>
+        <span class="acc-question">{{ q.question }}</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">{{ q.answer | md }}</div>
+        {% if q.staff_add %}
+        <div class="staff-add">{{ q.staff_add | md }}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+
+{# ══════════════════════════════════════════════════════════════ SCENARIOS #}
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  {% for s in scenarios %}
+  <div class="scenario">
+    <div class="scenario-header">{{ s.title }}</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">{{ s.problem | md }}</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul>{% for c in s.constraints %}<li>{{ c }}</li>{% endfor %}</ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul>{% for d in s.discussion %}<li>{{ d | md }}</li>{% endfor %}</ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul>{% for r in s.red_flags %}<li>{{ r | md }}</li>{% endfor %}</ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>{{ shared_js }}</script>
+</body>
+</html>

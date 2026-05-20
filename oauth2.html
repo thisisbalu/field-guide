@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OAuth 2.0 — Field Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#4f46e5;--accent2:#d95a1e;--accent3:#059669; --highlight-bg:#eef2ff;--highlight-text:#4f46e5;--highlight-border:#6366f1; --your-exp-bg:rgba(5,150,105,.06);--your-exp-border:rgba(5,150,105,.2);--your-exp-text:#065f46; --acc-hover:rgba(79,70,229,.04);--acc-open-border:#4f46e5;--acc-open-bg:rgba(79,70,229,.03); --num-color:#4f46e5;--num-bg:rgba(79,70,229,.1); --tag-color:#4f46e5;--tag-bg:rgba(79,70,229,.08);--tag-border:rgba(79,70,229,.2); --flow-arrow:#4f46e5;--h1-from:#3730a3;--h1-to:#4f46e5; --badge-color:#3730a3;--stat-num:#4f46e5; --tab-active-color:#4f46e5;--tab-active-bg:rgba(79,70,229,.08);--tab-active-border:#4f46e5; --section-title:#4f46e5;--concept-title:#3730a3; --cheat-head-bg:#3730a3;--cheat-head-text:#ffffff;--cheat-key:#3730a3; --cmd-bg:#eef2ff;--cmd-text:#3730a3; }
+  [data-theme="dark"]{ --accent:#818cf8;--accent2:#ff9d6b;--accent3:#10b981; --highlight-bg:#1e1b4b;--highlight-text:#818cf8;--highlight-border:#6366f1; --your-exp-bg:rgba(16,185,129,.1);--your-exp-border:rgba(16,185,129,.3);--your-exp-text:#6ee7b7; --acc-hover:rgba(129,140,248,.04);--acc-open-border:#818cf8;--acc-open-bg:rgba(129,140,248,.03); --num-color:#818cf8;--num-bg:rgba(129,140,248,.1); --tag-color:#818cf8;--tag-bg:rgba(129,140,248,.08);--tag-border:rgba(129,140,248,.2); --flow-arrow:#818cf8;--h1-from:#818cf8;--h1-to:#6366f1; --badge-color:#818cf8;--stat-num:#818cf8; --tab-active-color:#818cf8;--tab-active-bg:rgba(129,140,248,.08);--tab-active-border:#818cf8; --section-title:#818cf8;--concept-title:#818cf8; --cheat-head-bg:#1e1b4b;--cheat-head-text:#818cf8;--cheat-key:#818cf8; --cmd-bg:#1e1b4b;--cmd-text:#818cf8; }
+  [data-theme="light"] .toggle-knob{background:#4f46e5;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#818cf8;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Stats row ───────────────────────────────────────────────────────────── */
+.stats{display:flex;gap:.75rem;margin-bottom:2rem;flex-wrap:wrap;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.65rem 1rem;text-align:center;flex:1;min-width:90px;}
+.stat-num{font-size:1.6rem;font-weight:800;color:var(--stat-num);font-family:'IBM Plex Mono',monospace;line-height:1;}
+.stat-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:'IBM Plex Mono',monospace;margin-top:.25rem;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .4s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{max-height:3000px;padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+}
+
+</style>
+</head>
+<body>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>OAuth 2.0</h1>
+  <p class="subtitle">// authorization framework · flows · tokens · scopes · OIDC · zero trust · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
+  <div class="tab" onclick="switchTab('deepdive',this)">Deep Dive</div>
+  <div class="tab" onclick="switchTab('qa',this)">Q &amp; A</div>
+  <div class="tab" onclick="switchTab('scenarios',this)">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">🔐 What OAuth2 Is</div>
+      <div class="concept-body">
+        OAuth 2.0 is an <strong>authorization</strong> framework — not an authentication protocol. It enables a resource owner (a user) to grant a client application limited access to a resource server, mediated by an authorization server, without sharing credentials. The key word is <em>delegated</em>: the user doesn't give their password to the third-party app; the authorization server issues a scoped, time-limited access token on their behalf. Authentication (who are you?) is a separate concern covered by OpenID Connect (OIDC), which is a thin identity layer built on top of OAuth2.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">authorization only</span>
+          
+          <span class="tag green">delegated access</span>
+          
+          <span class="tag red">not authentication</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">👥 The Four Roles</div>
+      <div class="concept-body">
+        <strong>Resource Owner</strong> — the user who owns the data and can grant access.
+<strong>Client</strong> — the application requesting access (web app, mobile app, CLI, service). Classified as <em>confidential</em> (can keep a secret, e.g. server-side app) or <em>public</em> (cannot keep a secret, e.g. SPA, mobile app).
+<strong>Authorization Server (AS)</strong> — issues tokens after authenticating the resource owner and obtaining consent. Examples: Keycloak, Auth0, Okta, AWS Cognito.
+<strong>Resource Server (RS)</strong> — the API holding the protected data; validates tokens and enforces scopes on every request.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Resource Owner</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Authorization Server</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Client</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Resource Server</span>
+          
+        </div>
+        
+        
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🎟️ Tokens</div>
+      <div class="concept-body">
+        <strong>Access Token</strong> — credentials used to access the resource server. Short-lived (minutes to hours). Can be opaque (a random string the RS validates via introspection) or a JWT (self-contained, validated locally). Never store in localStorage.
+<strong>Refresh Token</strong> — long-lived credential used to obtain new access tokens without re-prompting the user. Opaque. Must be stored securely (httpOnly cookie, secure storage). Rotate on every use (refresh token rotation).
+<strong>ID Token</strong> — OIDC only. A JWT containing claims about the authenticated user (sub, email, name). Meant for the <em>client</em>, not the resource server.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">access token: short-lived</span>
+          
+          <span class="tag red">refresh token: long-lived</span>
+          
+          <span class="tag purple">ID token: OIDC only</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔄 Authorization Code Flow + PKCE</div>
+      <div class="concept-body">
+        The recommended flow for any client that involves a user. The client redirects the user to the AS with a <code>code_challenge</code> (PKCE). The user authenticates and consents. The AS redirects back with a short-lived <code>code</code>. The client exchanges the <code>code</code> + <code>code_verifier</code> for tokens at the token endpoint. The authorization code is single-use and expires in seconds — even if intercepted, it's useless without the verifier. <strong>PKCE</strong> (Proof Key for Code Exchange) is required for public clients and recommended for all clients.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Client</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">AS /authorize + code_challenge</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">User authenticates</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">code returned</span>
+          
+        </div>
+        
+        <div class="flow">
+          
+          <span class="flow-step">Client</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">AS /token + code + code_verifier</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Access + Refresh + ID tokens</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">PKCE required for public clients</span>
+          
+          <span class="tag orange">code is single-use</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🤖 Client Credentials Flow</div>
+      <div class="concept-body">
+        Machine-to-machine (M2M) flow — no user involved. The client authenticates directly to the AS with its <code>client_id</code> and <code>client_secret</code> (or a signed JWT for stronger auth) and receives an access token. Used for service-to-service calls, background jobs, and daemons. There is no refresh token — the client simply re-authenticates when the token expires. Scope design matters: each service should request only the scopes it needs, not a broad admin scope.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Service A</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">AS /token (client_id + secret)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Access token</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Service B API</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">M2M only</span>
+          
+          <span class="tag red">no refresh token</span>
+          
+          <span class="tag green">least-privilege scopes</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🗂️ Scopes & Consent</div>
+      <div class="concept-body">
+        Scopes declare what access the client is requesting: <code>read:orders</code>, <code>write:profile</code>, <code>openid</code>, <code>email</code>. The AS presents a consent screen to the user listing the requested scopes. The issued access token contains only the scopes the user approved. The resource server enforces scopes on every request — a token with <code>read:orders</code> must be rejected by the write endpoint. Design scopes around resources and actions, not roles. Coarse scopes (<code>admin</code>) create over-permissioning; too-fine scopes (<code>read:order:12345</code>) create consent fatigue and management overhead.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">least privilege</span>
+          
+          <span class="tag">resource:action pattern</span>
+          
+          <span class="tag orange">RS enforces scopes</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🪪 OpenID Connect (OIDC)</div>
+      <div class="concept-body">
+        OIDC is a thin identity layer on top of OAuth2. It adds: an <strong>ID token</strong> (a JWT with claims about the authenticated user — <code>sub</code>, <code>email</code>, <code>name</code>, <code>iat</code>, <code>exp</code>, <code>iss</code>, <code>aud</code>), a <strong>UserInfo endpoint</strong> (fetch additional claims with an access token), and a <strong>discovery document</strong> (<code>/.well-known/openid-configuration</code>) listing all endpoints and supported features. Use OIDC when you need to know <em>who</em> the user is. Use plain OAuth2 when you only need to know <em>what</em> they can access. Never use an access token as proof of identity — use the ID token.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">adds identity to OAuth2</span>
+          
+          <span class="tag red">ID token ≠ access token</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔍 Token Validation & Introspection</div>
+      <div class="concept-body">
+        Two ways a resource server validates an access token. <strong>Local JWT validation</strong>: fetch the AS's public keys from <code>/.well-known/jwks.json</code>, verify the token signature, check <code>iss</code>, <code>aud</code>, <code>exp</code>, and required scopes. Fast — no network call per request. Works only for JWT tokens. <strong>Token introspection</strong> (RFC 7662): the RS calls the AS's introspection endpoint with the token; the AS responds with <code>active: true/false</code> and token metadata. Works for opaque tokens. Slower — one AS call per request (cache the result). Enables real-time revocation.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">RS</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">JWKS endpoint (cached)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Verify signature + claims locally</span>
+          
+        </div>
+        
+        <div class="flow">
+          
+          <span class="flow-step">RS</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">AS /introspect</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">active: true + claims</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">JWT: local validation</span>
+          
+          <span class="tag orange">opaque: introspection</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🚪 Token Revocation & Expiry</div>
+      <div class="concept-body">
+        Access tokens are self-contained and cannot be invalidated before expiry when using local JWT validation — the RS has no way to know a token was revoked. Mitigate with short lifetimes (5–15 minutes). Refresh tokens can be revoked at the AS (RFC 7009); the client loses the ability to get new access tokens. Refresh token rotation: every use of a refresh token issues a new refresh token and invalidates the old one. If an old refresh token is used (replay), the AS detects a compromise and can revoke the entire token family. This is the primary defense against stolen refresh tokens.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">short access token TTL</span>
+          
+          <span class="tag orange">refresh rotation</span>
+          
+          <span class="tag red">revocation = family invalidation</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">OAuth2 is not authentication — don't use the access token as identity proof</span>
+      A common mistake: a client receives an access token and passes it to a backend to prove who the user is. The access token says what the client can do, not who the user is. Anyone who acquires the token (legitimately or not) can impersonate. Use the ID token (OIDC) or call the UserInfo endpoint. The backend should validate the ID token's <code>sub</code> claim for identity, not the access token's presence.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Implicit flow and ROPC are deprecated — stop using them</span>
+      The <strong>Implicit flow</strong> returned tokens directly in the URL fragment — visible in browser history, referrer headers, and server logs. Deprecated in OAuth 2.1. The <strong>Resource Owner Password Credentials (ROPC)</strong> flow requires the client to handle the user's username and password directly — exactly what OAuth2 was designed to avoid. Both are insecure. Use Authorization Code + PKCE for user-facing apps, Client Credentials for M2M.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Missing or ignored state parameter enables CSRF</span>
+      The <code>state</code> parameter in the authorization request must be a random, unguessable value bound to the user's session. On callback, the client must verify the returned <code>state</code> matches. Without this, an attacker can trick a victim's browser into completing an authorization flow the attacker initiated, binding the victim's session to the attacker's account (OAuth CSRF). This is a real attack — not theoretical.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Storing tokens in localStorage exposes them to XSS</span>
+      Any JavaScript running in your page — including injected malicious scripts — can read <code>localStorage</code>. Access tokens stored there are trivially stolen via XSS. For SPAs: use the BFF (Backend for Frontend) pattern — the backend handles the OAuth2 flow and stores tokens server-side, issuing a session cookie (httpOnly, Secure, SameSite=Strict) to the browser. No tokens in the browser at all.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Broad scopes create permanent over-permissioning</span>
+      Requesting <code>admin</code> or <code>*</code> scopes because it's convenient means a compromised token has unlimited access. Users also see and remember broad consent screens — "this app wants access to everything." Design scopes to match actual needs: <code>read:invoices</code> not <code>billing:admin</code>. Review and prune scopes granted to long-lived integrations regularly.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Token audience (aud) validation is frequently skipped</span>
+      The <code>aud</code> claim in a JWT specifies which resource server the token is intended for. If a RS doesn't validate <code>aud</code>, a token issued for service A can be replayed against service B. This is a common misconfiguration in internal microservice architectures where all services share a single AS. Validate <code>aud</code> on every token, every request.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use OAuth2 When</div>
+      <ul>
+        
+        <li>Third-party application integration — users grant an external app access to their data without sharing credentials</li>
+        
+        <li>Machine-to-machine API authorization between internal services (Client Credentials)</li>
+        
+        <li>Single sign-on across multiple applications within an organization</li>
+        
+        <li>Federated identity across organizational boundaries (partner APIs, B2B integration)</li>
+        
+        <li>Mobile and SPA clients that need delegated access to backend APIs</li>
+        
+        <li>Any scenario requiring scoped, revocable, time-limited access tokens</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use OAuth2 When</div>
+      <ul>
+        
+        <li>Simple first-party authentication — a username/password login with session cookies is simpler and sufficient</li>
+        
+        <li>Internal service-to-service calls where mTLS provides stronger, certificate-based mutual authentication</li>
+        
+        <li>Low-sensitivity internal APIs where API keys + TLS are adequate and OAuth2 overhead isn't justified</li>
+        
+        <li>Teams without the expertise to implement token validation, rotation, and revocation correctly — a misconfigured OAuth2 implementation is worse than a simpler, correct alternative</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">🎟️ Token Types Reference</div>
+      <table>
+        
+        <tr><td>Access Token</td><td>Short-lived (5–60 min). Presented to resource server. JWT (local validation) or opaque (introspection).</td></tr>
+        
+        <tr><td>Refresh Token</td><td>Long-lived (hours–days). Opaque. Used to obtain new access tokens. Never sent to resource server. Rotate on every use.</td></tr>
+        
+        <tr><td>ID Token</td><td>OIDC only. JWT. Contains user identity claims (sub, email, name). Intended for the client, not the resource server.</td></tr>
+        
+        <tr><td>Authorization Code</td><td>Single-use. Expires in seconds. Exchanged for tokens at the token endpoint. Useless without PKCE code_verifier.</td></tr>
+        
+        <tr><td>Client Secret</td><td>Shared secret for confidential clients. Never expose in client-side code. Rotate on breach. Prefer signed JWT assertion for stronger auth.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">⚙️ JWT Claims Reference</div>
+      <table>
+        
+        <tr><td>iss (issuer)</td><td>URL of the authorization server that issued the token. Validate against expected AS.</td></tr>
+        
+        <tr><td>sub (subject)</td><td>Unique identifier for the user or service. Stable across tokens. Use for identity, not email.</td></tr>
+        
+        <tr><td>aud (audience)</td><td>Intended recipient(s). Must match the resource server's identifier. Always validate.</td></tr>
+        
+        <tr><td>exp (expiry)</td><td>Unix timestamp after which the token is invalid. Always validate — reject expired tokens.</td></tr>
+        
+        <tr><td>iat (issued at)</td><td>When the token was issued. Use for token age checks, not as primary expiry.</td></tr>
+        
+        <tr><td>jti (JWT ID)</td><td>Unique token identifier. Use for token replay detection and revocation tracking.</td></tr>
+        
+        <tr><td>scope</td><td>Space-separated list of granted scopes. Enforce on the resource server per endpoint.</td></tr>
+        
+        <tr><td>azp (authorized party)</td><td>Client ID the token was issued to. Useful in multi-client scenarios.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">🔒 PKCE Reference</div>
+      <table>
+        
+        <tr><td>code_verifier</td><td>Random string (43–128 chars, URL-safe). Generated by the client. Never sent to the browser.</td></tr>
+        
+        <tr><td>code_challenge</td><td>BASE64URL(SHA256(code_verifier)). Sent in the authorization request.</td></tr>
+        
+        <tr><td>code_challenge_method</td><td>Always S256. Plain is insecure (challenge = verifier, defeats the purpose).</td></tr>
+        
+        <tr><td>Token exchange</td><td>Client sends code + code_verifier. AS recomputes challenge and verifies. Code is useless without the verifier.</td></tr>
+        
+        <tr><td>Why it matters</td><td>Even if the authorization code is intercepted (open redirect, log injection), it cannot be exchanged without the verifier the client holds.</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">💻 CLI Commands</div>
+      <div class="cmd-block">
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Authorization Code flow — token exchange</div>
+          
+          <span class="cmd"># Step 1: redirect user to AS (browser)</span>
+          
+          <span class="cmd">https://as.example.com/authorize?response_type=code&client_id=myapp&redirect_uri=https://app.example.com/callback&scope=openid+read:orders&state=RANDOM&code_challenge=CHALLENGE&code_challenge_method=S256</span>
+          
+          <span class="cmd"># Step 2: exchange code for tokens (server-side)</span>
+          
+          <span class="cmd">curl -X POST https://as.example.com/token -d 'grant_type=authorization_code&code=AUTH_CODE&redirect_uri=https://app.example.com/callback&client_id=myapp&client_secret=SECRET&code_verifier=VERIFIER'</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Client Credentials flow</div>
+          
+          <span class="cmd">curl -X POST https://as.example.com/token -d 'grant_type=client_credentials&client_id=service-a&client_secret=SECRET&scope=read:inventory'</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Refresh token</div>
+          
+          <span class="cmd">curl -X POST https://as.example.com/token -d 'grant_type=refresh_token&refresh_token=RT_VALUE&client_id=myapp&client_secret=SECRET'</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Token introspection</div>
+          
+          <span class="cmd">curl -X POST https://as.example.com/introspect -u 'rs-client:rs-secret' -d 'token=ACCESS_TOKEN'</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Token revocation</div>
+          
+          <span class="cmd">curl -X POST https://as.example.com/revoke -d 'token=REFRESH_TOKEN&token_type_hint=refresh_token&client_id=myapp&client_secret=SECRET'</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">JWKS fetch (public key for JWT validation)</div>
+          
+          <span class="cmd">curl https://as.example.com/.well-known/jwks.json</span>
+          
+          <span class="cmd">curl https://as.example.com/.well-known/openid-configuration</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">⚖️ OAuth2 Grant Types — When to Use Each</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+            <th>Grant Type</th>
+            
+            <th>Use Case</th>
+            
+            <th>User Involved?</th>
+            
+            <th>Refresh Token?</th>
+            
+            <th>Security Notes</th>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Authorization Code + PKCE</td>
+            
+            <td>Web apps, SPAs, mobile apps — any user-facing client</td>
+            
+            <td>Yes</td>
+            
+            <td>Yes</td>
+            
+            <td>Required flow for user-facing clients. PKCE mandatory for public clients.</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Client Credentials</td>
+            
+            <td>Service-to-service, background jobs, daemons</td>
+            
+            <td>No</td>
+            
+            <td>No</td>
+            
+            <td>Client secret must be kept secure. Use signed JWT assertion over shared secret where possible.</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Device Authorization</td>
+            
+            <td>Smart TVs, CLIs, IoT devices with no browser</td>
+            
+            <td>Yes (on second device)</td>
+            
+            <td>Yes</td>
+            
+            <td>User visits a URL on another device to authorize. Polling interval must be respected.</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Refresh Token</td>
+            
+            <td>Obtaining new access tokens silently</td>
+            
+            <td>No (after initial auth)</td>
+            
+            <td>Rotates</td>
+            
+            <td>Rotate on every use. Detect replay via reuse detection. Invalidate full family on suspected theft.</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Token Exchange (RFC 8693)</td>
+            
+            <td>Service A impersonates user when calling Service B</td>
+            
+            <td>Indirectly</td>
+            
+            <td>Sometimes</td>
+            
+            <td>Enables actor/subject distinction. Correct solution for delegation chains — not passing the user's token downstream.</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Implicit (deprecated)</td>
+            
+            <td>Was used for SPAs before PKCE</td>
+            
+            <td>Yes</td>
+            
+            <td>No</td>
+            
+            <td>Tokens in URL fragment. Deprecated in OAuth 2.1. Do not use.</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>ROPC (deprecated)</td>
+            
+            <td>Direct username/password to client</td>
+            
+            <td>Yes (credentials exposed)</td>
+            
+            <td>Yes</td>
+            
+            <td>Client handles user credentials — defeats OAuth2's purpose. Deprecated. Do not use.</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">Walk me through the Authorization Code flow with PKCE step by step.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">(1) The client generates a random <code>code_verifier</code> (43–128 chars, cryptographically random) and computes <code>code_challenge = BASE64URL(SHA256(code_verifier))</code>.
+(2) The client redirects the browser to the AS <code>/authorize</code> endpoint with: <code>response_type=code</code>, <code>client_id</code>, <code>redirect_uri</code>, <code>scope</code>, <code>state</code> (random CSRF token), <code>code_challenge</code>, <code>code_challenge_method=S256</code>.
+(3) The AS authenticates the user (login screen) and presents a consent screen listing the requested scopes. User approves.
+(4) The AS redirects to <code>redirect_uri?code=AUTH_CODE&amp;state=SAME_STATE</code>. The client validates <code>state</code> matches the value from step 2 (CSRF check).
+(5) The client POSTs to <code>/token</code>: <code>grant_type=authorization_code</code>, <code>code</code>, <code>redirect_uri</code>, <code>client_id</code>, <code>client_secret</code> (confidential) or just <code>client_id</code> (public), <code>code_verifier</code>.
+(6) The AS validates the code, computes SHA256(code_verifier), compares to the stored challenge. If valid, returns access token, refresh token, and ID token (if OIDC).</div>
+        
+        <div class="staff-add">The code_verifier/challenge is the critical security mechanism for public clients. A browser or mobile app cannot keep a client_secret — any secret bundled in the app binary can be extracted. PKCE solves this: the challenge is sent upfront (public); the verifier is held in memory and never leaves the client. Intercepting the authorization code is now useless without the verifier. For confidential clients (server-side apps), both client_secret AND PKCE should be used — defense in depth, and OAuth 2.1 will require PKCE for all clients regardless of type.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">What is the difference between an access token and a refresh token — why do we need both?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Access tokens are sent on every API request, making them high-value targets. Keeping them short-lived (5–60 minutes) limits the damage window if stolen — the attacker can use it for at most that window without being able to renew it. But forcing users to re-authenticate every 15 minutes is terrible UX.
+Refresh tokens solve this: they live server-side (or in a secure httpOnly cookie), are sent only to the AS token endpoint (not to every API), and exchange for a new access token silently. They're long-lived (hours to days) but stored securely and can be revoked at the AS. The two-token model separates the high-frequency, high-exposure credential (access token) from the long-lived, tightly-controlled one (refresh token).</div>
+        
+        <div class="staff-add">Refresh token rotation is the key security control. Without it, a stolen refresh token grants indefinite access. With rotation: every refresh token use issues a new RT and invalidates the old one. If an attacker uses a stolen RT while the legitimate client holds a newer one, the next legitimate use will fail — the AS detects that an already-invalidated token was used (replay), signals a compromise, and can revoke the entire token family. This forces the user to re-authenticate. The design requires the AS to maintain a token family graph — not all AS implementations do this correctly. Verify your AS supports reuse detection before relying on rotation as a security control.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">How does a resource server validate a JWT access token?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">(1) <strong>Fetch JWKS</strong>: retrieve the AS's public keys from <code>/.well-known/jwks.json</code>. Cache aggressively — refresh only on cache miss for an unknown <code>kid</code>.
+(2) <strong>Verify signature</strong>: decode the JWT header, find the <code>kid</code>, use the matching public key to verify the signature algorithm matches (e.g., RS256). Reject if signature is invalid.
+(3) <strong>Validate claims</strong>: check <code>iss</code> matches the expected AS; <code>aud</code> contains the RS's identifier; <code>exp</code> is in the future; <code>iat</code> is not too far in the past (clock skew tolerance).
+(4) <strong>Check scope</strong>: the <code>scope</code> claim (or a custom claim) contains the permission required for the requested endpoint.
+(5) <strong>Check <code>alg</code></strong>: only allow expected algorithms (RS256, ES256). Reject <code>none</code> and symmetric algorithms like HS256 unless you explicitly share a secret.</div>
+        
+        <div class="staff-add">The <code>alg=none</code> vulnerability is historical but worth knowing: early JWT libraries would accept unsigned tokens if the header declared <code>alg: none</code>. Also watch for algorithm confusion attacks — a RS256-signed token where the attacker changes the header to HS256 and signs with the RS's public key (which is, confusingly, treated as the HMAC secret by vulnerable libraries). Always validate the <code>alg</code> header against an explicit allowlist before selecting the verification key. Never let the token dictate the algorithm — your application dictates it.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">What is the difference between OAuth2 and OpenID Connect?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">OAuth2 is a framework for delegated <strong>authorization</strong> — granting access to resources. It says nothing about who the user is; it only defines what they're allowed to do. OpenID Connect (OIDC) is an <strong>identity layer</strong> on top of OAuth2. It adds: the <code>openid</code> scope (signals an OIDC request), the <strong>ID token</strong> (a JWT containing identity claims: <code>sub</code>, <code>name</code>, <code>email</code>, <code>iss</code>, <code>aud</code>, <code>exp</code>), and the <strong>UserInfo endpoint</strong> (fetch additional user claims with an access token).
+Rule: use the ID token to know <em>who</em> the user is. Use the access token to access protected resources. Never send the ID token to an API as an access credential.</div>
+        
+        <div class="staff-add">The distinction matters in system design. An API gateway that validates the access token and enforces scopes does not need OIDC — it only cares about authorization. A service that needs to personalize a response ("Hello, Alice") or apply user-level data access control needs the user's identity from the ID token or UserInfo. In microservices, a common pattern: the gateway validates the access token, extracts claims, and forwards user identity as a trusted header (e.g., <code>X-User-ID</code>) to downstream services. Services trust the gateway's header rather than re-validating the full token on every hop — simpler, but requires network-level trust between the gateway and services.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">Why is the Implicit flow deprecated and what replaced it?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The Implicit flow returned tokens directly in the URL fragment (<code>#access_token=...</code>) after the authorization redirect. Problems: URL fragments appear in browser history, server logs, referrer headers, and JavaScript running in the page. Tokens were exposed to any code that could read the URL. The flow was designed for SPAs before PKCE existed, under the assumption that SPAs couldn't keep secrets — but the Implicit flow's "solution" created worse exposure than the problem it avoided.
+Replacement: <strong>Authorization Code + PKCE</strong>. Tokens are never in the URL. The short-lived code in the redirect URL is useless without the <code>code_verifier</code> the client holds in memory. PKCE solves the "public client can't keep a secret" problem without putting tokens in URLs.</div>
+        
+        <div class="staff-add">ROPC (Resource Owner Password Credentials) is also deprecated and more commonly misused. Teams reach for it because it "feels simple" — just pass username/password to an endpoint and get a token. But ROPC requires the client to handle user credentials directly, breaking the core OAuth2 trust model. The AS can't distinguish a legitimate ROPC request from a phishing attack. ROPC also prevents the AS from enforcing MFA (there's no interactive step where MFA could be inserted). If you see ROPC in a codebase, it's almost always a sign that the OAuth2 integration was done for compliance theatre rather than security — the threat model that OAuth2 addresses is not being realized.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">How should you design scopes for a large API surface?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Follow the <code>resource:action</code> pattern: <code>invoices:read</code>, <code>invoices:write</code>, <code>users:admin</code>, <code>payments:initiate</code>. This gives a clear, consistent vocabulary that maps directly to what the consent screen shows users. Avoid verbs that imply everything (<code>admin</code>, <code>full_access</code>) — they're impossible to revoke partially and create over-permissioning by default.
+Separate read and write — a reporting client needs <code>read</code> only; a write-only integration should never have <code>read</code>. Group into logical resource boundaries so clients request a coherent set. Too many fine-grained scopes (50+) creates consent fatigue and management complexity; too few coarse scopes creates over-permissioning. Aim for 10–30 scopes for a typical API surface.</div>
+        
+        <div class="staff-add">Scope design is an API design problem, not just a security problem. Once scopes are in production and clients are relying on them, renaming or splitting them becomes a migration event. Design your scope vocabulary deliberately upfront and treat it as a public API contract. Consider grouping scopes into "scope bundles" for common use cases — a client can request the bundle (<code>reporting</code>) which maps to a set of granular scopes internally. The consent screen shows the bundle name and description; the AS expands it. This keeps the user-facing consent simple while maintaining granular enforcement on the resource server.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">How do you handle token expiry and silent renewal in a client application?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">For server-side web apps: store the refresh token securely (encrypted, server-side). When an API call returns 401, use the refresh token to obtain a new access token transparently, retry the request, and update the stored tokens. Implement a token refresh mutex — if multiple concurrent requests hit a 401, only one should refresh; others wait for the result rather than all attempting refresh simultaneously.
+For SPAs using the BFF pattern: the backend handles refresh invisibly; the SPA never sees tokens. A 401 from the BFF means the refresh failed (expired or revoked) — redirect to login. For mobile apps: use the OS secure storage (Keychain on iOS, Keystore on Android) for refresh tokens; the OAuth2 library handles silent refresh.</div>
+        
+        <div class="staff-add">The refresh mutex is easy to overlook and causes race conditions in high-concurrency clients. Without it: 10 concurrent API calls all get 401, all try to refresh, all succeed (using different refresh tokens), all but the last store a now-invalid refresh token, and the client is silently broken until the next restart. Use a shared lock or a single in-flight refresh promise that all waiters attach to. For distributed systems (multiple instances of a service all sharing one client credential), coordinate token refresh via a shared cache (Redis) — only one instance refreshes; others read the cached token. Avoid refresh storms on token expiry.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-08</span>
+        <span class="acc-question">What is the state parameter in OAuth2 and what attack does it prevent?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The <code>state</code> parameter is a random, opaque value the client generates before the authorization redirect and binds to the user's session. When the AS redirects back with the authorization code, it includes the same <code>state</code> value. The client must verify that the returned <code>state</code> matches what it stored.
+This prevents <strong>OAuth CSRF</strong> (Cross-Site Request Forgery): an attacker initiates an authorization flow, gets the redirect URL back (with the authorization code), but instead of following it themselves, tricks the victim's browser into loading it. The victim's session gets bound to the attacker's OAuth grant. The attacker can then log into the victim's session (if the app uses "Login with X") or the victim's account gets linked to the attacker's external account. State validation breaks this — the victim's browser has no matching state in its session.</div>
+        
+        <div class="staff-add">PKCE protects the authorization code from being used by an interceptor. State protects against CSRF on the redirect. They solve different attacks and both are required. In practice, many OAuth2 libraries generate and validate state automatically — but not all, and "framework handles it" is not the same as "we verified it handles it correctly in our setup." Always audit the state validation path explicitly in security reviews.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-09</span>
+        <span class="acc-question">What is token introspection and when do you use it over local JWT validation?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Token introspection (RFC 7662) lets a resource server call the AS's <code>/introspect</code> endpoint to validate a token. The AS responds with <code>active: true/false</code>, scopes, expiry, and token metadata. It works for opaque tokens (random strings with no embedded claims) — the RS cannot decode them locally; only the AS knows their state. It also enables real-time revocation: when a token is revoked at the AS, the next introspection call returns <code>active: false</code> immediately, even before the token's <code>exp</code> has passed.
+Use local JWT validation (JWKS) for high-throughput APIs where the AS call latency is unacceptable. Use introspection when you need real-time revocation, are using opaque tokens, or the AS is internal and low-latency. Cache introspection results keyed by token (short TTL) to reduce AS load.</div>
+        
+        <div class="staff-add">The revocation gap is the real trade-off. A JWT with a 15-minute lifetime can be used for 15 minutes after the user logs out, revokes access, or is terminated — local validation cannot know. For most use cases, 15 minutes is acceptable. For high-security contexts (financial transactions, admin actions, post-termination access), short access token lifetimes alone aren't enough. Either use introspection with caching (accepting some revocation lag equal to the cache TTL) or use a token binding approach where each access token is single-use and short-lived enough that the revocation window is negligible.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-10</span>
+        <span class="acc-question">How does the Client Credentials flow work and how do you secure the client secret?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The client POSTs to the token endpoint with <code>grant_type=client_credentials</code>, <code>client_id</code>, <code>client_secret</code>, and <code>scope</code>. The AS validates the credentials, checks the requested scopes against what's allowed for this client, and returns an access token. No refresh token — when the access token expires, the client re-authenticates directly. Best practice: cache the access token until near expiry, then re-authenticate rather than fetching a new token for every request.
+Securing the client secret: never hardcode in source or config files in version control. Use environment variables injected at runtime, or better, a secrets manager (Vault, AWS Secrets Manager). Rotate secrets on a schedule and immediately on suspected exposure. For higher assurance, replace the client secret with a signed JWT assertion (<code>private_key_jwt</code> or <code>client_secret_jwt</code>) — the client signs a short-lived JWT with a private key; the AS verifies with the registered public key.</div>
+        
+        <div class="staff-add">In Kubernetes environments, use Workload Identity where available instead of client secrets: the platform issues a short-lived, auto-rotated service account token (AWS IRSA, GCP Workload Identity, OCP STS) that the AS validates against the cloud provider's JWKS. No secret to manage, no rotation to schedule, no credential to leak. This is the direction the industry is moving for M2M auth in cloud environments. Where Workload Identity isn't available, <code>private_key_jwt</code> is the next-best option — the private key never leaves the service, only the signed assertion is sent.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-11</span>
+        <span class="acc-question">What is the Device Authorization flow and when is it appropriate?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The Device Authorization Grant (RFC 8628) is for devices with limited input capability — smart TVs, CLIs, IoT devices — that can display a URL but can't easily handle browser redirects. Flow: the device calls the AS device authorization endpoint and receives a <code>device_code</code>, <code>user_code</code>, and <code>verification_uri</code>. It displays "Go to example.com/activate and enter code WXYZ-1234." The user opens the URL on their phone or computer, authenticates, and enters the code. The device polls the AS token endpoint (with a specified interval) until the user completes authorization or the device code expires.</div>
+        
+        <div class="staff-add">The polling behavior is the most commonly misimplemented part. The AS specifies a minimum polling interval (e.g., 5 seconds). If the device polls faster, the AS returns <code>slow_down</code> — the device must then increase its interval by 5 seconds and maintain that for the rest of the flow. Respecting this is required by the spec and avoids being rate-limited or blocked. Also: device codes expire (typically 15–30 minutes). Design the user experience to make it clear what to do if the code expires — display a refresh button, not just a confusing error. The Device flow is correct for CLIs like <code>kubectl</code> login or <code>aws sso login</code> — it's the only flow that doesn't require a callback URL.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-12</span>
+        <span class="acc-question">How do you handle OAuth2 in a Single Page Application (SPA) securely?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The recommended pattern is <strong>Backend for Frontend (BFF)</strong>. The BFF is a thin server-side component (Node.js, a sidecar) that handles the OAuth2 flow on behalf of the SPA. The BFF: initiates the authorization code flow (server-side, can use a client secret), handles the callback and token exchange, stores tokens server-side (never sent to the browser), and issues a session cookie (httpOnly, Secure, SameSite=Strict) to the SPA. The SPA calls the BFF's API; the BFF attaches the access token to upstream calls. Tokens are never in the browser's JavaScript context.
+Without BFF: use Authorization Code + PKCE (no client secret, PKCE only for public client). Store access tokens in memory only — not localStorage or sessionStorage. Refresh tokens should not be given to SPAs; use silent refresh via a hidden iframe or short access token lifetimes with re-authentication.</div>
+        
+        <div class="staff-add">The BFF pattern adds an infrastructure component but provides significantly better security properties: tokens are not in the browser, XSS cannot steal them, and the session is revocable at the BFF layer. The trade-off is the BFF is a new service to operate. For high-security applications (banking, healthcare), BFF is the correct choice. For low-security public-facing apps, PKCE with in-memory tokens is acceptable. The worst option — and still common — is Authorization Code + PKCE with refresh tokens stored in localStorage. This survives a library audit ("we use PKCE!") while being insecure in practice.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-13</span>
+        <span class="acc-question">What is refresh token rotation and how does reuse detection work?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Refresh token rotation means every time a refresh token is used to get a new access token, the AS issues a brand new refresh token and invalidates the old one. The client must update its stored refresh token to the new value after every use.
+Reuse detection: the AS maintains which refresh token is the current valid one in a "token family." If an already-invalidated (previously rotated) refresh token is presented, the AS knows it has been replayed. This indicates either: a race condition in the legitimate client (usually manageable) or a stolen token being used after the legitimate client already rotated it. On detected reuse, the AS invalidates the entire token family, forcing full re-authentication.</div>
+        
+        <div class="staff-add">Rotation without reuse detection gives false security — if a token is stolen and used before the legitimate client does, the attacker rotates it and the legitimate client's next refresh attempt fails. The user gets logged out, which is visible but not catastrophic. With reuse detection, when the legitimate client uses the rotated token, the AS sees the old (attacker-used) token was already rotated, detects the family compromise, and revokes everything — forcing both the attacker and the user to re-authenticate. The user is prompted to log in again; ideally they also see a security alert. Not all authorization servers implement family-based reuse detection — verify this capability before relying on rotation as your primary theft mitigation.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-14</span>
+        <span class="acc-question">How do you securely store and transmit tokens in different client types?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Server-side web app</strong>: store tokens in the server-side session (encrypted, in Redis or DB). Transmit access token to APIs over TLS. Refresh token never leaves the server.
+<strong>SPA</strong>: ideally BFF (tokens never in browser). If not BFF: access token in memory only (JavaScript variable, wiped on page reload). Never localStorage. Refresh tokens should not be issued to SPAs.
+<strong>Mobile app</strong>: store refresh token in OS secure storage — iOS Keychain, Android Keystore (hardware-backed where available). Access token in memory. Use a reputable OAuth2 library (AppAuth for iOS/Android) rather than implementing token storage manually.
+<strong>CLI / desktop</strong>: OS keychain. <code>git credential</code> model. Or device flow with short-lived tokens refreshed on each invocation.</div>
+        
+        <div class="staff-add">The common thread: the refresh token (long-lived, high-value) is always stored in the most secure location available for that client type. The access token (short-lived, lower consequence) can be held in faster, less secure storage. "Secure storage" on mobile is not just a code choice — it depends on device configuration. An unencrypted Android device with developer mode enabled has a weakened Keystore. On iOS, Keychain items must use <code>kSecAttrAccessible</code> values that require device unlock. Audit the specific API calls in your mobile OAuth2 library to confirm it's using hardware-backed secure storage, not just writing to a shared preferences file labeled "secure."</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">Design the key components of an OAuth2 authorization server. What does each component do?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Authorization endpoint</strong> (<code>/authorize</code>): handles browser redirects, authenticates the user (delegating to an identity store or IdP), presents the consent UI, and issues the authorization code.
+<strong>Token endpoint</strong> (<code>/token</code>): validates the grant (code, refresh token, client credentials), authenticates the client (client_secret or JWT assertion), issues tokens. Must be server-to-server only (no browser redirects).
+<strong>Introspection endpoint</strong> (<code>/introspect</code>): validates a token and returns its metadata. Protected — only resource servers with registered RS credentials can call it.
+<strong>Revocation endpoint</strong> (<code>/revoke</code>): accepts a refresh or access token and marks it invalid.
+<strong>JWKS endpoint</strong> (<code>/.well-known/jwks.json</code>): public keys for JWT signature verification.
+<strong>Discovery document</strong> (<code>/.well-known/openid-configuration</code>): machine-readable metadata listing all endpoints, supported flows, scopes, algorithms.</div>
+        
+        <div class="staff-add">The hardest part to get right is the token store. Every issued token, every refresh token family, every revocation must be persisted durably and retrieved at low latency. This is a high-read, low-write store with specific query patterns (lookup by token value, lookup by client, lookup by user). Redis works well for access and refresh token state; a relational DB for client registrations and audit logs. The AS is also a high-value target — it issues credentials for your entire system. Harden it separately from the applications it protects: separate network segment, dedicated DB user with minimal permissions, extensive audit logging of every token issuance and revocation.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">How do you design OAuth2 for a multi-tenant SaaS platform where each tenant has its own users and resource servers?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Two models. <strong>Single AS, tenant-isolated by claims</strong>: all tenants share one AS. Tenant identity is embedded in the token (<code>tenant_id</code> claim). Resource servers read the claim and enforce tenant data isolation. Simpler to operate; tenants cannot customize their auth (MFA policy, SAML federation). <strong>Per-tenant AS or realm</strong>: Keycloak calls these "realms" — each tenant gets an isolated configuration, user store, client registrations, and policies. Stronger isolation; higher operational overhead. OIDC discovery documents are tenant-scoped. Clients must know which tenant's AS to call (usually derived from the login domain or a tenant subdomain).</div>
+        
+        <div class="staff-add">The per-tenant realm model is correct when tenants have different identity providers (tenant A uses Azure AD SAML, tenant B uses Google Workspace, tenant C uses local accounts). Each realm can federate to a different external IdP without affecting others. The operational overhead is manageable with a platform layer that provisions realms via API on tenant onboarding. The harder design question is how clients discover the correct AS. A common pattern: <code>https://as.example.com/realms/{tenant_id}/.well-known/openid-configuration</code>. The client derives the tenant from the user's login domain or a pre-configured tenant identifier. Ensure your client libraries support dynamic AS discovery per tenant.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">How do you implement the Backend for Frontend (BFF) pattern for a SPA?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The BFF is a thin server-side service (or API gateway) co-located with the SPA. It owns the OAuth2 client registration (has the client_secret, handles PKCE). Flow: the SPA calls BFF <code>/login</code>, which initiates the authorization code flow (server-side). After callback, the BFF exchanges the code for tokens at the AS. The BFF stores tokens in a server-side session (Redis/DB) keyed to a session ID. It sets a <code>session</code> httpOnly cookie on the browser. The SPA's API calls go through the BFF — the BFF reads the session, attaches the access token, and proxies to the resource server. The SPA never sees a token.</div>
+        
+        <div class="staff-add">The BFF becomes a critical, stateful infrastructure component — it holds all active sessions and tokens. Design it for high availability and correct session handling (distributed sessions via Redis, not in-memory). The BFF should also handle: token refresh (transparently, with the mutex pattern), logout (revoke the refresh token at the AS, clear the session), and token validation errors (propagate meaningful 4xx to the SPA). One nuance: the BFF cookie must be scoped correctly — <code>SameSite=Strict</code> prevents CSRF but breaks some cross-origin scenarios; <code>SameSite=Lax</code> is a reasonable default for most SPAs. The BFF is also where you add rate limiting, logging, and request tracing for auth flows — easier to centralize here than in every SPA page.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-04</span>
+        <span class="acc-question">How do you handle token validation at scale in a high-traffic microservices system?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">JWKS caching is the foundation: fetch the AS's public keys once, cache in memory, refresh only on cache miss for an unknown <code>kid</code>. This reduces AS dependency to nearly zero for JWT validation. Structure: each service validates tokens locally using the cached JWKS; no per-request AS call. For introspection-required scenarios (opaque tokens, real-time revocation), cache introspection results with a short TTL (30–60 seconds) keyed by token hash — never by plaintext token, and never in a shared cache without careful isolation. Use an API gateway as the single token validation point and propagate identity as a trusted downstream header to reduce per-service validation overhead.</div>
+        
+        <div class="staff-add">The API gateway pattern centralizes auth but creates a single point of failure. Design the gateway for high availability (multiple instances, stateless JWT validation). The trust model for downstream headers (<code>X-User-ID</code>, <code>X-Scopes</code>) requires network-level controls — services must only accept these headers from the gateway, not from external clients. Implement this via mTLS between the gateway and services, or network policy (only the gateway's IP range can reach internal services on the trusted port). At extreme scale (millions of tokens/second), pre-compute scope claims into a compact bitmap or set at issuance time so scope checking is a bitwise operation, not a string scan.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-05</span>
+        <span class="acc-question">What is Token Exchange (RFC 8693) and how does it solve the delegation problem in microservices?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Token Exchange lets a service obtain a token that represents a user in the context of a downstream service call. Without it: Service A receives a user's access token and passes it directly to Service B. Service B validates the token and sees the user as the caller. This is "token forwarding" — it works but has problems: the token might not have the right scopes for Service B, the token expiry is uncontrolled, and Service A's identity is invisible (you can't audit that A called B on behalf of user).
+With Token Exchange: Service A calls the AS's token endpoint with <code>grant_type=urn:ietf:params:oauth:grant-type:token-exchange</code>, the user's token as the <code>subject_token</code>, and Service A's own credentials as the <code>actor</code>. The AS issues a new token with <code>sub=user</code>, <code>act=service-a</code>, scoped for Service B.</div>
+        
+        <div class="staff-add">Token Exchange is the correct solution for delegation chains where you need both the original user identity and the acting service identity preserved in the token. The <code>act</code> claim creates an audit trail: "Service A, acting as User X, called Service B." Without this, audit logs for downstream services show only the user — you lose visibility into which service made the call. The implementation complexity is real: your AS must support RFC 8693 (not all do), every service in the chain must participate, and the scope design must work across service boundaries. For simpler use cases where you just need to propagate user identity, passing a validated user claim as a trusted header from the API gateway is often sufficient — and dramatically simpler than implementing full token exchange.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-06</span>
+        <span class="acc-question">How do you design and enforce scopes across a large API surface with multiple teams?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Scope governance follows the same principles as API governance. Establish a scope registry — a central source of truth (Git repo, internal doc) that defines every scope: name, resource it protects, actions it grants, which clients are allowed to request it. Scope creation requires review. Name scopes in a consistent <code>resource:action</code> format. Publish them in the AS discovery document so clients can discover them programmatically.
+Enforcement: the resource server is responsible for enforcing scopes — the AS only issues what's allowed; the RS checks what's required. Use middleware or a decorator per endpoint to declare the required scope. Never rely on the client requesting only the right scopes — validate on every request at the RS.</div>
+        
+        <div class="staff-add">The hardest scope problem at scale is cross-team API access. Team A's service needs to call Team B's API. Team B's AS-registered client for Team A's service needs the correct scopes granted. Without a governance process, this becomes: Team A requests <code>admin</code> scope because it's easier than asking for the specific scopes they need; Team B grants it to unblock Team A; <code>admin</code> is now granted to 15 clients that don't need it. Solve this with a scope request process (PR to the scope registry), automatic detection of clients holding more scopes than they've exercised (based on AS and RS audit logs), and quarterly scope reviews. Unused scopes on production clients are a standing vulnerability.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-07</span>
+        <span class="acc-question">How do you integrate an OAuth2-protected API with a legacy system that only supports API keys or Basic Auth?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Several patterns depending on the integration direction. <strong>OAuth2 → legacy (outbound)</strong>: a service with an OAuth2 access token needs to call a legacy API that only accepts Basic Auth. Use a credential broker: the OAuth2 token is validated by the broker, which maps the token's <code>sub</code> or <code>scope</code> to a legacy API key and makes the call. The legacy credentials stay in the broker; the calling service never sees them.
+<strong>Legacy → OAuth2-protected API (inbound)</strong>: the legacy system can't do OAuth2. Use a gateway adapter: the gateway accepts the legacy auth (API key, Basic Auth) and mints a short-lived token (or passes a trusted identity header) for the downstream OAuth2-protected service. The gateway is the trust boundary.</div>
+        
+        <div class="staff-add">The credential broker pattern is especially useful for migration — you're adding OAuth2 without modifying the legacy system. The broker also centralizes audit: every legacy credential use is logged at the broker with the OAuth2 identity that triggered it. Plan the exit: the broker should be temporary. Define a migration timeline for the legacy system to support OAuth2 natively, or to be replaced. Brokers that were "temporary" in 2019 are still running in 2025 because nobody owns the migration. Assign an owner and a target decommission date at the time the broker is deployed.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-08</span>
+        <span class="acc-question">How do you implement step-up authentication in an OAuth2 system?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Step-up authentication requires the user to re-authenticate (or authenticate with a stronger factor) before accessing a sensitive operation, even if they already have a valid session. Pattern: the resource server detects a sensitive request and checks the token's <code>acr</code> (Authentication Context Class Reference) claim. If the claim indicates insufficient assurance (e.g., <code>acr: password-only</code> but <code>acr: mfa</code> is required), the RS returns a 401 with a <code>WWW-Authenticate</code> header containing <code>acr_values="mfa"</code>. The client initiates a new authorization request with <code>acr_values=mfa</code> and <code>prompt=login</code>. The AS challenges the user for MFA and issues a new token with <code>acr: mfa</code>.</div>
+        
+        <div class="staff-add">Step-up is the correct pattern for sensitive operations (payment authorization, account deletion, admin actions) that occur within an otherwise normal session. The alternative — requiring MFA at every login — creates friction for routine actions. Step-up applies friction precisely where it's needed. Implementation challenges: the client must detect the 401+acr_values response and know to re-initiate auth (not just retry the request). Most OAuth2 clients don't handle this out of the box. Design this flow explicitly, including the UX: "For security, please confirm your identity to proceed." The step-up token (with elevated acr) should be short-lived and scoped — avoid it propagating to unrelated API calls.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-09</span>
+        <span class="acc-question">How do you audit and monitor OAuth2 flows in production?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The AS is the central observation point — every token issuance, refresh, and revocation passes through it. Log at minimum: timestamp, event type (token issued, introspection, revocation, failed auth), <code>client_id</code>, <code>user_id</code> (for user flows), scopes requested vs. granted, IP address, and a correlation ID. Ship logs to your SIEM (Splunk, Datadog, Elastic). Alerts: failed client authentication rate (brute force on client secrets), unusual token issuance spikes (compromised client minting tokens at scale), refresh token reuse detection events (stolen token signal), and clients requesting scopes they've never been granted.</div>
+        
+        <div class="staff-add">The gap in most OAuth2 audit implementations is the resource server side. The AS knows what tokens were issued; the RS knows how they were used. Correlating these (using <code>jti</code> as a correlation key) gives you the full picture: token issued at 14:03, used to access <code>/admin/users</code> 47 times, by IP 203.0.113.5 — an anomaly the AS logs alone would miss. Build this correlation into your observability platform. For compliance requirements (SOC2, PCI-DSS), the AS audit log is required evidence: every privileged access token issuance must be traceable to a user, a client, and a set of scopes. Treat AS logs with the same retention and integrity requirements as financial audit logs.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-10</span>
+        <span class="acc-question">How do you handle OAuth2 for mobile applications — what are the specific security considerations?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Mobile apps are public clients — no client secret. Always use Authorization Code + PKCE. Use a system browser or ASWebAuthenticationSession (iOS) / Custom Tabs (Android) for the authorization redirect — never an embedded WebView (the app can intercept the credentials). The OS redirects back via a custom URL scheme (<code>myapp://callback</code>) or universal/app links (more secure — requires domain ownership verification). Store refresh tokens in the OS secure storage (Keychain / Keystore with hardware backing). Use AppAuth (iOS/Android) rather than implementing from scratch.</div>
+        
+        <div class="staff-add">The redirect URI is a common attack surface on mobile. Custom URL scheme hijacking: any app can register the same custom scheme and intercept the callback with the authorization code. Mitigate with universal links (iOS) or app links (Android) — these are bound to your domain via an HTTPS association file, so only your app can handle them. PKCE provides a defense-in-depth backup: even if the code is intercepted, it's useless without the verifier. On Android, also verify the App Identity (SHA-256 certificate fingerprint) is registered at the AS for your app, so the AS can detect if a different app's build certificate signed the request — this catches sideloaded malicious clones of your app.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-11</span>
+        <span class="acc-question">How do you secure a public-facing OAuth2 authorization server against abuse?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Attack surface: brute force on the token endpoint (client secrets, ROPC), authorization code interception, token endpoint flooding, phishing via open redirects, and malicious client registration. Defenses: rate limiting per client and per IP on all endpoints; strict redirect URI validation (exact match, no wildcards, no open redirectors); PKCE enforcement (mandatory for public clients); client authentication on all token requests; short authorization code lifetime (30–60 seconds); and CAPTCHA or proof-of-work for login flows under attack. Log every auth event with IP and user agent.</div>
+        
+        <div class="staff-add">Open redirect vulnerabilities in the authorization endpoint are high-severity. If the AS allows redirect_uri values with wildcards (<code>https://app.example.com/*</code>) or partial matches, an attacker can register a client with a redirect pointing to an attacker-controlled URL (<code>https://app.example.com.evil.com/callback</code>). The authorization code lands at the attacker. Validate redirect URIs with exact string comparison against the registered values — no prefix matching, no wildcard, no subdomain matching unless explicitly required and carefully scoped. Also: dynamic client registration (RFC 7591) is powerful but dangerous in public environments — anyone can register a client. Restrict it to authenticated requests from admin users or internal services, or disable it entirely if you don't need it.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-12</span>
+        <span class="acc-question">How do you migrate a system from API keys to OAuth2 without a big-bang cutover?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Phased migration. Phase 1: deploy the AS and register clients. Add OAuth2 token validation alongside existing API key validation — the resource server accepts both. New integrations use OAuth2; existing integrations continue with API keys. Phase 2: publish OAuth2 migration guides to API consumers with a deprecation timeline for API keys. Instrument the RS to track which clients still use API keys (log the <code>Authorization: ApiKey</code> header path). Phase 3: per-client migration with white-glove support for large consumers. Phase 4: remove API key support after the deprecation date.</div>
+        
+        <div class="staff-add">The migration's hardest part is consumers who don't respond. Define what happens to silent API key users at the cutover date: do you break them (forces response) or extend (never migrates)? Breaking them on a published date is the only way to actually complete the migration — extend-on-request creates a long tail. Also: API keys often carry coarse permissions ("full access to the API") that don't map cleanly to OAuth2 scopes. Use the migration as an opportunity to right-size permissions — issue OAuth2 tokens with the minimum scopes the consumer actually uses (audit their API call patterns first). Migrating auth systems is one of the highest-risk API changes you can make; run parallel validation (both auth methods accepted) for at least one billing cycle before cutover to catch edge cases your integration tests missed.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How would you design an org-wide identity and authorization platform to serve 50+ teams and 200+ services?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Core components: a centrally managed authorization server (Keycloak, Okta, or a cloud IdP) with federated identity providers (corporate LDAP, SAML, SSO); a scope/permission registry that is the source of truth for every scope in the system; a token validation library (SDK) that all services use — centralizes JWKS caching, <code>aud</code> validation, and scope enforcement so teams don't implement it themselves; and an API gateway that handles auth for external-facing services, propagating identity downstream as trusted headers. Internal service-to-service auth uses Client Credentials with Workload Identity (IRSA, OCP STS, Vault AppRole) — no shared secrets.</div>
+        
+        <div class="staff-add">The platform's success is measured by how easy it is for a new service to onboard correctly. If onboarding OAuth2 correctly takes a team a week of research, they'll implement it wrong to ship faster. Invest in developer experience: a self-service client registration portal, a "getting started" SDK that works out of the box with correct defaults, and runbooks for common patterns (BFF for SPAs, M2M for services, device flow for CLIs). Measure adoption by tracking the ratio of OAuth2-protected services to API-key-protected services. Define a target (100% OAuth2 for all new services by Q4) and track it. The platform team's primary job is reducing the friction to do the secure thing — not policing the insecure thing.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-02</span>
+        <span class="acc-question">OAuth2 vs API keys vs mTLS — how do you decide which to use for a given integration?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>API keys</strong>: lowest friction. Good for simple third-party integrations where the key holder is a known, trusted organization. Drawbacks: no standard revocation, no scoping, no expiry by default, keys tend to accumulate without audit. Use for: public API access where OAuth2 is overkill, legacy integrations, rate limiting keys for anonymous API access.
+<strong>OAuth2 Client Credentials</strong>: structured M2M auth with scopes, expiry, and revocation. Good for service-to-service calls within or across organizational boundaries where you need fine-grained access control. Use for: partner API integration, internal microservices that need user-context delegation, any API that needs scope enforcement.
+<strong>mTLS</strong>: mutual certificate authentication — both client and server present certificates. Strongest assurance of client identity; no secret to steal (only the private key, which never leaves the client). Harder to operate (PKI, certificate rotation). Use for: highest- security service-to-service within a controlled network, IoT devices with hardware security modules, regulatory contexts requiring client certificate authentication.</div>
+        
+        <div class="staff-add">At scale, these aren't mutually exclusive — you combine them. mTLS at the network level (service mesh, zero trust network) ensures only authenticated services can talk to each other. OAuth2 at the application level enforces which scopes a service can use. API keys at the edge for external consumers who can't do OAuth2. The zero-trust principle applies: don't trust the network; validate identity at every layer. The failure mode is choosing one mechanism and applying it everywhere — API keys for internal service-to-service because "it's internal" is how lateral movement after a breach becomes easy. Design each integration with the right tool for its threat model.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-03</span>
+        <span class="acc-question">How do you incorporate OAuth2 into a zero-trust architecture?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Zero trust: never trust implicitly based on network location; always verify identity, device, and context before granting access. OAuth2 fits naturally: every service-to-service call requires a valid access token (identity verified); every token has scopes (least-privilege access); tokens are short-lived (continuous re-verification). Extend with: continuous authorization (re-evaluate access mid-session based on context changes — device health, location, risk score) using step-up auth or token revocation; token binding (bind the token to the client's TLS session or DPoP key so stolen tokens are unusable from another client); and centralized policy evaluation (OPA, Cedar) that can evaluate complex authorization rules beyond what scopes alone express.</div>
+        
+        <div class="staff-add">The gap between OAuth2 and full zero trust is continuous authorization. OAuth2 tokens are issued at authentication time and valid until expiry — a user's access doesn't change mid-session even if their device becomes compromised or their employment is terminated. Continuous authorization addresses this: the resource server calls a policy engine on every request (or periodically) to re-evaluate whether the subject should still have access. Google's BeyondCorp and NIST SP 800-207 describe this model. Implementing it requires a policy decision point that can be called at low latency — caching is essential. The implementation complexity is significant; start with short access token lifetimes (5 minutes) as a practical first step toward continuous verification.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-04</span>
+        <span class="acc-question">How do you design federated OAuth2 across organizational boundaries for B2B integrations?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">B2B federation means Org A's AS issues tokens that Org B's resource servers trust, or users from Org A's identity provider can access Org B's services. Patterns: <strong>Direct trust</strong>: Org B's AS registers Org A's AS as a trusted identity provider (OIDC federation). Users from Org A log in via their own AS; Org B's AS issues its own tokens after validating the upstream ID token. <strong>Token exchange</strong>: Org A's service holds an access token issued by Org A's AS. It exchanges it at Org B's AS (RFC 8693) for a token valid at Org B's RS. Org B's AS defines which Org A clients can exchange, and what scopes they get. <strong>SAML-to-OIDC bridge</strong>: legacy SAML from Org A fed into an OIDC bridge that issues standard OAuth2 tokens for Org B's APIs.</div>
+        
+        <div class="staff-add">The trust model in B2B federation is the critical design. Who decides what scopes Org A's users get in Org B's system? Who controls when that trust is revoked? Define this contractually before technically. Common failure: Org A's admin grants their users broad scopes in Org B's system; Org B's team doesn't notice; over time Org A's users have more access than they should. The platform answer is automated scope governance: every cross-org scope grant is reviewed by Org B's security team, has an expiry, and triggers a re-review on expiry. Treat cross-org token trust with the same rigor as a third-party vendor security review.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-05</span>
+        <span class="acc-question">Build the threat model for an OAuth2 authorization server. What are the highest-risk attack surfaces?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Highest risk, in order: (1) <strong>Client secret compromise</strong> — a leaked client_secret lets an attacker impersonate a confidential client and mint tokens for any of its allowed scopes. Mitigation: rotate on exposure, use <code>private_key_jwt</code> instead of shared secrets. (2) <strong>Authorization code interception</strong> — code in the redirect URI intercepted via open redirect, referrer header, or malicious app. Mitigation: PKCE (code useless without verifier), exact redirect URI matching. (3) <strong>Refresh token theft</strong> — long-lived, grants indefinite access. Mitigation: rotation with reuse detection, secure storage, short-lived access tokens. (4) <strong>AS compromise</strong> — the AS is the trust anchor; compromise means unlimited token issuance. Mitigation: HSM for signing keys, air-gapped key management, strong AS infrastructure security. (5) <strong>Open redirector</strong> — AS redirects to attacker-controlled URL. Mitigation: exact URI matching, no wildcards.</div>
+        
+        <div class="staff-add">The AS signing private key is the most sensitive secret in the entire system — whoever holds it can issue valid tokens for any user, any scope, with any claims. Protect it with hardware security modules (HSMs) or cloud KMS (AWS CloudHSM, Azure Dedicated HSM). Key rotation must be planned: publish the new public key in JWKS before rotating the private key (allow resource servers time to refresh their JWKS cache), rotate, then remove the old public key after the old tokens expire. An unplanned key rotation causes all resource servers to reject valid tokens until they refresh their JWKS cache — a self-inflicted auth outage. Document and test the rotation procedure before you need to execute it under incident pressure.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-06</span>
+        <span class="acc-question">How does Conway's Law apply to OAuth2 and authorization system design?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Authorization systems mirror the org structures that built them. Teams own their resource servers and define their own scope vocabularies — without governance, scopes proliferate in each team's local language (<code>invoices:read</code> in Team A, <code>invoice.view</code> in Team B, <code>GET_INVOICES</code> in Team C). Client registrations accumulate in each team's IdP tenant. Cross-team API access becomes a negotiation between two teams' scope schemas. The authorization design reflects the org's communication failures, not just its technical structure.</div>
+        
+        <div class="staff-add">Use the authorization design as an organizational forcing function. A shared scope registry requires teams to agree on a common vocabulary — the same organizational work that should drive API design and service boundaries. When two teams cannot agree on scope names, it's a signal about domain ownership ambiguity, not just a naming preference. The identity platform team should own the scope governance process and the registry tooling; domain teams own the scope definitions within their domain. The centralized scope registry is the authorization equivalent of an API catalog — it makes the org's permission model visible and auditable, which is both a security control and an organizational clarity tool.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">🌐 Scenario 1 — Secure Public API with Third-Party OAuth2 Access</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Your company exposes a REST API that partners and third-party developers use to access customer data on the customer's behalf. Customers must explicitly consent to what data each third-party app can access. A partner app was recently found to be requesting more data than customers consented to, and a compromised third-party client leaked customer data. Design a secure OAuth2 integration that prevents both issues going forward.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Customers must consent to specific data categories — not a blanket approval</li><li>Third-party apps must not be able to access data beyond what was consented</li><li>A compromised third-party client's access must be revocable without affecting other clients</li><li>Access tokens must not be valid for more than 15 minutes</li><li>The system must support 500 registered third-party clients</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Scope design:</strong> define granular scopes by data category — <code>profile:read</code>, <code>orders:read</code>, <code>orders:write</code>, <code>payments:read</code>. The consent screen lists exactly what each scope grants in plain language. Clients declare required scopes at registration; AS enforces that clients cannot request undeclared scopes</li><li><strong>Consent persistence:</strong> store per-user, per-client consent records. On re-authorization, skip the consent screen only if the requested scopes match or are a subset of previously consented scopes. Any new scope requires fresh consent — prevent scope escalation via silent re-authorization</li><li><strong>Token lifetime and refresh rotation:</strong> 15-minute access tokens with refresh token rotation. On client compromise: revoke all refresh token families for that client_id. Affected users lose access and must re-authorize — visible, clean break. Existing sessions for other clients are unaffected</li><li><strong>Strict redirect URI validation:</strong> every client registers exact redirect URIs at registration time. AS rejects any request where redirect_uri doesn't exactly match a registered value. PKCE required for all clients regardless of type</li><li><strong>Resource server scope enforcement:</strong> every API endpoint declares its required scope. A middleware/decorator checks the token's scope claim on every request. A token with <code>orders:read</code> is rejected by the <code>payments</code> endpoint even if the token is otherwise valid</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Coarse scopes like <code>data:read</code> that cover all customer data — users cannot meaningfully consent to what they're approving; a compromised client with this scope accesses everything</li><li>Wildcard or prefix-match redirect URI validation — enables authorization code interception to attacker-controlled domains via open redirectors or subdomain takeover</li><li>Not enforcing scopes on the resource server — relying on the client to only request needed scopes is not an authorization control; the RS must enforce independently</li><li>Shared client secret stored in the third-party app's frontend code — any user who inspects the app can extract it and impersonate the client to the AS</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">🤖 Scenario 2 — Machine-to-Machine Auth for Internal Microservices</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Your platform has 30 microservices communicating with each other via REST APIs. Currently all inter-service calls use a shared API key (<code>internal-secret-key</code>) that is hardcoded in every service's config. The key has never been rotated. A recent audit found the key in a public GitHub repository. Design a secure M2M authorization system that replaces the shared API key with OAuth2.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Each service must have its own identity — one compromised service cannot impersonate another</li><li>Access must be scoped — Service A calling Service B's read endpoint should not have write access</li><li>No long-lived secrets hardcoded in config or committed to version control</li><li>Services run in Kubernetes (OCP) — use platform capabilities where possible</li><li>The migration must be phased — cannot update all 30 services simultaneously</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Workload Identity over client secrets:</strong> use OCP's STS integration or Kubernetes service account tokens projected into pods. Each service has a unique service account. The AS validates the service account JWT against the Kubernetes OIDC issuer — no client secret to leak or rotate</li><li><strong>Per-service client registration:</strong> each service is a distinct OAuth2 client with its own client_id and an allowlist of scopes it can request. Service A's client cannot request scopes only Service B's client is allowed — the AS enforces this at token issuance</li><li><strong>Scope per service pair:</strong> define scopes at the resource server granularity — <code>inventory-service:read</code>, <code>inventory-service:write</code>. Service A that needs to read inventory requests <code>inventory-service:read</code>. The inventory service validates this scope on every inbound request</li><li><strong>Phased migration:</strong> register all 30 services as OAuth2 clients first. Deploy the AS. For each service, add OAuth2 token validation alongside the existing API key check (accept both). Migrate services in batches — start with the service pairs with the most traffic. Remove API key acceptance after all callers have migrated</li><li><strong>Token caching:</strong> Client Credentials tokens have no refresh token. Cache the access token in memory (per service instance) until 60 seconds before expiry, then re-authenticate. Avoid token stampedes on expiry across multiple instances by adding jitter to the pre-expiry refresh window</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Using a single shared OAuth2 client for all services — replaces one shared secret with one shared OAuth2 credential; a compromised service can still impersonate all others</li><li>Requesting admin or wildcard scopes for service clients — preserves the original overpermissioning problem in OAuth2 clothes</li><li>Storing client secrets in Kubernetes Secrets without external secret management — K8s Secrets are base64, not encrypted; use Vault or ESO for actual secret security</li><li>Not caching tokens — re-authenticating on every API call multiplies AS load by the number of inter-service calls per second; the AS becomes a latency bottleneck and single point of failure</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">🚨 Scenario 3 — Security Incident: Refresh Token Theft and Account Takeover</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">At 2am, your security monitoring detects anomalous behavior: a user's account is performing actions from two different countries simultaneously. Investigation reveals that a refresh token was stolen from the user's device (via a malicious browser extension) and is being used by an attacker from a foreign IP to silently obtain access tokens. The user is unaware. The attacker has been active for 6 hours.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Must revoke attacker access without logging the user out of their legitimate session</li><li>Must determine what data the attacker accessed during the 6-hour window</li><li>Must prevent the attacker from using any cached access tokens already issued</li><li>Must notify the user and require re-authentication with MFA</li><li>Must close the vector that allowed the extension to steal the refresh token</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Immediate revocation:</strong> revoke the specific refresh token family the attacker is using at the AS. If refresh token rotation with reuse detection is implemented, using the current valid RT invalidates the attacker's copy; the AS sees two parties using the same family and can revoke all. If not: revoke the entire user's token family for this client — the user's legitimate session also breaks, forcing re-login (acceptable tradeoff)</li><li><strong>Access token window:</strong> access tokens already issued to the attacker may still be valid for up to 15 minutes (per the token lifetime). If the AS supports token introspection and real-time revocation, add the compromised <code>jti</code> values to a blocklist. Otherwise, accept the remaining TTL as the blast radius window — short token lifetimes pay off here</li><li><strong>Forensic audit:</strong> query AS audit logs for all tokens issued from the attacker's IP/device fingerprint. Query resource server logs filtered by the compromised <code>jti</code> values. Build a timeline: what endpoints were called, what data was accessed, any data exported or modified. This is your incident report and breach notification evidence</li><li><strong>Step-up re-authentication:</strong> after revoking the attacker's access, flag the user's account as requiring MFA re-authentication on next login. Use the AS's <code>acr_values=mfa</code> and <code>prompt=login</code> to force a full re-auth challenge. Invalidate all existing sessions, not just the compromised one</li><li><strong>Root cause — token in accessible storage:</strong> if the refresh token was stored in localStorage or a non-httpOnly cookie, a malicious browser extension could read it. Remediation: migrate to BFF pattern (tokens server-side, httpOnly session cookie to browser). In the interim, shorten access token lifetimes, disable refresh tokens for high-privilege sessions</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Treating the 6-hour window as low-risk because 'it was just read access' — without knowing exactly what was read, you cannot assess the breach impact; assume worst-case and notify affected users</li><li>Revoking only the current refresh token without invalidating the entire family — the attacker may hold previously rotated tokens; family revocation is required</li><li>Not fixing the storage vulnerability — revoking this incident's tokens while leaving refresh tokens in localStorage means the next malicious extension repeats the attack immediately</li><li>Skipping the forensic timeline — without knowing what the attacker accessed, you cannot meet breach notification obligations (GDPR 72-hour notification, state breach laws) or assess the full blast radius</li><li>Relying on 'the user would have noticed' — the entire point of refresh token theft is silent, persistent access; the attacker uses the tokens at off-hours and mimics normal behavior patterns</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>function toggleTheme(){
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  h.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+function switchTab(name, el){
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+}
+
+function toggleAcc(header){
+  const item = header.parentElement;
+  item.classList.toggle('open', !item.classList.contains('open'));
+}
+</script>
+</body>
+</html>

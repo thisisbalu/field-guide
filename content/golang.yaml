@@ -1,0 +1,700 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Go (Golang) — Interview Field Guide Content
+# Edit this file to update the guide. Run: python generate.py golang
+# ══════════════════════════════════════════════════════════════════════════════
+
+meta:
+  id: golang
+  title: Go (Golang)
+  title_short: Go
+  subtitle: "// goroutines · channels · interfaces · GC · concurrency patterns · senior → principal"
+  category: Backend
+  icon: "🐹"
+
+colors:
+  toggle_light: "#00ADD8"
+  toggle_dark:  "#29BDD8"
+  light_vars: >-
+    --accent:#00ADD8;--accent2:#d95a1e;--accent3:#375EAB;
+    --highlight-bg:#e4f4f9;--highlight-text:#00ADD8;--highlight-border:#00ADD8;
+    --your-exp-bg:rgba(55,94,171,.06);--your-exp-border:rgba(55,94,171,.2);--your-exp-text:#375EAB;
+    --acc-hover:rgba(0,173,216,.04);--acc-open-border:#00ADD8;--acc-open-bg:rgba(0,173,216,.04);
+    --num-color:#00ADD8;--num-bg:rgba(0,173,216,.1);
+    --tag-color:#00ADD8;--tag-bg:rgba(0,173,216,.08);--tag-border:rgba(0,173,216,.2);
+    --flow-arrow:#00ADD8;--h1-from:#375EAB;--h1-to:#00ADD8;
+    --badge-color:#375EAB;--stat-num:#375EAB;
+    --tab-active-color:#00ADD8;--tab-active-bg:rgba(0,173,216,.08);--tab-active-border:#00ADD8;
+    --section-title:#00ADD8;--concept-title:#375EAB;
+    --cheat-head-bg:#375EAB;--cheat-head-text:#ffffff;--cheat-key:#375EAB;
+    --cmd-bg:#e4f4f9;--cmd-text:#375EAB;
+  dark_vars: >-
+    --accent:#29BDD8;--accent2:#ff6b35;--accent3:#5b7fc4;
+    --highlight-bg:#071929;--highlight-text:#29BDD8;--highlight-border:#29BDD8;
+    --your-exp-bg:rgba(91,127,196,.1);--your-exp-border:rgba(91,127,196,.3);--your-exp-text:#90abdd;
+    --acc-hover:rgba(41,189,216,.04);--acc-open-border:#29BDD8;--acc-open-bg:rgba(41,189,216,.03);
+    --num-color:#29BDD8;--num-bg:rgba(41,189,216,.08);
+    --tag-color:#29BDD8;--tag-bg:rgba(41,189,216,.08);--tag-border:rgba(41,189,216,.2);
+    --flow-arrow:#29BDD8;--h1-from:#5b7fc4;--h1-to:#29BDD8;
+    --badge-color:#29BDD8;--stat-num:#29BDD8;
+    --tab-active-color:#29BDD8;--tab-active-bg:rgba(41,189,216,.08);--tab-active-border:#29BDD8;
+    --section-title:#29BDD8;--concept-title:#29BDD8;
+    --cheat-head-bg:#071929;--cheat-head-text:#29BDD8;--cheat-key:#29BDD8;
+    --cmd-bg:#071929;--cmd-text:#29BDD8;
+
+# ── OVERVIEW ──────────────────────────────────────────────────────────────────
+overview:
+  concepts:
+    - title: "🔄 Goroutines & the Scheduler"
+      body: >
+        A **goroutine** is a lightweight thread managed by the Go runtime, starting at ~2 KB of
+        stack (grows dynamically). The runtime uses an **M:N scheduler**: M goroutines multiplexed
+        over N OS threads (`GOMAXPROCS` OS threads, defaults to CPU count). The scheduler is
+        cooperative-preemptive — goroutines yield at function calls, channel ops, and since Go 1.14,
+        at safe points during long loops. `go f()` costs ~1 µs; spawning millions is practical.
+      flows:
+        - ["Goroutine (G)", "P (logical processor)", "M (OS thread)", "CPU core"]
+      tags:
+        - {text: "M:N scheduling", color: green}
+        - {text: "~2 KB initial stack"}
+        - {text: "GOMAXPROCS", color: orange}
+
+    - title: "📡 Channels & CSP"
+      body: >
+        Go's concurrency model is based on **Communicating Sequential Processes (CSP)**: share
+        memory by communicating, don't communicate by sharing memory. A channel is a typed conduit
+        between goroutines. **Unbuffered**: sender blocks until receiver is ready — synchronization
+        point. **Buffered**: sender blocks only when the buffer is full — decouples pace.
+        `close(ch)` signals no more values; `range ch` drains and exits on close.
+      flows:
+        - ["Sender goroutine", "chan T (buffer)", "Receiver goroutine"]
+      tags:
+        - {text: "CSP model", color: purple}
+        - {text: "unbuffered = sync"}
+        - {text: "buffered = async", color: green}
+
+    - title: "🧩 Interfaces & Implicit Satisfaction"
+      body: >
+        Go interfaces are **satisfied implicitly** — no `implements` keyword. Any type with the
+        required method set satisfies the interface. This enables duck typing with compile-time
+        safety. The empty interface (`any` / `interface{}`) accepts all types.
+        **Composition** is the Go idiom: embed small interfaces (`io.Reader`, `io.Writer`) and
+        compose larger ones. Avoid large interfaces — they couple callers to implementations.
+      tags:
+        - {text: "implicit satisfaction", color: green}
+        - {text: "composition over inheritance", color: purple}
+        - {text: "accept interfaces, return structs"}
+
+    - title: "🗑️ Memory Model & GC"
+      body: >
+        Go uses a concurrent **tri-color mark-and-sweep GC** with very short stop-the-world
+        (STW) pauses (typically <1 ms). The GC is triggered by heap growth (controlled by
+        `GOGC`, default 100 — GC runs when heap doubles since last collection).
+        **Escape analysis** decides whether a variable lives on the stack (fast, no GC) or
+        heap (GC managed). Values that outlive their function or are too large escape to heap.
+        Check with `go build -gcflags="-m"`.
+      tags:
+        - {text: "concurrent GC", color: green}
+        - {text: "GOGC controls frequency"}
+        - {text: "escape analysis = stack vs heap", color: orange}
+
+    - title: "⚠️ Error Handling"
+      body: >
+        Errors are plain values implementing the `error` interface. Functions return `(result, error)`
+        — callers must check. **Sentinel errors**: `var ErrNotFound = errors.New(...)` for equality
+        checks. **Error wrapping** (`fmt.Errorf("doing X: %w", err)`) preserves the chain.
+        `errors.Is` walks the chain for equality; `errors.As` walks it for type assertion.
+        `panic` is for unrecoverable programmer errors (nil dereference, index out of bounds) —
+        not a control-flow mechanism.
+      tags:
+        - {text: "errors are values", color: green}
+        - {text: "%w wrapping", color: orange}
+        - {text: "errors.Is / errors.As"}
+
+    - title: "🎯 Context & Cancellation"
+      body: >
+        `context.Context` carries deadlines, cancellation signals, and request-scoped values
+        across API boundaries. **Always** accept `ctx context.Context` as the first parameter
+        of any function doing I/O or waiting. `context.WithCancel` returns a cancel function
+        you must call (defer it). `context.WithTimeout` and `context.WithDeadline` auto-cancel.
+        A cancelled context propagates through the whole call chain — the correct way to stop
+        a goroutine tree without goroutine leaks.
+      flows:
+        - ["context.Background()", "WithTimeout / WithCancel", "Propagate via function args", "Check ctx.Done()"]
+      tags:
+        - {text: "first arg convention", color: green}
+        - {text: "defer cancel()", color: orange}
+        - {text: "goroutine tree cancellation", color: purple}
+
+  gotchas:
+    - title: "Goroutine leaks — the silent memory drain"
+      body: >
+        A goroutine blocked forever on a channel send/receive with no reader/writer leaks memory
+        until the process restarts. Common causes: HTTP handlers spawning goroutines without a
+        done channel, worker goroutines ignoring context cancellation, range over a channel that
+        is never closed. Detect with `runtime.NumGoroutine()` or `pprof`'s goroutine profile.
+        Fix by passing context and checking `ctx.Done()` in every long-running goroutine.
+
+    - title: "Nil interface != nil pointer"
+      body: >
+        An interface value holds a (type, pointer) pair. A nil pointer wrapped in an interface
+        is NOT nil — the interface has a type. `var e *MyError = nil; var err error = e; err != nil`
+        evaluates to **true**. Return bare `nil` from functions returning `error`, never a
+        typed nil pointer. This trips up almost every Go developer at some point.
+
+    - title: "Loop variable capture in goroutines"
+      body: >
+        In Go < 1.22, all iterations of a for loop share the same variable. Goroutines launched
+        in a loop that capture the variable by reference all see its final value.
+        Fix (pre-1.22): shadow the variable inside the loop (`i := i`) or pass it as a
+        function argument. In Go 1.22+, each iteration creates a new variable — this gotcha
+        is eliminated for range loops.
+
+    - title: "Slice aliasing — unexpected mutation"
+      body: >
+        Slices share an underlying array until one grows beyond capacity (triggering a copy).
+        Appending to a sub-slice modifies the original array if capacity allows.
+        Functions that receive a slice can mutate the caller's data. When you need a true
+        independent copy, use `make` + `copy`. Be explicit about whether a function takes
+        ownership of a slice or just reads it.
+
+    - title: "Maps are not concurrent-safe"
+      body: >
+        Concurrent reads are safe, but any concurrent write (including delete) causes a race and
+        runtime panic (`concurrent map read and map write`). Protect with `sync.RWMutex` or
+        use `sync.Map` (optimized for high-read, low-write and stable key sets). The race detector
+        (`-race`) catches this at runtime — always run tests with it in CI.
+
+    - title: "defer in loops doesn't run at loop end"
+      body: >
+        `defer` runs at **function return**, not at the end of a loop iteration. Deferring a
+        `file.Close()` inside a loop that opens many files will exhaust file descriptors before
+        any are closed. Fix: extract the body into a function and defer inside it, or close explicitly
+        without defer in the loop.
+
+  when_to_use:
+    - "High-concurrency network services — HTTP servers, gRPC services, proxies"
+    - "Infrastructure tooling, CLIs, and daemons (Go's standard library is excellent here)"
+    - "Microservices where fast startup, small binary, and predictable latency matter"
+    - "Systems programming where you need control but not Rust's borrow checker complexity"
+    - "Teams that want simple, readable concurrency without callback hell or async/await"
+
+  when_not_to_use:
+    - "Heavy numerical computing or ML — Python/NumPy ecosystem is far richer"
+    - "Rapid UI prototyping — Go has no mainstream GUI or frontend framework"
+    - "When you need JVM ecosystem integration (existing Java/Kotlin libraries)"
+    - "Code-heavy scripting where Python's brevity and REPL workflow is a better fit"
+    - "When team is already expert in another language and the concurrency needs are low"
+
+# ── DEEP DIVE ─────────────────────────────────────────────────────────────────
+deep_dive:
+  tables:
+    - title: "🔧 Key Language Primitives"
+      rows:
+        - {key: "goroutine", value: "go f() — ~2 KB initial stack, grows to GB, managed by runtime scheduler."}
+        - {key: "chan T", value: "make(chan T) unbuffered; make(chan T, n) buffered. Send: ch<-v. Recv: v:=<-ch."}
+        - {key: "select", value: "Non-deterministically picks a ready channel case. Default case = non-blocking."}
+        - {key: "defer", value: "Executes at function return, in LIFO order. Args evaluated at defer site."}
+        - {key: "interface", value: "Implicit satisfaction. nil interface ≠ typed nil pointer. Prefer small interfaces."}
+        - {key: "struct embedding", value: "Not inheritance — promotion of methods. Compose behavior without subclassing."}
+        - {key: "slice", value: "make([]T, len, cap). Three-word header: ptr, len, cap. Shares backing array."}
+        - {key: "map", value: "make(map[K]V). Not concurrent-safe. Zero value is nil (panic on write). Init before use."}
+
+    - title: "🔒 sync Package Reference"
+      rows:
+        - {key: "sync.Mutex", value: "Mutual exclusion. Lock() / Unlock(). Use defer mu.Unlock() after Lock()."}
+        - {key: "sync.RWMutex", value: "Multiple concurrent readers, one writer. RLock/RUnlock for reads."}
+        - {key: "sync.WaitGroup", value: "Add(n) before spawning, Done() in each goroutine, Wait() to block until all done."}
+        - {key: "sync.Once", value: "Executes a function exactly once across goroutines. Lazy init pattern."}
+        - {key: "sync.Map", value: "Concurrent map optimized for stable keys with many reads. Prefer Mutex+map for writes."}
+        - {key: "sync.Pool", value: "Pool of reusable objects to reduce GC pressure. Not a cache — items may be collected."}
+        - {key: "atomic", value: "sync/atomic for lock-free primitives (Add, Load, Store, CompareAndSwap) on int/ptr."}
+
+    - title: "⚡ GC & Performance Knobs"
+      rows:
+        - {key: "GOGC", value: "Target heap growth ratio before GC triggers. Default 100 (100% = double). Lower = less memory, more CPU. GOGC=off disables."}
+        - {key: "GOMEMLIMIT", value: "Soft memory cap (Go 1.19+). GC aggressively reclaims when near limit. Set to ~90% of container limit."}
+        - {key: "GOMAXPROCS", value: "Number of OS threads for goroutines. Defaults to CPU count. Set equal to vCPU for most workloads."}
+        - {key: "go build -gcflags=-m", value: "Print escape analysis decisions. Variables that escape to heap increase GC pressure."}
+        - {key: "pprof", value: "CPU, heap, goroutine, mutex, block profiles. import _ net/http/pprof for /debug/pprof endpoint."}
+
+    - title: "📦 Module & Dependency Commands"
+      full_width: true
+      rows:
+        - {key: "go mod init module/path", value: "Initialize a new module. Creates go.mod."}
+        - {key: "go get pkg@version", value: "Add or upgrade a dependency. Use @latest or @v1.2.3."}
+        - {key: "go mod tidy", value: "Add missing and remove unused module requirements."}
+        - {key: "go mod vendor", value: "Copy dependencies into vendor/ for offline or reproducible builds."}
+        - {key: "go mod graph", value: "Print the module dependency graph."}
+        - {key: "go list -m all", value: "List all modules in the build (direct and transitive)."}
+
+  cli:
+    - label: "Build & Run"
+      commands:
+        - "go run ./cmd/server          # compile + run, no artifact"
+        - "go build -o bin/server ./... # build all packages"
+        - "go install ./...             # build + install to $GOPATH/bin"
+        - "CGO_ENABLED=0 GOOS=linux go build -o app ./cmd/server  # static Linux binary"
+
+    - label: "Testing"
+      commands:
+        - "go test ./...                          # run all tests"
+        - "go test -v -run TestFoo ./pkg/...      # run matching tests, verbose"
+        - "go test -race ./...                    # run with data race detector (always in CI)"
+        - "go test -count=1 ./...                 # disable test caching"
+        - "go test -coverprofile=cover.out ./...  # generate coverage"
+        - "go tool cover -html=cover.out          # open coverage in browser"
+        - "go test -bench=. -benchmem ./...       # run benchmarks with memory stats"
+
+    - label: "Analysis & Quality"
+      commands:
+        - "go vet ./...                    # built-in static analysis"
+        - "go build -gcflags='-m -m' ./... # show escape analysis (verbose)"
+        - "golangci-lint run ./...         # multi-linter (recommended for CI)"
+        - "staticcheck ./...               # advanced static analysis"
+
+    - label: "Profiling"
+      commands:
+        - "go tool pprof http://localhost:6060/debug/pprof/heap    # heap profile"
+        - "go tool pprof http://localhost:6060/debug/pprof/profile # 30s CPU profile"
+        - "go tool pprof -http=:8080 profile.out                   # serve profile UI"
+        - "go tool trace trace.out                                   # execution tracer"
+
+  comparison:
+    title: "Go vs Java vs Rust — Concurrency & Operations"
+    headers: ["Dimension", "Go", "Java (modern)", "Rust"]
+    rows:
+      - ["Concurrency model", "Goroutines + channels (CSP); M:N scheduler", "Virtual threads (JDK 21+) or reactive streams", "Async/await or OS threads; no data races by design"]
+      - ["Memory management", "Concurrent GC; ~1 ms STW pauses", "G1/ZGC; sub-ms pauses possible", "No GC; ownership + borrow checker; zero runtime overhead"]
+      - ["Startup time", "~10 ms; small static binary", "~100 ms–1 s (JVM warmup)", "~1 ms; single binary"]
+      - ["Binary size", "~5–15 MB (statically linked)", "Fat JAR + JVM", "~1–5 MB"]
+      - ["Error handling", "Explicit (error return values)", "Exceptions (checked/unchecked)", "Result<T,E> type; no exceptions"]
+      - ["Generics", "Since 1.18; good for collections/algorithms; no specialization", "Mature generics with type erasure", "Full monomorphized generics"]
+      - ["Learning curve", "Low; ~1 week for basics", "Medium; rich ecosystem to learn", "High; borrow checker requires mental shift"]
+      - ["Best for", "Network services, CLIs, infrastructure", "Enterprise, large teams, JVM ecosystem", "Systems programming, safety-critical, zero-overhead FFI"]
+
+# ── Q & A ─────────────────────────────────────────────────────────────────────
+qa:
+  senior:
+    - id: S-01
+      question: "How does Go's goroutine scheduler work? What is GOMAXPROCS and how does work-stealing fit in?"
+      answer: >
+        Go uses an **M:N scheduler**: M goroutines run on N OS threads, managed by logical processors **P**
+        (GOMAXPROCS, defaults to CPU count). Each P has a **local run queue** of goroutines. An OS thread M
+        must hold a P to run goroutines. When a goroutine blocks on a syscall, M releases P so another M
+        can acquire it and keep running goroutines — no OS thread is wasted waiting.
+
+        **Work-stealing**: when a P's local queue is empty, it steals half of another P's run queue.
+        This keeps all processors busy under uneven load without global locking.
+
+        Since Go 1.14, the scheduler is **asynchronously preemptible** — goroutines in tight loops
+        are interrupted at safe points, preventing one goroutine from starving others.
+
+        Setting `GOMAXPROCS` below CPU count can help in environments that charge by CPU (e.g., you
+        have 2 vCPUs allocated in a 64-core host). Setting it above physical cores is rarely useful.
+      staff_add: >
+        In containerized environments, Go historically read CPU count from the host, not the cgroup
+        limit. If your pod has a 2-CPU limit on a 64-core node, Go defaults `GOMAXPROCS` to 64 —
+        causing massive context-switching and throttling. Fix with `GOMAXPROCS=2` explicitly or the
+        `go.uber.org/automaxprocs` library, which reads cgroup quotas at startup. This is a frequent
+        and impactful production footgun.
+
+    - id: S-02
+      question: "Explain buffered vs unbuffered channels. When does each block?"
+      answer: >
+        **Unbuffered channel** (`make(chan T)`): sender blocks until a receiver is ready, and vice versa.
+        Acts as a synchronization point — both sides rendezvous. Use when you want to guarantee the
+        receiver has started processing before the sender continues.
+
+        **Buffered channel** (`make(chan T, n)`): sender blocks only when the buffer is full; receiver
+        blocks only when it's empty. Decouples sender and receiver pace up to the buffer capacity.
+
+        Common patterns:
+        - Unbuffered for signaling/synchronization (done channels, semaphores with 1-capacity)
+        - Buffered for work queues where you want to absorb bursts
+        - A channel of capacity 1 used with a non-blocking send (`select + default`) is a simple
+          "coalesce" — only signal if nobody is already notified
+      staff_add: >
+        Buffer size is a design decision with observable consequences. A buffer that's too small
+        causes the producer to block frequently (backpressure, which is sometimes intentional). Too
+        large and you lose the signal that a downstream is slow — the buffer absorbs the problem
+        until it's suddenly full. Make buffer sizes explicit and derived from expected throughput and
+        latency SLAs. Monitor channel saturation in production — if a buffered channel is
+        consistently full, it's a signal the consumer can't keep up.
+
+    - id: S-03
+      question: "What causes goroutine leaks and how do you detect and fix them?"
+      answer: >
+        A goroutine leaks when it blocks indefinitely and nothing will ever unblock it:
+        - **Abandoned channel sender/receiver**: goroutine sends to a channel that no receiver ever reads
+        - **Context not propagated**: goroutine does blocking I/O but ignores context cancellation
+        - **WaitGroup misuse**: `Add` called incorrectly, `Wait` blocks forever
+        - **Mutex deadlock**: two goroutines each hold a lock the other needs
+
+        **Detection**: `runtime.NumGoroutine()` trend over time; `pprof` goroutine profile
+        (`/debug/pprof/goroutine`) shows stack traces of all live goroutines — leaked ones appear
+        blocked at the same site repeatedly. The `goleak` package (test helper) fails tests if
+        goroutines remain after the test.
+
+        **Fix pattern**: every long-running goroutine should `select` on `ctx.Done()` and exit cleanly.
+        Design goroutine lifetimes explicitly — who creates it, who cancels it, how does it signal done.
+      staff_add: >
+        Goroutine leaks compound over time. A service handling 1000 req/s that leaks one goroutine
+        per request exceeding a timeout will accumulate 60K goroutines per minute under incidents —
+        exactly when you're already under pressure. Structured concurrency patterns help: wrap related
+        goroutines in an `errgroup.Group` (golang.org/x/sync/errgroup) so the group's context cancels
+        all members on first error. This makes goroutine lifetime scoped to a logical unit of work
+        rather than spread across the codebase.
+
+    - id: S-04
+      question: "Value receivers vs pointer receivers — how do you decide which to use?"
+      answer: >
+        **Pointer receiver** (`func (s *S) Method()`): the method receives a pointer to the struct,
+        so it can mutate the value and its changes are visible to the caller. Required when the method
+        needs to modify the receiver, or when the struct is large (avoids copying).
+
+        **Value receiver** (`func (s S) Method()`): gets a copy of the struct. Changes don't affect
+        the original. Suitable for small, read-only methods and primitive-like types.
+
+        **Rules of thumb**:
+        - If any method on a type uses a pointer receiver, use pointer receivers for all methods
+          (consistency for the method set; a `*T` value satisfies both pointer and value receiver
+          interfaces, but a `T` value only satisfies value receiver interfaces)
+        - Mutating methods must use pointer receivers
+        - Large structs should use pointer receivers to avoid copying overhead
+        - Small immutable structs (like `time.Time`) can use value receivers
+      staff_add: >
+        The interface satisfaction rule is the subtle one. If `*T` has a method defined with a pointer
+        receiver, you cannot pass a plain `T` value where the interface is expected — only `*T`
+        satisfies it. This means if you ever want to satisfy an interface with your type, decide early
+        whether it'll be `T` or `*T` that implements it, and stay consistent. In practice, use pointer
+        receivers as the default for non-trivial structs.
+
+    - id: S-05
+      question: "Walk through how defer works, including LIFO order, argument evaluation, and named return interactions."
+      answer: >
+        `defer` pushes a function call onto a stack that executes **LIFO** when the surrounding
+        function returns (including via `panic`).
+
+        **Argument evaluation**: arguments to the deferred function are evaluated at the `defer`
+        statement, not at execution. `defer fmt.Println(x)` captures `x`'s current value.
+        To defer with the latest value, use a closure: `defer func() { fmt.Println(x) }()`.
+
+        **Named returns**: a deferred function can read and modify named return values.
+        ```go
+        func double(n int) (result int) {
+            defer func() { result *= 2 }()
+            result = n
+            return  // returns n*2, not n
+        }
+        ```
+        This is powerful for cleanup that depends on whether an error occurred.
+
+        **Common patterns**: `defer mu.Unlock()`, `defer file.Close()`, `defer span.End()`.
+        Defer in a loop is a bug — it accumulates deferred calls until function return.
+      staff_add: >
+        Defer has a small but real overhead — each deferred call allocates a `_defer` record on the
+        heap (or stack in modern Go with stack-allocated defers). In hot paths called millions of times
+        per second, explicit `Close()` calls can be meaningfully faster. Profile before optimizing;
+        for most code the clarity of defer outweighs the cost.
+
+    - id: S-06
+      question: "Explain Go's error wrapping with %w, errors.Is, and errors.As. When do you use each?"
+      answer: >
+        **`fmt.Errorf("... %w", err)`**: wraps `err` inside a new error, preserving the chain.
+        The original error is accessible via `errors.Unwrap`.
+
+        **`errors.Is(err, target)`**: walks the error chain and returns true if any error in the
+        chain equals `target`. Use for sentinel error comparison: `errors.Is(err, sql.ErrNoRows)`.
+
+        **`errors.As(err, &target)`**: walks the chain looking for an error assignable to `target`'s
+        type. Use to extract a typed error: `var ne *net.Error; errors.As(err, &ne)` then read
+        `ne.Timeout()`.
+
+        **Sentinel errors** (`var ErrNotFound = errors.New("not found")`): for equality checks.
+        Don't use `==` for error comparison when wrapping is involved — always use `errors.Is`.
+
+        **Typed errors** (structs implementing `error`): when callers need structured data from the
+        error (e.g., HTTP status code, retry-after duration).
+      staff_add: >
+        Define your error taxonomy at package boundaries. Public errors (those callers will check)
+        should be either exported sentinels or exported types. Internal errors you don't expect callers
+        to inspect can be plain `fmt.Errorf`. Adding context to errors (`fmt.Errorf("parsing config: %w", err)`)
+        creates a traceable chain from API boundary down to root cause — equivalent to a stack trace
+        in prose form. Avoid stripping the error chain (`errors.New(err.Error())`) — it loses the
+        chain and makes debugging production issues significantly harder.
+
+    - id: S-07
+      question: "How do you use context.Context correctly? What are the most common misuses?"
+      answer: >
+        `context.Context` is the idiomatic way to carry deadlines, cancellation, and request-scoped
+        values across goroutines and API boundaries.
+
+        **Rules**:
+        - Always accept `ctx context.Context` as the **first parameter** of functions doing I/O or waiting
+        - Never store context in a struct field — pass it explicitly
+        - Always call the cancel function returned by `WithCancel`/`WithTimeout` (use `defer cancel()`)
+        - Check `ctx.Err()` or `ctx.Done()` in any blocking loop
+        - Use `context.WithValue` sparingly — only for request-scoped data (trace IDs, auth tokens),
+          not for optional function parameters
+
+        **Common misuses**:
+        - Ignoring the cancel function → context and its resources leak
+        - Storing context in a struct and using it across requests → wrong context for the request
+        - Passing `context.Background()` instead of the request context → deadline/cancellation lost
+        - Using `context.WithValue` with string keys → collisions; use unexported type keys
+      staff_add: >
+        Context propagation is where Go service meshes and observability hook in. OpenTelemetry,
+        gRPC interceptors, and middleware all propagate trace spans via context. If your functions
+        accept and pass `ctx` correctly, adding distributed tracing later is a near-zero-code-change.
+        If you bypassed context propagation early, retrofitting it means touching every layer.
+        Treat context propagation as infrastructure, not application code.
+
+  staff:
+    - id: ST-01
+      question: "How does Go's GC work, and how do you tune and diagnose GC problems in production?"
+      answer: >
+        Go uses a **concurrent tri-color mark-and-sweep GC**. The mark phase runs concurrently with
+        the program; short stop-the-world (STW) pauses happen only to start/stop marking (~100 µs).
+        The GC is triggered when heap size reaches `GOGC`% above the live heap size after the
+        last collection (default: 100 — heap doubles before GC runs).
+
+        **Key knobs**:
+        - `GOGC`: lower → GC runs more often → less memory, more CPU. `GOGC=off` disables.
+        - `GOMEMLIMIT` (Go 1.19+): a soft ceiling; GC works harder as you approach it. Set to ~90%
+          of container memory limit to prevent OOM kills.
+        - `runtime/debug.SetGCPercent()` and `SetMemoryLimit()` at runtime for dynamic tuning.
+
+        **Diagnostics**:
+        - `GODEBUG=gctrace=1`: prints a line per GC cycle with pause times, heap sizes
+        - `pprof` heap profile: see what's allocated and by whom
+        - `go tool trace`: fine-grained execution trace with GC events
+        - Look for `scvg` events (OS memory release) and large heap retention
+
+        **Reducing GC pressure**: reuse allocations with `sync.Pool`, prefer value types over
+        pointers (stack allocation), avoid interface boxing of small values in hot paths.
+      staff_add: >
+        In containerized services, GC tuning is often more impactful than algorithmic optimization.
+        A service with 512 MB limit, GOGC=100, and 200 MB live heap will GC every time it grows to
+        400 MB — burning CPU at exactly the worst time (load spike). Setting `GOMEMLIMIT=460MiB`
+        and `GOGC=off` delegates control entirely to the memory limit, reducing CPU waste and
+        eliminating the "GC death spiral" pattern where GC overhead exceeds useful work under load.
+        Benchmark the tradeoff for your workload's allocation rate and latency profile.
+
+    - id: ST-02
+      question: "Describe the common concurrency patterns in Go: worker pool, fan-out/fan-in, pipeline. When do you choose each?"
+      answer: >
+        **Worker pool**: a fixed set of goroutines consuming from a shared work channel.
+        Controls parallelism and resource usage (DB connections, file handles). Goroutines
+        block on `for job := range jobs`, processing one at a time. Use when downstream
+        resources are limited or you need to bound memory/CPU.
+
+        **Fan-out**: distribute work across N goroutines, each doing independent processing.
+        `errgroup.Group` is the idiomatic wrapper — starts goroutines, collects first error,
+        cancels all via context on any error. Use for concurrent independent I/O (N API calls
+        that don't depend on each other).
+
+        **Fan-in**: merge multiple channels into one. A goroutine per input channel forwards
+        values to a merged output channel; a WaitGroup closes the output when all inputs are done.
+        Use when N producers feed one consumer.
+
+        **Pipeline**: stages connected by channels where each stage transforms data.
+        Each stage reads from an upstream channel and writes to a downstream channel.
+        Cancellation propagates upstream by closing channels. Use for data transformation
+        sequences where stages have different processing rates.
+      staff_add: >
+        The patterns compose. A real service might have: an HTTP handler that fan-outs to
+        3 downstream service calls (fan-out) → results merged (fan-in) → each result fed
+        through a normalization pipeline (pipeline) → written by a worker pool to a DB.
+        The power of channels is that each stage is independently testable with fake channels,
+        and context cancellation flows through without explicit wiring. For complex orchestration,
+        `golang.org/x/sync/errgroup` with a shared context is almost always the right primitive
+        over raw goroutines + WaitGroup.
+
+    - id: ST-03
+      question: "How do you design Go code for testability? What are the patterns for dependency injection and mocking interfaces?"
+      answer: >
+        **Accept interfaces, return structs**: functions that accept `io.Reader` or a custom
+        `UserStore` interface instead of concrete types can be tested with fake implementations
+        without a real database or network.
+
+        **Constructor injection**: pass dependencies into struct constructors. Avoid `init()` and
+        package-level state — they make tests order-dependent and hard to parallelize.
+
+        **Table-driven tests**: Go idiomatic. Define a slice of `{name, input, want}` structs
+        and range over them, calling `t.Run(tc.name, ...)` for subtests. Run with `-v` to see
+        each case.
+
+        **Mocking**: generate mocks with `mockgen` (gomock) or use hand-written fakes that
+        satisfy the interface. Prefer fakes for complex behaviors, mocks for simple call assertions.
+
+        **`httptest`**: `httptest.NewRecorder()` and `httptest.NewServer()` for testing HTTP
+        handlers and clients without a real server.
+
+        **`t.Helper()`**: call in assertion helpers so failures report the caller's line, not
+        the helper.
+      staff_add: >
+        Interface design is where testability and architecture intersect. Define interfaces at
+        the point of use (not in the package that implements them) — a `storage` package exporting
+        a `Repository` interface for its users, not for itself. Small, focused interfaces are easier
+        to satisfy in tests and easier to change. If your mock needs 20 methods, your interface
+        is probably too large. When teams struggle with testing, the root cause is almost always
+        dependency injection not being applied at the design phase — retrofitting it later is
+        expensive.
+
+    - id: ST-04
+      question: "What are the trade-offs of using sync.Map vs a sync.RWMutex-protected map?"
+      answer: >
+        **`sync.Map`** is optimized for two specific access patterns:
+        1. A given key is written once and read many times (stable key set)
+        2. Multiple goroutines read/write disjoint key sets
+
+        It uses an internal read-only snapshot + dirty map with a mutex only for dirty reads/writes.
+        API is more verbose (`Load`, `Store`, `Delete`, `Range`) and not generic (pre-generics
+        stores `any`).
+
+        **`sync.RWMutex + map`**: more flexible, type-safe (with generics: `map[K]V` protected by mutex),
+        simpler to reason about. `RLock/RUnlock` for reads allows multiple concurrent readers.
+        Better when write rate is non-trivial, keys change frequently, or you need atomic
+        read-modify-write operations (Lock → read → modify → write → Unlock as a unit).
+
+        **Rule of thumb**: start with `RWMutex + map`. Profile before considering `sync.Map`. The
+        `sync.Map` optimization only pays off when the map is read-dominated and the key set is stable —
+        benchmarks show it underperforms a plain mutex+map for write-heavy workloads.
+
+  principal:
+    - id: P-01
+      question: "How do you structure a large Go service for long-term maintainability? What's your approach to package layout?"
+      answer: >
+        The Go community has largely converged around a **domain-centric** layout rather than
+        layer-centric (no `/controllers`, `/models`, `/services` folders at the top level).
+
+        **Common structure**:
+        ```
+        cmd/server/      ← main package, wires dependencies, thin
+        internal/        ← private packages; enforced by compiler (external import fails)
+          domain/        ← pure business logic, no external imports
+          storage/       ← database adapters implementing domain interfaces
+          transport/     ← HTTP/gRPC handlers
+          config/        ← configuration loading
+        pkg/             ← public library code others can import
+        ```
+
+        **Principles**:
+        - `cmd/` packages are thin wiring — no business logic
+        - `internal/` enforces boundaries; prefer it aggressively
+        - Define interfaces in the package that **uses** them, not the package that implements them
+        - Avoid circular imports — they reveal design problems; don't work around them with hacks
+        - `domain/` should have zero external imports — testable without infrastructure
+
+        The `internal/` directory is Go's only compiler-enforced encapsulation. Use it freely.
+        Don't follow the "flat package" or "one giant package" extremes — find the natural seams
+        in your domain and put them there.
+      staff_add: >
+        Package boundaries are load-bearing architecture decisions. Getting them wrong is expensive
+        to fix later — a circular import means two packages are too coupled. When reviewing a new
+        service design, I look at the import graph: does `domain` import `storage`? That's a red
+        flag (business logic depending on infrastructure, not the other way around). The dependency
+        rule (domain doesn't depend on adapters) makes the service replaceable — swap the DB from
+        Postgres to DynamoDB by writing a new adapter, not by modifying business logic.
+
+    - id: P-02
+      question: "How do you instrument a Go service for production observability? Walk through your approach from day one."
+      answer: >
+        **Three pillars from the start**:
+
+        **Metrics** (`prometheus/client_golang`): instrument at service, not infrastructure level.
+        Request rate, error rate, latency histograms (p50/p95/p99), goroutine count, GC stats.
+        Use `promhttp.Handler()` for `/metrics`. Label carefully — high-cardinality labels
+        (per-user-ID) destroy Prometheus performance.
+
+        **Structured logging** (`log/slog`, Go 1.21+, or `zap`): JSON output. Every log line should
+        carry `trace_id`, `service`, `level`, and relevant context fields. No `fmt.Println` in
+        production code. Log at entry/exit of external calls (latency + error) not at every internal step.
+
+        **Distributed tracing** (OpenTelemetry SDK): propagate `context.Context` carrying spans.
+        Instrument HTTP clients and servers with OTel middleware. Connect to Jaeger/Tempo.
+
+        **Practical wiring**: an `observability` package initialized at startup injects a
+        `*slog.Logger`, an OTel `TracerProvider`, and registers Prometheus metrics. All other
+        packages receive these via dependency injection — no package-level globals.
+      staff_add: >
+        The most expensive observability mistake is adding it after the fact to a service that
+        doesn't propagate context. Retrofitting trace IDs across 40 functions that take concrete
+        types and no context is weeks of work. The second mistake is logging at DEBUG level for
+        everything in production — when you're in an incident at 3am and your Elasticsearch query
+        times out filtering 10B log lines, you learn to be selective. Define your logging contract
+        up front: WARN for recoverable anomalies that need attention, ERROR for failures that
+        affect users, and be ruthless about INFO volume.
+
+# ── SCENARIOS ─────────────────────────────────────────────────────────────────
+scenarios:
+  - title: "High-Concurrency Aggregation API"
+    problem: >
+      Design an HTTP API endpoint that, for each request, calls 4 independent downstream services
+      (inventory, pricing, reviews, recommendations), aggregates results, and returns within 200 ms.
+      The service handles 5,000 req/s. Any downstream can be slow or fail.
+    constraints:
+      - "P99 response time ≤ 200 ms end-to-end"
+      - "Partial results are acceptable if non-critical services fail"
+      - "No goroutine leaks under sustained load"
+      - "Downstream services have independent SLOs (inventory: 99.9%, others: 99%)"
+    discussion:
+      - "**Fan-out pattern with errgroup**: launch all 4 downstream calls concurrently in an `errgroup.Group` with the request context. Each call runs in its own goroutine. The group's context is derived from the request context — if the HTTP request is cancelled (client disconnects), all downstream calls are cancelled via context propagation."
+      - "**Per-call timeouts**: derive a child context with `context.WithTimeout` for each downstream call, separate from the request deadline. A slow recommendations service shouldn't eat the entire 200 ms budget — give it 150 ms, fail fast, return a degraded response."
+      - "**Partial failure handling**: not all services are equally critical. Inventory missing = show error; recommendations missing = omit the section. Use a result struct with an error field per service, not the errgroup's fatal-on-first-error mode."
+      - "**Goroutine lifecycle**: the errgroup ensures all goroutines complete before `Wait()` returns. No goroutines outlive the request handler. Verify with a goroutine count check in load tests."
+      - "**Connection pooling**: `http.Client` with a tuned transport (`MaxIdleConnsPerHost`, timeouts). One shared client per downstream, not one per request."
+      - "**Circuit breakers**: after repeated failures, break fast instead of waiting for timeout. `github.com/sony/gobreaker` or a similar library. Avoids cascading latency when a downstream is degraded."
+    red_flags:
+      - "Sequential downstream calls — 4×50ms = 200ms with no budget for anything else"
+      - "Creating a new `http.Client` per request — exhausts file descriptors"
+      - "No per-call timeout — one slow downstream can cause all requests to hit the total deadline"
+      - "Goroutines without cancellation — leaked goroutines accumulate during incidents when downstreams are slow"
+      - "Using `context.Background()` instead of the request context — cancellation lost"
+
+  - title: "Bounded Worker Pool for Job Processing"
+    problem: >
+      A service reads jobs from a queue (SQS/Kafka) and processes each job by calling an external
+      API and writing results to a database. The external API allows at most 100 concurrent requests.
+      Jobs arrive in bursts; processing takes 50–500 ms per job.
+    constraints:
+      - "At most 100 concurrent external API calls at any time"
+      - "Job processing must be at-least-once (failures should be retried)"
+      - "Graceful shutdown: in-flight jobs complete; no new jobs accepted"
+      - "Dead-letter jobs that fail 3 times"
+    discussion:
+      - "**Worker pool sizing**: create exactly 100 goroutines at startup, each reading from a `jobs` channel. The channel acts as the work queue; its capacity controls bursting. Workers block on the channel when idle — no busy-waiting."
+      - "**Graceful shutdown with WaitGroup**: on SIGTERM, stop consuming from the queue source and close the `jobs` channel (signals workers no more work is coming). Workers drain and exit `range jobs`. A `sync.WaitGroup` tracks in-flight workers; main goroutine calls `wg.Wait()` before exiting. Give a deadline (30 s) for drain."
+      - "**Retry with exponential backoff**: each job struct carries a `RetryCount`. On failure, re-enqueue with `RetryCount++` and a delay. After 3 failures, write to DLQ topic/table with error context. Don't retry indefinitely — unbounded retry queues are memory leaks."
+      - "**Backpressure**: if the `jobs` channel is full (all 100 workers busy), the reader goroutine blocks. This is intentional — backpressure signals the queue source to slow consumption. Make the channel capacity small (e.g., 2× worker count) to limit in-memory buffering."
+      - "**Observability**: emit metrics per worker (idle time, processing time, error rate). A consistently idle pool means over-provisioned workers; consistently full queue means under-provisioned."
+    red_flags:
+      - "Spawning a new goroutine per job — no bound on concurrency, OOM under burst"
+      - "Ignoring shutdown signal — jobs in flight dropped mid-processing"
+      - "Infinite retry loop in the goroutine — one bad job ties up a worker forever"
+      - "Sharing a single http.Client across all 100 workers without tuning MaxIdleConnsPerHost — connection pool exhaustion"
+      - "No DLQ — failed jobs silently lost after max retries"
+
+  - title: "Zero-Downtime Deploy of a Stateful Go Service"
+    problem: >
+      Your Go HTTP service holds in-memory state (a cache populated at startup) and handles
+      ~10,000 req/s. You need to deploy a new version without dropping requests or serving
+      stale data during the transition.
+    constraints:
+      - "No dropped connections during deploy"
+      - "Cache must be warm at startup before accepting traffic"
+      - "Rollback must complete in under 60 seconds if the new version fails health checks"
+      - "Running in Kubernetes with a Deployment and a LoadBalancer Service"
+    discussion:
+      - "**Graceful shutdown**: on SIGTERM, call `server.Shutdown(ctx)` with a timeout (e.g., 30 s). `Shutdown` stops accepting new connections and waits for in-flight requests to complete. Never `os.Exit` directly — it drops all in-flight requests instantly."
+      - "**Readiness vs liveness probes**: readiness probe must fail until the cache is warm. On startup, populate cache, then signal ready (flip a boolean, expose via `/ready`). Kubernetes won't route traffic until readiness succeeds — pod starts, loads cache, becomes ready, receives traffic."
+      - "**Rolling deployment**: Kubernetes default. New pods start (readiness not yet true), old pods keep serving. New pods become ready, old pods receive SIGTERM (graceful drain), new pods receive traffic. `minReadySeconds` ensures new pods stabilize before old pods are removed."
+      - "**PodDisruptionBudget (PDB)**: ensures at least N pods remain available during voluntary disruptions. Without it, Kubernetes might evict all pods during a node drain."
+      - "**Cache warm-up strategy**: if cold start takes >10 s, consider seeding from a persistent cache (Redis) or a pre-warm endpoint hit by a startup probe. Long warm-up times are the main risk for rolling deploys — they make the transition window longer."
+      - "**Connection draining delay**: Kubernetes removes the pod from the Endpoints list before sending SIGTERM, but there's a propagation delay. Add a `preStop` hook with a 5-second sleep before graceful shutdown begins — this absorbs the propagation lag and prevents a small window of dropped connections."
+    red_flags:
+      - "Sending SIGKILL immediately (terminationGracePeriodSeconds too low) — drops in-flight requests"
+      - "No readiness probe — pod receives traffic before cache is warm, serving errors"
+      - "No preStop sleep hook — 2–5 s window of dropped connections on every deploy"
+      - "Rebuilding the entire cache from scratch synchronously — minutes of not-ready time"
+      - "Storing session state only in-memory — all user sessions lost on pod restart"

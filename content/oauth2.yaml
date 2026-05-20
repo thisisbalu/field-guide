@@ -1,0 +1,1153 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# OAuth 2.0 — Interview Field Guide Content
+# Edit this file to update the guide. Run: python generate.py oauth2
+# ══════════════════════════════════════════════════════════════════════════════
+
+meta:
+  id: oauth2
+  title: OAuth 2.0
+  title_short: OAuth2
+  subtitle: "// authorization framework · flows · tokens · scopes · OIDC · zero trust · senior → principal"
+  category: Security
+  icon: "🔐"
+
+colors:
+  toggle_light: "#4f46e5"
+  toggle_dark: "#818cf8"
+  light_vars: >-
+    --accent:#4f46e5;--accent2:#d95a1e;--accent3:#059669;
+    --highlight-bg:#eef2ff;--highlight-text:#4f46e5;--highlight-border:#6366f1;
+    --your-exp-bg:rgba(5,150,105,.06);--your-exp-border:rgba(5,150,105,.2);--your-exp-text:#065f46;
+    --acc-hover:rgba(79,70,229,.04);--acc-open-border:#4f46e5;--acc-open-bg:rgba(79,70,229,.03);
+    --num-color:#4f46e5;--num-bg:rgba(79,70,229,.1);
+    --tag-color:#4f46e5;--tag-bg:rgba(79,70,229,.08);--tag-border:rgba(79,70,229,.2);
+    --flow-arrow:#4f46e5;--h1-from:#3730a3;--h1-to:#4f46e5;
+    --badge-color:#3730a3;--stat-num:#4f46e5;
+    --tab-active-color:#4f46e5;--tab-active-bg:rgba(79,70,229,.08);--tab-active-border:#4f46e5;
+    --section-title:#4f46e5;--concept-title:#3730a3;
+    --cheat-head-bg:#3730a3;--cheat-head-text:#ffffff;--cheat-key:#3730a3;
+    --cmd-bg:#eef2ff;--cmd-text:#3730a3;
+  dark_vars: >-
+    --accent:#818cf8;--accent2:#ff9d6b;--accent3:#10b981;
+    --highlight-bg:#1e1b4b;--highlight-text:#818cf8;--highlight-border:#6366f1;
+    --your-exp-bg:rgba(16,185,129,.1);--your-exp-border:rgba(16,185,129,.3);--your-exp-text:#6ee7b7;
+    --acc-hover:rgba(129,140,248,.04);--acc-open-border:#818cf8;--acc-open-bg:rgba(129,140,248,.03);
+    --num-color:#818cf8;--num-bg:rgba(129,140,248,.1);
+    --tag-color:#818cf8;--tag-bg:rgba(129,140,248,.08);--tag-border:rgba(129,140,248,.2);
+    --flow-arrow:#818cf8;--h1-from:#818cf8;--h1-to:#6366f1;
+    --badge-color:#818cf8;--stat-num:#818cf8;
+    --tab-active-color:#818cf8;--tab-active-bg:rgba(129,140,248,.08);--tab-active-border:#818cf8;
+    --section-title:#818cf8;--concept-title:#818cf8;
+    --cheat-head-bg:#1e1b4b;--cheat-head-text:#818cf8;--cheat-key:#818cf8;
+    --cmd-bg:#1e1b4b;--cmd-text:#818cf8;
+
+# ── OVERVIEW ──────────────────────────────────────────────────────────────────
+overview:
+  concepts:
+    - title: "🔐 What OAuth2 Is"
+      body: >
+        OAuth 2.0 is an **authorization** framework — not an authentication protocol.
+        It enables a resource owner (a user) to grant a client application limited access
+        to a resource server, mediated by an authorization server, without sharing credentials.
+        The key word is *delegated*: the user doesn't give their password to the third-party app;
+        the authorization server issues a scoped, time-limited access token on their behalf.
+        Authentication (who are you?) is a separate concern covered by OpenID Connect (OIDC),
+        which is a thin identity layer built on top of OAuth2.
+      tags:
+        - {text: "authorization only", color: orange}
+        - {text: "delegated access", color: green}
+        - {text: "not authentication", color: red}
+
+    - title: "👥 The Four Roles"
+      body: >
+        **Resource Owner** — the user who owns the data and can grant access.
+
+        **Client** — the application requesting access (web app, mobile app, CLI, service).
+        Classified as *confidential* (can keep a secret, e.g. server-side app) or *public*
+        (cannot keep a secret, e.g. SPA, mobile app).
+
+        **Authorization Server (AS)** — issues tokens after authenticating the resource owner
+        and obtaining consent. Examples: Keycloak, Auth0, Okta, AWS Cognito.
+
+        **Resource Server (RS)** — the API holding the protected data; validates tokens
+        and enforces scopes on every request.
+      flows:
+        - ["Resource Owner", "Authorization Server", "Client", "Resource Server"]
+
+    - title: "🎟️ Tokens"
+      body: >
+        **Access Token** — credentials used to access the resource server. Short-lived
+        (minutes to hours). Can be opaque (a random string the RS validates via introspection)
+        or a JWT (self-contained, validated locally). Never store in localStorage.
+
+        **Refresh Token** — long-lived credential used to obtain new access tokens without
+        re-prompting the user. Opaque. Must be stored securely (httpOnly cookie, secure storage).
+        Rotate on every use (refresh token rotation).
+
+        **ID Token** — OIDC only. A JWT containing claims about the authenticated user
+        (sub, email, name). Meant for the *client*, not the resource server.
+      tags:
+        - {text: "access token: short-lived", color: orange}
+        - {text: "refresh token: long-lived", color: red}
+        - {text: "ID token: OIDC only", color: purple}
+
+    - title: "🔄 Authorization Code Flow + PKCE"
+      body: >
+        The recommended flow for any client that involves a user. The client redirects
+        the user to the AS with a `code_challenge` (PKCE). The user authenticates and
+        consents. The AS redirects back with a short-lived `code`. The client exchanges
+        the `code` + `code_verifier` for tokens at the token endpoint. The authorization
+        code is single-use and expires in seconds — even if intercepted, it's useless
+        without the verifier. **PKCE** (Proof Key for Code Exchange) is required for
+        public clients and recommended for all clients.
+      flows:
+        - ["Client", "AS /authorize + code_challenge", "User authenticates", "code returned"]
+        - ["Client", "AS /token + code + code_verifier", "Access + Refresh + ID tokens"]
+      tags:
+        - {text: "PKCE required for public clients", color: green}
+        - {text: "code is single-use", color: orange}
+
+    - title: "🤖 Client Credentials Flow"
+      body: >
+        Machine-to-machine (M2M) flow — no user involved. The client authenticates
+        directly to the AS with its `client_id` and `client_secret` (or a signed JWT
+        for stronger auth) and receives an access token. Used for service-to-service
+        calls, background jobs, and daemons. There is no refresh token — the client
+        simply re-authenticates when the token expires. Scope design matters: each
+        service should request only the scopes it needs, not a broad admin scope.
+      flows:
+        - ["Service A", "AS /token (client_id + secret)", "Access token", "Service B API"]
+      tags:
+        - {text: "M2M only", color: orange}
+        - {text: "no refresh token", color: red}
+        - {text: "least-privilege scopes", color: green}
+
+    - title: "🗂️ Scopes & Consent"
+      body: >
+        Scopes declare what access the client is requesting: `read:orders`, `write:profile`,
+        `openid`, `email`. The AS presents a consent screen to the user listing the requested
+        scopes. The issued access token contains only the scopes the user approved.
+        The resource server enforces scopes on every request — a token with `read:orders`
+        must be rejected by the write endpoint. Design scopes around resources and actions,
+        not roles. Coarse scopes (`admin`) create over-permissioning; too-fine scopes
+        (`read:order:12345`) create consent fatigue and management overhead.
+      tags:
+        - {text: "least privilege", color: green}
+        - {text: "resource:action pattern"}
+        - {text: "RS enforces scopes", color: orange}
+
+    - title: "🪪 OpenID Connect (OIDC)"
+      body: >
+        OIDC is a thin identity layer on top of OAuth2. It adds: an **ID token** (a JWT
+        with claims about the authenticated user — `sub`, `email`, `name`, `iat`, `exp`,
+        `iss`, `aud`), a **UserInfo endpoint** (fetch additional claims with an access token),
+        and a **discovery document** (`/.well-known/openid-configuration`) listing all
+        endpoints and supported features. Use OIDC when you need to know *who* the user is.
+        Use plain OAuth2 when you only need to know *what* they can access.
+        Never use an access token as proof of identity — use the ID token.
+      tags:
+        - {text: "adds identity to OAuth2", color: green}
+        - {text: "ID token ≠ access token", color: red}
+
+    - title: "🔍 Token Validation & Introspection"
+      body: >
+        Two ways a resource server validates an access token. **Local JWT validation**:
+        fetch the AS's public keys from `/.well-known/jwks.json`, verify the token
+        signature, check `iss`, `aud`, `exp`, and required scopes. Fast — no network
+        call per request. Works only for JWT tokens. **Token introspection** (RFC 7662):
+        the RS calls the AS's introspection endpoint with the token; the AS responds
+        with `active: true/false` and token metadata. Works for opaque tokens.
+        Slower — one AS call per request (cache the result). Enables real-time revocation.
+      flows:
+        - ["RS", "JWKS endpoint (cached)", "Verify signature + claims locally"]
+        - ["RS", "AS /introspect", "active: true + claims"]
+      tags:
+        - {text: "JWT: local validation", color: green}
+        - {text: "opaque: introspection", color: orange}
+
+    - title: "🚪 Token Revocation & Expiry"
+      body: >
+        Access tokens are self-contained and cannot be invalidated before expiry when
+        using local JWT validation — the RS has no way to know a token was revoked.
+        Mitigate with short lifetimes (5–15 minutes). Refresh tokens can be revoked
+        at the AS (RFC 7009); the client loses the ability to get new access tokens.
+        Refresh token rotation: every use of a refresh token issues a new refresh token
+        and invalidates the old one. If an old refresh token is used (replay), the AS
+        detects a compromise and can revoke the entire token family. This is the primary
+        defense against stolen refresh tokens.
+      tags:
+        - {text: "short access token TTL", color: green}
+        - {text: "refresh rotation", color: orange}
+        - {text: "revocation = family invalidation", color: red}
+
+  gotchas:
+    - title: "OAuth2 is not authentication — don't use the access token as identity proof"
+      body: >
+        A common mistake: a client receives an access token and passes it to a backend
+        to prove who the user is. The access token says what the client can do, not who
+        the user is. Anyone who acquires the token (legitimately or not) can impersonate.
+        Use the ID token (OIDC) or call the UserInfo endpoint. The backend should validate
+        the ID token's `sub` claim for identity, not the access token's presence.
+
+    - title: "Implicit flow and ROPC are deprecated — stop using them"
+      body: >
+        The **Implicit flow** returned tokens directly in the URL fragment — visible in
+        browser history, referrer headers, and server logs. Deprecated in OAuth 2.1.
+        The **Resource Owner Password Credentials (ROPC)** flow requires the client to
+        handle the user's username and password directly — exactly what OAuth2 was designed
+        to avoid. Both are insecure. Use Authorization Code + PKCE for user-facing apps,
+        Client Credentials for M2M.
+
+    - title: "Missing or ignored state parameter enables CSRF"
+      body: >
+        The `state` parameter in the authorization request must be a random, unguessable
+        value bound to the user's session. On callback, the client must verify the returned
+        `state` matches. Without this, an attacker can trick a victim's browser into
+        completing an authorization flow the attacker initiated, binding the victim's session
+        to the attacker's account (OAuth CSRF). This is a real attack — not theoretical.
+
+    - title: "Storing tokens in localStorage exposes them to XSS"
+      body: >
+        Any JavaScript running in your page — including injected malicious scripts — can
+        read `localStorage`. Access tokens stored there are trivially stolen via XSS.
+        For SPAs: use the BFF (Backend for Frontend) pattern — the backend handles the
+        OAuth2 flow and stores tokens server-side, issuing a session cookie (httpOnly,
+        Secure, SameSite=Strict) to the browser. No tokens in the browser at all.
+
+    - title: "Broad scopes create permanent over-permissioning"
+      body: >
+        Requesting `admin` or `*` scopes because it's convenient means a compromised
+        token has unlimited access. Users also see and remember broad consent screens —
+        "this app wants access to everything." Design scopes to match actual needs:
+        `read:invoices` not `billing:admin`. Review and prune scopes granted to
+        long-lived integrations regularly.
+
+    - title: "Token audience (aud) validation is frequently skipped"
+      body: >
+        The `aud` claim in a JWT specifies which resource server the token is intended for.
+        If a RS doesn't validate `aud`, a token issued for service A can be replayed against
+        service B. This is a common misconfiguration in internal microservice architectures
+        where all services share a single AS. Validate `aud` on every token, every request.
+
+  when_to_use:
+    - "Third-party application integration — users grant an external app access to their data without sharing credentials"
+    - "Machine-to-machine API authorization between internal services (Client Credentials)"
+    - "Single sign-on across multiple applications within an organization"
+    - "Federated identity across organizational boundaries (partner APIs, B2B integration)"
+    - "Mobile and SPA clients that need delegated access to backend APIs"
+    - "Any scenario requiring scoped, revocable, time-limited access tokens"
+
+  when_not_to_use:
+    - "Simple first-party authentication — a username/password login with session cookies is simpler and sufficient"
+    - "Internal service-to-service calls where mTLS provides stronger, certificate-based mutual authentication"
+    - "Low-sensitivity internal APIs where API keys + TLS are adequate and OAuth2 overhead isn't justified"
+    - "Teams without the expertise to implement token validation, rotation, and revocation correctly — a misconfigured OAuth2 implementation is worse than a simpler, correct alternative"
+
+# ── DEEP DIVE ─────────────────────────────────────────────────────────────────
+deep_dive:
+  tables:
+    - title: "🎟️ Token Types Reference"
+      rows:
+        - {key: "Access Token", value: "Short-lived (5–60 min). Presented to resource server. JWT (local validation) or opaque (introspection)."}
+        - {key: "Refresh Token", value: "Long-lived (hours–days). Opaque. Used to obtain new access tokens. Never sent to resource server. Rotate on every use."}
+        - {key: "ID Token", value: "OIDC only. JWT. Contains user identity claims (sub, email, name). Intended for the client, not the resource server."}
+        - {key: "Authorization Code", value: "Single-use. Expires in seconds. Exchanged for tokens at the token endpoint. Useless without PKCE code_verifier."}
+        - {key: "Client Secret", value: "Shared secret for confidential clients. Never expose in client-side code. Rotate on breach. Prefer signed JWT assertion for stronger auth."}
+
+    - title: "⚙️ JWT Claims Reference"
+      rows:
+        - {key: "iss (issuer)", value: "URL of the authorization server that issued the token. Validate against expected AS."}
+        - {key: "sub (subject)", value: "Unique identifier for the user or service. Stable across tokens. Use for identity, not email."}
+        - {key: "aud (audience)", value: "Intended recipient(s). Must match the resource server's identifier. Always validate."}
+        - {key: "exp (expiry)", value: "Unix timestamp after which the token is invalid. Always validate — reject expired tokens."}
+        - {key: "iat (issued at)", value: "When the token was issued. Use for token age checks, not as primary expiry."}
+        - {key: "jti (JWT ID)", value: "Unique token identifier. Use for token replay detection and revocation tracking."}
+        - {key: "scope", value: "Space-separated list of granted scopes. Enforce on the resource server per endpoint."}
+        - {key: "azp (authorized party)", value: "Client ID the token was issued to. Useful in multi-client scenarios."}
+
+    - title: "🔒 PKCE Reference"
+      rows:
+        - {key: "code_verifier", value: "Random string (43–128 chars, URL-safe). Generated by the client. Never sent to the browser."}
+        - {key: "code_challenge", value: "BASE64URL(SHA256(code_verifier)). Sent in the authorization request."}
+        - {key: "code_challenge_method", value: "Always S256. Plain is insecure (challenge = verifier, defeats the purpose)."}
+        - {key: "Token exchange", value: "Client sends code + code_verifier. AS recomputes challenge and verifies. Code is useless without the verifier."}
+        - {key: "Why it matters", value: "Even if the authorization code is intercepted (open redirect, log injection), it cannot be exchanged without the verifier the client holds."}
+
+  cli:
+    - label: "Authorization Code flow — token exchange"
+      commands:
+        - "# Step 1: redirect user to AS (browser)"
+        - "https://as.example.com/authorize?response_type=code&client_id=myapp&redirect_uri=https://app.example.com/callback&scope=openid+read:orders&state=RANDOM&code_challenge=CHALLENGE&code_challenge_method=S256"
+        - "# Step 2: exchange code for tokens (server-side)"
+        - "curl -X POST https://as.example.com/token -d 'grant_type=authorization_code&code=AUTH_CODE&redirect_uri=https://app.example.com/callback&client_id=myapp&client_secret=SECRET&code_verifier=VERIFIER'"
+    - label: "Client Credentials flow"
+      commands:
+        - "curl -X POST https://as.example.com/token -d 'grant_type=client_credentials&client_id=service-a&client_secret=SECRET&scope=read:inventory'"
+    - label: "Refresh token"
+      commands:
+        - "curl -X POST https://as.example.com/token -d 'grant_type=refresh_token&refresh_token=RT_VALUE&client_id=myapp&client_secret=SECRET'"
+    - label: "Token introspection"
+      commands:
+        - "curl -X POST https://as.example.com/introspect -u 'rs-client:rs-secret' -d 'token=ACCESS_TOKEN'"
+    - label: "Token revocation"
+      commands:
+        - "curl -X POST https://as.example.com/revoke -d 'token=REFRESH_TOKEN&token_type_hint=refresh_token&client_id=myapp&client_secret=SECRET'"
+    - label: "JWKS fetch (public key for JWT validation)"
+      commands:
+        - "curl https://as.example.com/.well-known/jwks.json"
+        - "curl https://as.example.com/.well-known/openid-configuration"
+
+  comparison:
+    title: "⚖️ OAuth2 Grant Types — When to Use Each"
+    headers: ["Grant Type", "Use Case", "User Involved?", "Refresh Token?", "Security Notes"]
+    rows:
+      - ["Authorization Code + PKCE", "Web apps, SPAs, mobile apps — any user-facing client", "Yes", "Yes", "Required flow for user-facing clients. PKCE mandatory for public clients."]
+      - ["Client Credentials", "Service-to-service, background jobs, daemons", "No", "No", "Client secret must be kept secure. Use signed JWT assertion over shared secret where possible."]
+      - ["Device Authorization", "Smart TVs, CLIs, IoT devices with no browser", "Yes (on second device)", "Yes", "User visits a URL on another device to authorize. Polling interval must be respected."]
+      - ["Refresh Token", "Obtaining new access tokens silently", "No (after initial auth)", "Rotates", "Rotate on every use. Detect replay via reuse detection. Invalidate full family on suspected theft."]
+      - ["Token Exchange (RFC 8693)", "Service A impersonates user when calling Service B", "Indirectly", "Sometimes", "Enables actor/subject distinction. Correct solution for delegation chains — not passing the user's token downstream."]
+      - ["Implicit (deprecated)", "Was used for SPAs before PKCE", "Yes", "No", "Tokens in URL fragment. Deprecated in OAuth 2.1. Do not use."]
+      - ["ROPC (deprecated)", "Direct username/password to client", "Yes (credentials exposed)", "Yes", "Client handles user credentials — defeats OAuth2's purpose. Deprecated. Do not use."]
+
+# ── Q & A ─────────────────────────────────────────────────────────────────────
+qa:
+  senior:
+    - id: S-01
+      question: "Walk me through the Authorization Code flow with PKCE step by step."
+      answer: >
+        (1) The client generates a random `code_verifier` (43–128 chars, cryptographically random)
+        and computes `code_challenge = BASE64URL(SHA256(code_verifier))`.
+
+        (2) The client redirects the browser to the AS `/authorize` endpoint with:
+        `response_type=code`, `client_id`, `redirect_uri`, `scope`, `state` (random CSRF token),
+        `code_challenge`, `code_challenge_method=S256`.
+
+        (3) The AS authenticates the user (login screen) and presents a consent screen listing
+        the requested scopes. User approves.
+
+        (4) The AS redirects to `redirect_uri?code=AUTH_CODE&state=SAME_STATE`.
+        The client validates `state` matches the value from step 2 (CSRF check).
+
+        (5) The client POSTs to `/token`: `grant_type=authorization_code`, `code`, `redirect_uri`,
+        `client_id`, `client_secret` (confidential) or just `client_id` (public), `code_verifier`.
+
+        (6) The AS validates the code, computes SHA256(code_verifier), compares to the stored
+        challenge. If valid, returns access token, refresh token, and ID token (if OIDC).
+      staff_add: >
+        The code_verifier/challenge is the critical security mechanism for public clients.
+        A browser or mobile app cannot keep a client_secret — any secret bundled in the app
+        binary can be extracted. PKCE solves this: the challenge is sent upfront (public);
+        the verifier is held in memory and never leaves the client. Intercepting the
+        authorization code is now useless without the verifier. For confidential clients
+        (server-side apps), both client_secret AND PKCE should be used — defense in depth,
+        and OAuth 2.1 will require PKCE for all clients regardless of type.
+
+    - id: S-02
+      question: "What is the difference between an access token and a refresh token — why do we need both?"
+      answer: >
+        Access tokens are sent on every API request, making them high-value targets.
+        Keeping them short-lived (5–60 minutes) limits the damage window if stolen —
+        the attacker can use it for at most that window without being able to renew it.
+        But forcing users to re-authenticate every 15 minutes is terrible UX.
+
+        Refresh tokens solve this: they live server-side (or in a secure httpOnly cookie),
+        are sent only to the AS token endpoint (not to every API), and exchange for a
+        new access token silently. They're long-lived (hours to days) but stored securely
+        and can be revoked at the AS. The two-token model separates the high-frequency,
+        high-exposure credential (access token) from the long-lived, tightly-controlled
+        one (refresh token).
+      staff_add: >
+        Refresh token rotation is the key security control. Without it, a stolen refresh
+        token grants indefinite access. With rotation: every refresh token use issues a new
+        RT and invalidates the old one. If an attacker uses a stolen RT while the legitimate
+        client holds a newer one, the next legitimate use will fail — the AS detects that
+        an already-invalidated token was used (replay), signals a compromise, and can revoke
+        the entire token family. This forces the user to re-authenticate. The design requires
+        the AS to maintain a token family graph — not all AS implementations do this correctly.
+        Verify your AS supports reuse detection before relying on rotation as a security control.
+
+    - id: S-03
+      question: "How does a resource server validate a JWT access token?"
+      answer: >
+        (1) **Fetch JWKS**: retrieve the AS's public keys from `/.well-known/jwks.json`.
+        Cache aggressively — refresh only on cache miss for an unknown `kid`.
+
+        (2) **Verify signature**: decode the JWT header, find the `kid`, use the matching
+        public key to verify the signature algorithm matches (e.g., RS256). Reject
+        if signature is invalid.
+
+        (3) **Validate claims**: check `iss` matches the expected AS; `aud` contains the RS's
+        identifier; `exp` is in the future; `iat` is not too far in the past (clock skew tolerance).
+
+        (4) **Check scope**: the `scope` claim (or a custom claim) contains the permission
+        required for the requested endpoint.
+
+        (5) **Check `alg`**: only allow expected algorithms (RS256, ES256). Reject `none` and
+        symmetric algorithms like HS256 unless you explicitly share a secret.
+      staff_add: >
+        The `alg=none` vulnerability is historical but worth knowing: early JWT libraries
+        would accept unsigned tokens if the header declared `alg: none`. Also watch for
+        algorithm confusion attacks — a RS256-signed token where the attacker changes the
+        header to HS256 and signs with the RS's public key (which is, confusingly, treated
+        as the HMAC secret by vulnerable libraries). Always validate the `alg` header against
+        an explicit allowlist before selecting the verification key. Never let the token
+        dictate the algorithm — your application dictates it.
+
+    - id: S-04
+      question: "What is the difference between OAuth2 and OpenID Connect?"
+      answer: >
+        OAuth2 is a framework for delegated **authorization** — granting access to resources.
+        It says nothing about who the user is; it only defines what they're allowed to do.
+        OpenID Connect (OIDC) is an **identity layer** on top of OAuth2. It adds:
+        the `openid` scope (signals an OIDC request), the **ID token** (a JWT containing
+        identity claims: `sub`, `name`, `email`, `iss`, `aud`, `exp`), and the **UserInfo
+        endpoint** (fetch additional user claims with an access token).
+
+        Rule: use the ID token to know *who* the user is. Use the access token to access
+        protected resources. Never send the ID token to an API as an access credential.
+      staff_add: >
+        The distinction matters in system design. An API gateway that validates the access
+        token and enforces scopes does not need OIDC — it only cares about authorization.
+        A service that needs to personalize a response ("Hello, Alice") or apply user-level
+        data access control needs the user's identity from the ID token or UserInfo.
+        In microservices, a common pattern: the gateway validates the access token, extracts
+        claims, and forwards user identity as a trusted header (e.g., `X-User-ID`) to
+        downstream services. Services trust the gateway's header rather than re-validating
+        the full token on every hop — simpler, but requires network-level trust between
+        the gateway and services.
+
+    - id: S-05
+      question: "Why is the Implicit flow deprecated and what replaced it?"
+      answer: >
+        The Implicit flow returned tokens directly in the URL fragment (`#access_token=...`)
+        after the authorization redirect. Problems: URL fragments appear in browser history,
+        server logs, referrer headers, and JavaScript running in the page. Tokens were exposed
+        to any code that could read the URL. The flow was designed for SPAs before PKCE existed,
+        under the assumption that SPAs couldn't keep secrets — but the Implicit flow's "solution"
+        created worse exposure than the problem it avoided.
+
+        Replacement: **Authorization Code + PKCE**. Tokens are never in the URL. The short-lived
+        code in the redirect URL is useless without the `code_verifier` the client holds in memory.
+        PKCE solves the "public client can't keep a secret" problem without putting tokens in URLs.
+      staff_add: >
+        ROPC (Resource Owner Password Credentials) is also deprecated and more commonly
+        misused. Teams reach for it because it "feels simple" — just pass username/password
+        to an endpoint and get a token. But ROPC requires the client to handle user credentials
+        directly, breaking the core OAuth2 trust model. The AS can't distinguish a legitimate
+        ROPC request from a phishing attack. ROPC also prevents the AS from enforcing MFA
+        (there's no interactive step where MFA could be inserted). If you see ROPC in a codebase,
+        it's almost always a sign that the OAuth2 integration was done for compliance theatre
+        rather than security — the threat model that OAuth2 addresses is not being realized.
+
+    - id: S-06
+      question: "How should you design scopes for a large API surface?"
+      answer: >
+        Follow the `resource:action` pattern: `invoices:read`, `invoices:write`,
+        `users:admin`, `payments:initiate`. This gives a clear, consistent vocabulary
+        that maps directly to what the consent screen shows users. Avoid verbs that imply
+        everything (`admin`, `full_access`) — they're impossible to revoke partially and
+        create over-permissioning by default.
+
+        Separate read and write — a reporting client needs `read` only; a write-only
+        integration should never have `read`. Group into logical resource boundaries so
+        clients request a coherent set. Too many fine-grained scopes (50+) creates consent
+        fatigue and management complexity; too few coarse scopes creates over-permissioning.
+        Aim for 10–30 scopes for a typical API surface.
+      staff_add: >
+        Scope design is an API design problem, not just a security problem. Once scopes
+        are in production and clients are relying on them, renaming or splitting them
+        becomes a migration event. Design your scope vocabulary deliberately upfront and
+        treat it as a public API contract. Consider grouping scopes into "scope bundles"
+        for common use cases — a client can request the bundle (`reporting`) which maps
+        to a set of granular scopes internally. The consent screen shows the bundle name
+        and description; the AS expands it. This keeps the user-facing consent simple
+        while maintaining granular enforcement on the resource server.
+
+    - id: S-07
+      question: "How do you handle token expiry and silent renewal in a client application?"
+      answer: >
+        For server-side web apps: store the refresh token securely (encrypted, server-side).
+        When an API call returns 401, use the refresh token to obtain a new access token
+        transparently, retry the request, and update the stored tokens. Implement a token
+        refresh mutex — if multiple concurrent requests hit a 401, only one should refresh;
+        others wait for the result rather than all attempting refresh simultaneously.
+
+        For SPAs using the BFF pattern: the backend handles refresh invisibly; the SPA never
+        sees tokens. A 401 from the BFF means the refresh failed (expired or revoked) — redirect
+        to login. For mobile apps: use the OS secure storage (Keychain on iOS, Keystore on Android)
+        for refresh tokens; the OAuth2 library handles silent refresh.
+      staff_add: >
+        The refresh mutex is easy to overlook and causes race conditions in high-concurrency
+        clients. Without it: 10 concurrent API calls all get 401, all try to refresh, all
+        succeed (using different refresh tokens), all but the last store a now-invalid refresh
+        token, and the client is silently broken until the next restart. Use a shared lock
+        or a single in-flight refresh promise that all waiters attach to. For distributed
+        systems (multiple instances of a service all sharing one client credential), coordinate
+        token refresh via a shared cache (Redis) — only one instance refreshes; others read
+        the cached token. Avoid refresh storms on token expiry.
+
+    - id: S-08
+      question: "What is the state parameter in OAuth2 and what attack does it prevent?"
+      answer: >
+        The `state` parameter is a random, opaque value the client generates before
+        the authorization redirect and binds to the user's session. When the AS redirects
+        back with the authorization code, it includes the same `state` value. The client
+        must verify that the returned `state` matches what it stored.
+
+        This prevents **OAuth CSRF** (Cross-Site Request Forgery): an attacker initiates
+        an authorization flow, gets the redirect URL back (with the authorization code),
+        but instead of following it themselves, tricks the victim's browser into loading it.
+        The victim's session gets bound to the attacker's OAuth grant. The attacker can
+        then log into the victim's session (if the app uses "Login with X") or the victim's
+        account gets linked to the attacker's external account. State validation breaks this
+        — the victim's browser has no matching state in its session.
+      staff_add: >
+        PKCE protects the authorization code from being used by an interceptor.
+        State protects against CSRF on the redirect. They solve different attacks and
+        both are required. In practice, many OAuth2 libraries generate and validate state
+        automatically — but not all, and "framework handles it" is not the same as
+        "we verified it handles it correctly in our setup." Always audit the state
+        validation path explicitly in security reviews.
+
+    - id: S-09
+      question: "What is token introspection and when do you use it over local JWT validation?"
+      answer: >
+        Token introspection (RFC 7662) lets a resource server call the AS's `/introspect`
+        endpoint to validate a token. The AS responds with `active: true/false`, scopes,
+        expiry, and token metadata. It works for opaque tokens (random strings with no
+        embedded claims) — the RS cannot decode them locally; only the AS knows their state.
+        It also enables real-time revocation: when a token is revoked at the AS, the next
+        introspection call returns `active: false` immediately, even before the token's
+        `exp` has passed.
+
+        Use local JWT validation (JWKS) for high-throughput APIs where the AS call latency
+        is unacceptable. Use introspection when you need real-time revocation, are using
+        opaque tokens, or the AS is internal and low-latency. Cache introspection results
+        keyed by token (short TTL) to reduce AS load.
+      staff_add: >
+        The revocation gap is the real trade-off. A JWT with a 15-minute lifetime can be
+        used for 15 minutes after the user logs out, revokes access, or is terminated —
+        local validation cannot know. For most use cases, 15 minutes is acceptable.
+        For high-security contexts (financial transactions, admin actions, post-termination
+        access), short access token lifetimes alone aren't enough. Either use introspection
+        with caching (accepting some revocation lag equal to the cache TTL) or use a
+        token binding approach where each access token is single-use and short-lived enough
+        that the revocation window is negligible.
+
+    - id: S-10
+      question: "How does the Client Credentials flow work and how do you secure the client secret?"
+      answer: >
+        The client POSTs to the token endpoint with `grant_type=client_credentials`,
+        `client_id`, `client_secret`, and `scope`. The AS validates the credentials,
+        checks the requested scopes against what's allowed for this client, and returns
+        an access token. No refresh token — when the access token expires, the client
+        re-authenticates directly. Best practice: cache the access token until near expiry,
+        then re-authenticate rather than fetching a new token for every request.
+
+        Securing the client secret: never hardcode in source or config files in version control.
+        Use environment variables injected at runtime, or better, a secrets manager (Vault,
+        AWS Secrets Manager). Rotate secrets on a schedule and immediately on suspected exposure.
+        For higher assurance, replace the client secret with a signed JWT assertion
+        (`private_key_jwt` or `client_secret_jwt`) — the client signs a short-lived JWT
+        with a private key; the AS verifies with the registered public key.
+      staff_add: >
+        In Kubernetes environments, use Workload Identity where available instead of client
+        secrets: the platform issues a short-lived, auto-rotated service account token
+        (AWS IRSA, GCP Workload Identity, OCP STS) that the AS validates against the cloud
+        provider's JWKS. No secret to manage, no rotation to schedule, no credential to leak.
+        This is the direction the industry is moving for M2M auth in cloud environments.
+        Where Workload Identity isn't available, `private_key_jwt` is the next-best option —
+        the private key never leaves the service, only the signed assertion is sent.
+
+    - id: S-11
+      question: "What is the Device Authorization flow and when is it appropriate?"
+      answer: >
+        The Device Authorization Grant (RFC 8628) is for devices with limited input capability —
+        smart TVs, CLIs, IoT devices — that can display a URL but can't easily handle browser
+        redirects. Flow: the device calls the AS device authorization endpoint and receives a
+        `device_code`, `user_code`, and `verification_uri`. It displays "Go to example.com/activate
+        and enter code WXYZ-1234." The user opens the URL on their phone or computer, authenticates,
+        and enters the code. The device polls the AS token endpoint (with a specified interval)
+        until the user completes authorization or the device code expires.
+      staff_add: >
+        The polling behavior is the most commonly misimplemented part. The AS specifies a
+        minimum polling interval (e.g., 5 seconds). If the device polls faster, the AS returns
+        `slow_down` — the device must then increase its interval by 5 seconds and maintain that
+        for the rest of the flow. Respecting this is required by the spec and avoids being
+        rate-limited or blocked. Also: device codes expire (typically 15–30 minutes). Design
+        the user experience to make it clear what to do if the code expires — display a refresh
+        button, not just a confusing error. The Device flow is correct for CLIs like `kubectl`
+        login or `aws sso login` — it's the only flow that doesn't require a callback URL.
+
+    - id: S-12
+      question: "How do you handle OAuth2 in a Single Page Application (SPA) securely?"
+      answer: >
+        The recommended pattern is **Backend for Frontend (BFF)**. The BFF is a thin
+        server-side component (Node.js, a sidecar) that handles the OAuth2 flow on behalf
+        of the SPA. The BFF: initiates the authorization code flow (server-side, can use a
+        client secret), handles the callback and token exchange, stores tokens server-side
+        (never sent to the browser), and issues a session cookie (httpOnly, Secure, SameSite=Strict)
+        to the SPA. The SPA calls the BFF's API; the BFF attaches the access token to
+        upstream calls. Tokens are never in the browser's JavaScript context.
+
+        Without BFF: use Authorization Code + PKCE (no client secret, PKCE only for public
+        client). Store access tokens in memory only — not localStorage or sessionStorage.
+        Refresh tokens should not be given to SPAs; use silent refresh via a hidden iframe
+        or short access token lifetimes with re-authentication.
+      staff_add: >
+        The BFF pattern adds an infrastructure component but provides significantly better
+        security properties: tokens are not in the browser, XSS cannot steal them,
+        and the session is revocable at the BFF layer. The trade-off is the BFF is a new
+        service to operate. For high-security applications (banking, healthcare), BFF is
+        the correct choice. For low-security public-facing apps, PKCE with in-memory tokens
+        is acceptable. The worst option — and still common — is Authorization Code + PKCE
+        with refresh tokens stored in localStorage. This survives a library audit ("we use
+        PKCE!") while being insecure in practice.
+
+    - id: S-13
+      question: "What is refresh token rotation and how does reuse detection work?"
+      answer: >
+        Refresh token rotation means every time a refresh token is used to get a new
+        access token, the AS issues a brand new refresh token and invalidates the old one.
+        The client must update its stored refresh token to the new value after every use.
+
+        Reuse detection: the AS maintains which refresh token is the current valid one
+        in a "token family." If an already-invalidated (previously rotated) refresh token
+        is presented, the AS knows it has been replayed. This indicates either: a race
+        condition in the legitimate client (usually manageable) or a stolen token being
+        used after the legitimate client already rotated it. On detected reuse, the AS
+        invalidates the entire token family, forcing full re-authentication.
+      staff_add: >
+        Rotation without reuse detection gives false security — if a token is stolen and
+        used before the legitimate client does, the attacker rotates it and the legitimate
+        client's next refresh attempt fails. The user gets logged out, which is visible but
+        not catastrophic. With reuse detection, when the legitimate client uses the rotated
+        token, the AS sees the old (attacker-used) token was already rotated, detects the
+        family compromise, and revokes everything — forcing both the attacker and the user
+        to re-authenticate. The user is prompted to log in again; ideally they also see a
+        security alert. Not all authorization servers implement family-based reuse detection —
+        verify this capability before relying on rotation as your primary theft mitigation.
+
+    - id: S-14
+      question: "How do you securely store and transmit tokens in different client types?"
+      answer: >
+        **Server-side web app**: store tokens in the server-side session (encrypted, in Redis
+        or DB). Transmit access token to APIs over TLS. Refresh token never leaves the server.
+
+        **SPA**: ideally BFF (tokens never in browser). If not BFF: access token in memory only
+        (JavaScript variable, wiped on page reload). Never localStorage. Refresh tokens should
+        not be issued to SPAs.
+
+        **Mobile app**: store refresh token in OS secure storage — iOS Keychain, Android Keystore
+        (hardware-backed where available). Access token in memory. Use a reputable OAuth2
+        library (AppAuth for iOS/Android) rather than implementing token storage manually.
+
+        **CLI / desktop**: OS keychain. `git credential` model. Or device flow with short-lived
+        tokens refreshed on each invocation.
+      staff_add: >
+        The common thread: the refresh token (long-lived, high-value) is always stored in the
+        most secure location available for that client type. The access token (short-lived,
+        lower consequence) can be held in faster, less secure storage. "Secure storage" on
+        mobile is not just a code choice — it depends on device configuration. An unencrypted
+        Android device with developer mode enabled has a weakened Keystore. On iOS, Keychain
+        items must use `kSecAttrAccessible` values that require device unlock. Audit the
+        specific API calls in your mobile OAuth2 library to confirm it's using hardware-backed
+        secure storage, not just writing to a shared preferences file labeled "secure."
+
+  staff:
+    - id: ST-01
+      question: "Design the key components of an OAuth2 authorization server. What does each component do?"
+      answer: >
+        **Authorization endpoint** (`/authorize`): handles browser redirects, authenticates
+        the user (delegating to an identity store or IdP), presents the consent UI, and
+        issues the authorization code.
+
+        **Token endpoint** (`/token`): validates the grant (code, refresh token, client credentials),
+        authenticates the client (client_secret or JWT assertion), issues tokens. Must be
+        server-to-server only (no browser redirects).
+
+        **Introspection endpoint** (`/introspect`): validates a token and returns its metadata.
+        Protected — only resource servers with registered RS credentials can call it.
+
+        **Revocation endpoint** (`/revoke`): accepts a refresh or access token and marks it invalid.
+
+        **JWKS endpoint** (`/.well-known/jwks.json`): public keys for JWT signature verification.
+
+        **Discovery document** (`/.well-known/openid-configuration`): machine-readable metadata
+        listing all endpoints, supported flows, scopes, algorithms.
+      staff_add: >
+        The hardest part to get right is the token store. Every issued token, every refresh
+        token family, every revocation must be persisted durably and retrieved at low latency.
+        This is a high-read, low-write store with specific query patterns (lookup by token value,
+        lookup by client, lookup by user). Redis works well for access and refresh token state;
+        a relational DB for client registrations and audit logs. The AS is also a high-value
+        target — it issues credentials for your entire system. Harden it separately from the
+        applications it protects: separate network segment, dedicated DB user with minimal
+        permissions, extensive audit logging of every token issuance and revocation.
+
+    - id: ST-02
+      question: "How do you design OAuth2 for a multi-tenant SaaS platform where each tenant has its own users and resource servers?"
+      answer: >
+        Two models. **Single AS, tenant-isolated by claims**: all tenants share one AS.
+        Tenant identity is embedded in the token (`tenant_id` claim). Resource servers read
+        the claim and enforce tenant data isolation. Simpler to operate; tenants cannot
+        customize their auth (MFA policy, SAML federation). **Per-tenant AS or realm**:
+        Keycloak calls these "realms" — each tenant gets an isolated configuration,
+        user store, client registrations, and policies. Stronger isolation; higher operational
+        overhead. OIDC discovery documents are tenant-scoped. Clients must know which
+        tenant's AS to call (usually derived from the login domain or a tenant subdomain).
+      staff_add: >
+        The per-tenant realm model is correct when tenants have different identity providers
+        (tenant A uses Azure AD SAML, tenant B uses Google Workspace, tenant C uses local
+        accounts). Each realm can federate to a different external IdP without affecting others.
+        The operational overhead is manageable with a platform layer that provisions realms
+        via API on tenant onboarding. The harder design question is how clients discover the
+        correct AS. A common pattern: `https://as.example.com/realms/{tenant_id}/.well-known/openid-configuration`.
+        The client derives the tenant from the user's login domain or a pre-configured tenant
+        identifier. Ensure your client libraries support dynamic AS discovery per tenant.
+
+    - id: ST-03
+      question: "How do you implement the Backend for Frontend (BFF) pattern for a SPA?"
+      answer: >
+        The BFF is a thin server-side service (or API gateway) co-located with the SPA.
+        It owns the OAuth2 client registration (has the client_secret, handles PKCE).
+        Flow: the SPA calls BFF `/login`, which initiates the authorization code flow (server-side).
+        After callback, the BFF exchanges the code for tokens at the AS. The BFF stores tokens
+        in a server-side session (Redis/DB) keyed to a session ID. It sets a `session` httpOnly
+        cookie on the browser. The SPA's API calls go through the BFF — the BFF reads the
+        session, attaches the access token, and proxies to the resource server. The SPA never
+        sees a token.
+      staff_add: >
+        The BFF becomes a critical, stateful infrastructure component — it holds all active
+        sessions and tokens. Design it for high availability and correct session handling
+        (distributed sessions via Redis, not in-memory). The BFF should also handle:
+        token refresh (transparently, with the mutex pattern), logout (revoke the refresh
+        token at the AS, clear the session), and token validation errors (propagate meaningful
+        4xx to the SPA). One nuance: the BFF cookie must be scoped correctly — `SameSite=Strict`
+        prevents CSRF but breaks some cross-origin scenarios; `SameSite=Lax` is a reasonable
+        default for most SPAs. The BFF is also where you add rate limiting, logging, and
+        request tracing for auth flows — easier to centralize here than in every SPA page.
+
+    - id: ST-04
+      question: "How do you handle token validation at scale in a high-traffic microservices system?"
+      answer: >
+        JWKS caching is the foundation: fetch the AS's public keys once, cache in memory,
+        refresh only on cache miss for an unknown `kid`. This reduces AS dependency to
+        nearly zero for JWT validation. Structure: each service validates tokens locally
+        using the cached JWKS; no per-request AS call. For introspection-required scenarios
+        (opaque tokens, real-time revocation), cache introspection results with a short TTL
+        (30–60 seconds) keyed by token hash — never by plaintext token, and never in a shared
+        cache without careful isolation. Use an API gateway as the single token validation
+        point and propagate identity as a trusted downstream header to reduce per-service
+        validation overhead.
+      staff_add: >
+        The API gateway pattern centralizes auth but creates a single point of failure.
+        Design the gateway for high availability (multiple instances, stateless JWT validation).
+        The trust model for downstream headers (`X-User-ID`, `X-Scopes`) requires network-level
+        controls — services must only accept these headers from the gateway, not from external
+        clients. Implement this via mTLS between the gateway and services, or network policy
+        (only the gateway's IP range can reach internal services on the trusted port).
+        At extreme scale (millions of tokens/second), pre-compute scope claims into a
+        compact bitmap or set at issuance time so scope checking is a bitwise operation,
+        not a string scan.
+
+    - id: ST-05
+      question: "What is Token Exchange (RFC 8693) and how does it solve the delegation problem in microservices?"
+      answer: >
+        Token Exchange lets a service obtain a token that represents a user in the context
+        of a downstream service call. Without it: Service A receives a user's access token
+        and passes it directly to Service B. Service B validates the token and sees the
+        user as the caller. This is "token forwarding" — it works but has problems: the
+        token might not have the right scopes for Service B, the token expiry is uncontrolled,
+        and Service A's identity is invisible (you can't audit that A called B on behalf of user).
+
+        With Token Exchange: Service A calls the AS's token endpoint with
+        `grant_type=urn:ietf:params:oauth:grant-type:token-exchange`, the user's token as
+        the `subject_token`, and Service A's own credentials as the `actor`. The AS issues a
+        new token with `sub=user`, `act=service-a`, scoped for Service B.
+      staff_add: >
+        Token Exchange is the correct solution for delegation chains where you need both
+        the original user identity and the acting service identity preserved in the token.
+        The `act` claim creates an audit trail: "Service A, acting as User X, called Service B."
+        Without this, audit logs for downstream services show only the user — you lose
+        visibility into which service made the call. The implementation complexity is real:
+        your AS must support RFC 8693 (not all do), every service in the chain must
+        participate, and the scope design must work across service boundaries. For simpler
+        use cases where you just need to propagate user identity, passing a validated user
+        claim as a trusted header from the API gateway is often sufficient — and dramatically
+        simpler than implementing full token exchange.
+
+    - id: ST-06
+      question: "How do you design and enforce scopes across a large API surface with multiple teams?"
+      answer: >
+        Scope governance follows the same principles as API governance. Establish a scope
+        registry — a central source of truth (Git repo, internal doc) that defines every
+        scope: name, resource it protects, actions it grants, which clients are allowed
+        to request it. Scope creation requires review. Name scopes in a consistent
+        `resource:action` format. Publish them in the AS discovery document so clients
+        can discover them programmatically.
+
+        Enforcement: the resource server is responsible for enforcing scopes — the AS only
+        issues what's allowed; the RS checks what's required. Use middleware or a decorator
+        per endpoint to declare the required scope. Never rely on the client requesting only
+        the right scopes — validate on every request at the RS.
+      staff_add: >
+        The hardest scope problem at scale is cross-team API access. Team A's service needs
+        to call Team B's API. Team B's AS-registered client for Team A's service needs the
+        correct scopes granted. Without a governance process, this becomes: Team A requests
+        `admin` scope because it's easier than asking for the specific scopes they need;
+        Team B grants it to unblock Team A; `admin` is now granted to 15 clients that don't
+        need it. Solve this with a scope request process (PR to the scope registry), automatic
+        detection of clients holding more scopes than they've exercised (based on AS and RS
+        audit logs), and quarterly scope reviews. Unused scopes on production clients are a
+        standing vulnerability.
+
+    - id: ST-07
+      question: "How do you integrate an OAuth2-protected API with a legacy system that only supports API keys or Basic Auth?"
+      answer: >
+        Several patterns depending on the integration direction. **OAuth2 → legacy (outbound)**:
+        a service with an OAuth2 access token needs to call a legacy API that only accepts
+        Basic Auth. Use a credential broker: the OAuth2 token is validated by the broker,
+        which maps the token's `sub` or `scope` to a legacy API key and makes the call.
+        The legacy credentials stay in the broker; the calling service never sees them.
+
+        **Legacy → OAuth2-protected API (inbound)**: the legacy system can't do OAuth2.
+        Use a gateway adapter: the gateway accepts the legacy auth (API key, Basic Auth)
+        and mints a short-lived token (or passes a trusted identity header) for the downstream
+        OAuth2-protected service. The gateway is the trust boundary.
+      staff_add: >
+        The credential broker pattern is especially useful for migration — you're adding OAuth2
+        without modifying the legacy system. The broker also centralizes audit: every legacy
+        credential use is logged at the broker with the OAuth2 identity that triggered it.
+        Plan the exit: the broker should be temporary. Define a migration timeline for the
+        legacy system to support OAuth2 natively, or to be replaced. Brokers that were
+        "temporary" in 2019 are still running in 2025 because nobody owns the migration.
+        Assign an owner and a target decommission date at the time the broker is deployed.
+
+    - id: ST-08
+      question: "How do you implement step-up authentication in an OAuth2 system?"
+      answer: >
+        Step-up authentication requires the user to re-authenticate (or authenticate with
+        a stronger factor) before accessing a sensitive operation, even if they already have
+        a valid session. Pattern: the resource server detects a sensitive request and checks
+        the token's `acr` (Authentication Context Class Reference) claim. If the claim
+        indicates insufficient assurance (e.g., `acr: password-only` but `acr: mfa` is
+        required), the RS returns a 401 with a `WWW-Authenticate` header containing
+        `acr_values="mfa"`. The client initiates a new authorization request with
+        `acr_values=mfa` and `prompt=login`. The AS challenges the user for MFA and
+        issues a new token with `acr: mfa`.
+      staff_add: >
+        Step-up is the correct pattern for sensitive operations (payment authorization,
+        account deletion, admin actions) that occur within an otherwise normal session.
+        The alternative — requiring MFA at every login — creates friction for routine actions.
+        Step-up applies friction precisely where it's needed. Implementation challenges:
+        the client must detect the 401+acr_values response and know to re-initiate auth
+        (not just retry the request). Most OAuth2 clients don't handle this out of the box.
+        Design this flow explicitly, including the UX: "For security, please confirm your
+        identity to proceed." The step-up token (with elevated acr) should be short-lived
+        and scoped — avoid it propagating to unrelated API calls.
+
+    - id: ST-09
+      question: "How do you audit and monitor OAuth2 flows in production?"
+      answer: >
+        The AS is the central observation point — every token issuance, refresh, and revocation
+        passes through it. Log at minimum: timestamp, event type (token issued, introspection,
+        revocation, failed auth), `client_id`, `user_id` (for user flows), scopes requested
+        vs. granted, IP address, and a correlation ID. Ship logs to your SIEM (Splunk, Datadog,
+        Elastic). Alerts: failed client authentication rate (brute force on client secrets),
+        unusual token issuance spikes (compromised client minting tokens at scale),
+        refresh token reuse detection events (stolen token signal), and clients requesting
+        scopes they've never been granted.
+      staff_add: >
+        The gap in most OAuth2 audit implementations is the resource server side. The AS knows
+        what tokens were issued; the RS knows how they were used. Correlating these (using `jti`
+        as a correlation key) gives you the full picture: token issued at 14:03, used to access
+        `/admin/users` 47 times, by IP 203.0.113.5 — an anomaly the AS logs alone would miss.
+        Build this correlation into your observability platform. For compliance requirements
+        (SOC2, PCI-DSS), the AS audit log is required evidence: every privileged access token
+        issuance must be traceable to a user, a client, and a set of scopes. Treat AS logs
+        with the same retention and integrity requirements as financial audit logs.
+
+    - id: ST-10
+      question: "How do you handle OAuth2 for mobile applications — what are the specific security considerations?"
+      answer: >
+        Mobile apps are public clients — no client secret. Always use Authorization Code + PKCE.
+        Use a system browser or ASWebAuthenticationSession (iOS) / Custom Tabs (Android) for the
+        authorization redirect — never an embedded WebView (the app can intercept the credentials).
+        The OS redirects back via a custom URL scheme (`myapp://callback`) or universal/app links
+        (more secure — requires domain ownership verification). Store refresh tokens in the OS
+        secure storage (Keychain / Keystore with hardware backing). Use AppAuth (iOS/Android)
+        rather than implementing from scratch.
+      staff_add: >
+        The redirect URI is a common attack surface on mobile. Custom URL scheme hijacking:
+        any app can register the same custom scheme and intercept the callback with the
+        authorization code. Mitigate with universal links (iOS) or app links (Android) — these
+        are bound to your domain via an HTTPS association file, so only your app can handle them.
+        PKCE provides a defense-in-depth backup: even if the code is intercepted, it's useless
+        without the verifier. On Android, also verify the App Identity (SHA-256 certificate
+        fingerprint) is registered at the AS for your app, so the AS can detect if a different
+        app's build certificate signed the request — this catches sideloaded malicious clones
+        of your app.
+
+    - id: ST-11
+      question: "How do you secure a public-facing OAuth2 authorization server against abuse?"
+      answer: >
+        Attack surface: brute force on the token endpoint (client secrets, ROPC), authorization
+        code interception, token endpoint flooding, phishing via open redirects, and malicious
+        client registration. Defenses: rate limiting per client and per IP on all endpoints;
+        strict redirect URI validation (exact match, no wildcards, no open redirectors);
+        PKCE enforcement (mandatory for public clients); client authentication on all token
+        requests; short authorization code lifetime (30–60 seconds); and CAPTCHA or
+        proof-of-work for login flows under attack. Log every auth event with IP and user agent.
+      staff_add: >
+        Open redirect vulnerabilities in the authorization endpoint are high-severity. If the AS
+        allows redirect_uri values with wildcards (`https://app.example.com/*`) or partial matches,
+        an attacker can register a client with a redirect pointing to an attacker-controlled URL
+        (`https://app.example.com.evil.com/callback`). The authorization code lands at the attacker.
+        Validate redirect URIs with exact string comparison against the registered values — no
+        prefix matching, no wildcard, no subdomain matching unless explicitly required and carefully
+        scoped. Also: dynamic client registration (RFC 7591) is powerful but dangerous in public
+        environments — anyone can register a client. Restrict it to authenticated requests from
+        admin users or internal services, or disable it entirely if you don't need it.
+
+    - id: ST-12
+      question: "How do you migrate a system from API keys to OAuth2 without a big-bang cutover?"
+      answer: >
+        Phased migration. Phase 1: deploy the AS and register clients. Add OAuth2 token validation
+        alongside existing API key validation — the resource server accepts both. New integrations
+        use OAuth2; existing integrations continue with API keys. Phase 2: publish OAuth2 migration
+        guides to API consumers with a deprecation timeline for API keys. Instrument the RS to
+        track which clients still use API keys (log the `Authorization: ApiKey` header path).
+        Phase 3: per-client migration with white-glove support for large consumers. Phase 4:
+        remove API key support after the deprecation date.
+      staff_add: >
+        The migration's hardest part is consumers who don't respond. Define what happens to silent
+        API key users at the cutover date: do you break them (forces response) or extend (never
+        migrates)? Breaking them on a published date is the only way to actually complete the
+        migration — extend-on-request creates a long tail. Also: API keys often carry coarse
+        permissions ("full access to the API") that don't map cleanly to OAuth2 scopes. Use
+        the migration as an opportunity to right-size permissions — issue OAuth2 tokens with the
+        minimum scopes the consumer actually uses (audit their API call patterns first).
+        Migrating auth systems is one of the highest-risk API changes you can make;
+        run parallel validation (both auth methods accepted) for at least one billing cycle before
+        cutover to catch edge cases your integration tests missed.
+
+  principal:
+    - id: P-01
+      question: "How would you design an org-wide identity and authorization platform to serve 50+ teams and 200+ services?"
+      answer: >
+        Core components: a centrally managed authorization server (Keycloak, Okta, or a cloud
+        IdP) with federated identity providers (corporate LDAP, SAML, SSO); a scope/permission
+        registry that is the source of truth for every scope in the system; a token validation
+        library (SDK) that all services use — centralizes JWKS caching, `aud` validation, and
+        scope enforcement so teams don't implement it themselves; and an API gateway that handles
+        auth for external-facing services, propagating identity downstream as trusted headers.
+        Internal service-to-service auth uses Client Credentials with Workload Identity (IRSA,
+        OCP STS, Vault AppRole) — no shared secrets.
+      staff_add: >
+        The platform's success is measured by how easy it is for a new service to onboard correctly.
+        If onboarding OAuth2 correctly takes a team a week of research, they'll implement it wrong
+        to ship faster. Invest in developer experience: a self-service client registration portal,
+        a "getting started" SDK that works out of the box with correct defaults, and runbooks for
+        common patterns (BFF for SPAs, M2M for services, device flow for CLIs). Measure adoption
+        by tracking the ratio of OAuth2-protected services to API-key-protected services. Define
+        a target (100% OAuth2 for all new services by Q4) and track it. The platform team's
+        primary job is reducing the friction to do the secure thing — not policing the insecure thing.
+
+    - id: P-02
+      question: "OAuth2 vs API keys vs mTLS — how do you decide which to use for a given integration?"
+      answer: >
+        **API keys**: lowest friction. Good for simple third-party integrations where the key
+        holder is a known, trusted organization. Drawbacks: no standard revocation, no scoping,
+        no expiry by default, keys tend to accumulate without audit. Use for: public API access
+        where OAuth2 is overkill, legacy integrations, rate limiting keys for anonymous API access.
+
+        **OAuth2 Client Credentials**: structured M2M auth with scopes, expiry, and revocation.
+        Good for service-to-service calls within or across organizational boundaries where you
+        need fine-grained access control. Use for: partner API integration, internal microservices
+        that need user-context delegation, any API that needs scope enforcement.
+
+        **mTLS**: mutual certificate authentication — both client and server present certificates.
+        Strongest assurance of client identity; no secret to steal (only the private key, which
+        never leaves the client). Harder to operate (PKI, certificate rotation). Use for: highest-
+        security service-to-service within a controlled network, IoT devices with hardware security
+        modules, regulatory contexts requiring client certificate authentication.
+      staff_add: >
+        At scale, these aren't mutually exclusive — you combine them. mTLS at the network level
+        (service mesh, zero trust network) ensures only authenticated services can talk to each other.
+        OAuth2 at the application level enforces which scopes a service can use. API keys at
+        the edge for external consumers who can't do OAuth2. The zero-trust principle applies:
+        don't trust the network; validate identity at every layer. The failure mode is choosing
+        one mechanism and applying it everywhere — API keys for internal service-to-service
+        because "it's internal" is how lateral movement after a breach becomes easy.
+        Design each integration with the right tool for its threat model.
+
+    - id: P-03
+      question: "How do you incorporate OAuth2 into a zero-trust architecture?"
+      answer: >
+        Zero trust: never trust implicitly based on network location; always verify identity,
+        device, and context before granting access. OAuth2 fits naturally: every service-to-service
+        call requires a valid access token (identity verified); every token has scopes (least-privilege
+        access); tokens are short-lived (continuous re-verification). Extend with: continuous
+        authorization (re-evaluate access mid-session based on context changes — device health,
+        location, risk score) using step-up auth or token revocation; token binding (bind the
+        token to the client's TLS session or DPoP key so stolen tokens are unusable from another
+        client); and centralized policy evaluation (OPA, Cedar) that can evaluate complex
+        authorization rules beyond what scopes alone express.
+      staff_add: >
+        The gap between OAuth2 and full zero trust is continuous authorization. OAuth2 tokens
+        are issued at authentication time and valid until expiry — a user's access doesn't
+        change mid-session even if their device becomes compromised or their employment is
+        terminated. Continuous authorization addresses this: the resource server calls a
+        policy engine on every request (or periodically) to re-evaluate whether the subject
+        should still have access. Google's BeyondCorp and NIST SP 800-207 describe this model.
+        Implementing it requires a policy decision point that can be called at low latency —
+        caching is essential. The implementation complexity is significant; start with short
+        access token lifetimes (5 minutes) as a practical first step toward continuous verification.
+
+    - id: P-04
+      question: "How do you design federated OAuth2 across organizational boundaries for B2B integrations?"
+      answer: >
+        B2B federation means Org A's AS issues tokens that Org B's resource servers trust,
+        or users from Org A's identity provider can access Org B's services. Patterns:
+        **Direct trust**: Org B's AS registers Org A's AS as a trusted identity provider
+        (OIDC federation). Users from Org A log in via their own AS; Org B's AS issues
+        its own tokens after validating the upstream ID token. **Token exchange**: Org A's
+        service holds an access token issued by Org A's AS. It exchanges it at Org B's AS
+        (RFC 8693) for a token valid at Org B's RS. Org B's AS defines which Org A clients
+        can exchange, and what scopes they get. **SAML-to-OIDC bridge**: legacy SAML from
+        Org A fed into an OIDC bridge that issues standard OAuth2 tokens for Org B's APIs.
+      staff_add: >
+        The trust model in B2B federation is the critical design. Who decides what scopes
+        Org A's users get in Org B's system? Who controls when that trust is revoked?
+        Define this contractually before technically. Common failure: Org A's admin grants
+        their users broad scopes in Org B's system; Org B's team doesn't notice; over time
+        Org A's users have more access than they should. The platform answer is automated
+        scope governance: every cross-org scope grant is reviewed by Org B's security team,
+        has an expiry, and triggers a re-review on expiry. Treat cross-org token trust
+        with the same rigor as a third-party vendor security review.
+
+    - id: P-05
+      question: "Build the threat model for an OAuth2 authorization server. What are the highest-risk attack surfaces?"
+      answer: >
+        Highest risk, in order: (1) **Client secret compromise** — a leaked client_secret lets
+        an attacker impersonate a confidential client and mint tokens for any of its allowed scopes.
+        Mitigation: rotate on exposure, use `private_key_jwt` instead of shared secrets.
+        (2) **Authorization code interception** — code in the redirect URI intercepted via open
+        redirect, referrer header, or malicious app. Mitigation: PKCE (code useless without
+        verifier), exact redirect URI matching. (3) **Refresh token theft** — long-lived,
+        grants indefinite access. Mitigation: rotation with reuse detection, secure storage,
+        short-lived access tokens. (4) **AS compromise** — the AS is the trust anchor;
+        compromise means unlimited token issuance. Mitigation: HSM for signing keys, air-gapped
+        key management, strong AS infrastructure security. (5) **Open redirector** — AS redirects
+        to attacker-controlled URL. Mitigation: exact URI matching, no wildcards.
+      staff_add: >
+        The AS signing private key is the most sensitive secret in the entire system —
+        whoever holds it can issue valid tokens for any user, any scope, with any claims.
+        Protect it with hardware security modules (HSMs) or cloud KMS (AWS CloudHSM, Azure Dedicated HSM).
+        Key rotation must be planned: publish the new public key in JWKS before rotating the
+        private key (allow resource servers time to refresh their JWKS cache), rotate, then
+        remove the old public key after the old tokens expire. An unplanned key rotation causes
+        all resource servers to reject valid tokens until they refresh their JWKS cache —
+        a self-inflicted auth outage. Document and test the rotation procedure before
+        you need to execute it under incident pressure.
+
+    - id: P-06
+      question: "How does Conway's Law apply to OAuth2 and authorization system design?"
+      answer: >
+        Authorization systems mirror the org structures that built them. Teams own their
+        resource servers and define their own scope vocabularies — without governance,
+        scopes proliferate in each team's local language (`invoices:read` in Team A,
+        `invoice.view` in Team B, `GET_INVOICES` in Team C). Client registrations accumulate
+        in each team's IdP tenant. Cross-team API access becomes a negotiation between
+        two teams' scope schemas. The authorization design reflects the org's communication
+        failures, not just its technical structure.
+      staff_add: >
+        Use the authorization design as an organizational forcing function. A shared scope
+        registry requires teams to agree on a common vocabulary — the same organizational
+        work that should drive API design and service boundaries. When two teams cannot agree
+        on scope names, it's a signal about domain ownership ambiguity, not just a naming
+        preference. The identity platform team should own the scope governance process and
+        the registry tooling; domain teams own the scope definitions within their domain.
+        The centralized scope registry is the authorization equivalent of an API catalog —
+        it makes the org's permission model visible and auditable, which is both a security
+        control and an organizational clarity tool.
+
+# ── SCENARIOS ─────────────────────────────────────────────────────────────────
+scenarios:
+  - title: "🌐 Scenario 1 — Secure Public API with Third-Party OAuth2 Access"
+    problem: >
+      Your company exposes a REST API that partners and third-party developers use to
+      access customer data on the customer's behalf. Customers must explicitly consent
+      to what data each third-party app can access. A partner app was recently found
+      to be requesting more data than customers consented to, and a compromised
+      third-party client leaked customer data. Design a secure OAuth2 integration
+      that prevents both issues going forward.
+    constraints:
+      - "Customers must consent to specific data categories — not a blanket approval"
+      - "Third-party apps must not be able to access data beyond what was consented"
+      - "A compromised third-party client's access must be revocable without affecting other clients"
+      - "Access tokens must not be valid for more than 15 minutes"
+      - "The system must support 500 registered third-party clients"
+    discussion:
+      - "**Scope design:** define granular scopes by data category — `profile:read`, `orders:read`, `orders:write`, `payments:read`. The consent screen lists exactly what each scope grants in plain language. Clients declare required scopes at registration; AS enforces that clients cannot request undeclared scopes"
+      - "**Consent persistence:** store per-user, per-client consent records. On re-authorization, skip the consent screen only if the requested scopes match or are a subset of previously consented scopes. Any new scope requires fresh consent — prevent scope escalation via silent re-authorization"
+      - "**Token lifetime and refresh rotation:** 15-minute access tokens with refresh token rotation. On client compromise: revoke all refresh token families for that client_id. Affected users lose access and must re-authorize — visible, clean break. Existing sessions for other clients are unaffected"
+      - "**Strict redirect URI validation:** every client registers exact redirect URIs at registration time. AS rejects any request where redirect_uri doesn't exactly match a registered value. PKCE required for all clients regardless of type"
+      - "**Resource server scope enforcement:** every API endpoint declares its required scope. A middleware/decorator checks the token's scope claim on every request. A token with `orders:read` is rejected by the `payments` endpoint even if the token is otherwise valid"
+    red_flags:
+      - "Coarse scopes like `data:read` that cover all customer data — users cannot meaningfully consent to what they're approving; a compromised client with this scope accesses everything"
+      - "Wildcard or prefix-match redirect URI validation — enables authorization code interception to attacker-controlled domains via open redirectors or subdomain takeover"
+      - "Not enforcing scopes on the resource server — relying on the client to only request needed scopes is not an authorization control; the RS must enforce independently"
+      - "Shared client secret stored in the third-party app's frontend code — any user who inspects the app can extract it and impersonate the client to the AS"
+
+  - title: "🤖 Scenario 2 — Machine-to-Machine Auth for Internal Microservices"
+    problem: >
+      Your platform has 30 microservices communicating with each other via REST APIs.
+      Currently all inter-service calls use a shared API key (`internal-secret-key`)
+      that is hardcoded in every service's config. The key has never been rotated.
+      A recent audit found the key in a public GitHub repository. Design a secure
+      M2M authorization system that replaces the shared API key with OAuth2.
+    constraints:
+      - "Each service must have its own identity — one compromised service cannot impersonate another"
+      - "Access must be scoped — Service A calling Service B's read endpoint should not have write access"
+      - "No long-lived secrets hardcoded in config or committed to version control"
+      - "Services run in Kubernetes (OCP) — use platform capabilities where possible"
+      - "The migration must be phased — cannot update all 30 services simultaneously"
+    discussion:
+      - "**Workload Identity over client secrets:** use OCP's STS integration or Kubernetes service account tokens projected into pods. Each service has a unique service account. The AS validates the service account JWT against the Kubernetes OIDC issuer — no client secret to leak or rotate"
+      - "**Per-service client registration:** each service is a distinct OAuth2 client with its own client_id and an allowlist of scopes it can request. Service A's client cannot request scopes only Service B's client is allowed — the AS enforces this at token issuance"
+      - "**Scope per service pair:** define scopes at the resource server granularity — `inventory-service:read`, `inventory-service:write`. Service A that needs to read inventory requests `inventory-service:read`. The inventory service validates this scope on every inbound request"
+      - "**Phased migration:** register all 30 services as OAuth2 clients first. Deploy the AS. For each service, add OAuth2 token validation alongside the existing API key check (accept both). Migrate services in batches — start with the service pairs with the most traffic. Remove API key acceptance after all callers have migrated"
+      - "**Token caching:** Client Credentials tokens have no refresh token. Cache the access token in memory (per service instance) until 60 seconds before expiry, then re-authenticate. Avoid token stampedes on expiry across multiple instances by adding jitter to the pre-expiry refresh window"
+    red_flags:
+      - "Using a single shared OAuth2 client for all services — replaces one shared secret with one shared OAuth2 credential; a compromised service can still impersonate all others"
+      - "Requesting admin or wildcard scopes for service clients — preserves the original overpermissioning problem in OAuth2 clothes"
+      - "Storing client secrets in Kubernetes Secrets without external secret management — K8s Secrets are base64, not encrypted; use Vault or ESO for actual secret security"
+      - "Not caching tokens — re-authenticating on every API call multiplies AS load by the number of inter-service calls per second; the AS becomes a latency bottleneck and single point of failure"
+
+  - title: "🚨 Scenario 3 — Security Incident: Refresh Token Theft and Account Takeover"
+    problem: >
+      At 2am, your security monitoring detects anomalous behavior: a user's account is
+      performing actions from two different countries simultaneously. Investigation reveals
+      that a refresh token was stolen from the user's device (via a malicious browser extension)
+      and is being used by an attacker from a foreign IP to silently obtain access tokens.
+      The user is unaware. The attacker has been active for 6 hours.
+    constraints:
+      - "Must revoke attacker access without logging the user out of their legitimate session"
+      - "Must determine what data the attacker accessed during the 6-hour window"
+      - "Must prevent the attacker from using any cached access tokens already issued"
+      - "Must notify the user and require re-authentication with MFA"
+      - "Must close the vector that allowed the extension to steal the refresh token"
+    discussion:
+      - "**Immediate revocation:** revoke the specific refresh token family the attacker is using at the AS. If refresh token rotation with reuse detection is implemented, using the current valid RT invalidates the attacker's copy; the AS sees two parties using the same family and can revoke all. If not: revoke the entire user's token family for this client — the user's legitimate session also breaks, forcing re-login (acceptable tradeoff)"
+      - "**Access token window:** access tokens already issued to the attacker may still be valid for up to 15 minutes (per the token lifetime). If the AS supports token introspection and real-time revocation, add the compromised `jti` values to a blocklist. Otherwise, accept the remaining TTL as the blast radius window — short token lifetimes pay off here"
+      - "**Forensic audit:** query AS audit logs for all tokens issued from the attacker's IP/device fingerprint. Query resource server logs filtered by the compromised `jti` values. Build a timeline: what endpoints were called, what data was accessed, any data exported or modified. This is your incident report and breach notification evidence"
+      - "**Step-up re-authentication:** after revoking the attacker's access, flag the user's account as requiring MFA re-authentication on next login. Use the AS's `acr_values=mfa` and `prompt=login` to force a full re-auth challenge. Invalidate all existing sessions, not just the compromised one"
+      - "**Root cause — token in accessible storage:** if the refresh token was stored in localStorage or a non-httpOnly cookie, a malicious browser extension could read it. Remediation: migrate to BFF pattern (tokens server-side, httpOnly session cookie to browser). In the interim, shorten access token lifetimes, disable refresh tokens for high-privilege sessions"
+    red_flags:
+      - "Treating the 6-hour window as low-risk because 'it was just read access' — without knowing exactly what was read, you cannot assess the breach impact; assume worst-case and notify affected users"
+      - "Revoking only the current refresh token without invalidating the entire family — the attacker may hold previously rotated tokens; family revocation is required"
+      - "Not fixing the storage vulnerability — revoking this incident's tokens while leaving refresh tokens in localStorage means the next malicious extension repeats the attack immediately"
+      - "Skipping the forensic timeline — without knowing what the attacker accessed, you cannot meet breach notification obligations (GDPR 72-hour notification, state breach laws) or assess the full blast radius"
+      - "Relying on 'the user would have noticed' — the entire point of refresh token theft is silent, persistent access; the attacker uses the tokens at off-hours and mimics normal behavior patterns"

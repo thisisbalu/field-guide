@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenShift (OCP) — Field Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#cc0000;--accent2:#e07b39;--accent3:#7c3aed; --highlight-bg:#fef2f2;--highlight-text:#cc0000;--highlight-border:#ef4444; --your-exp-bg:rgba(124,58,237,.06);--your-exp-border:rgba(124,58,237,.2);--your-exp-text:#7c3aed; --acc-hover:rgba(204,0,0,.04);--acc-open-border:#cc0000;--acc-open-bg:rgba(204,0,0,.03); --num-color:#cc0000;--num-bg:rgba(204,0,0,.1); --tag-color:#cc0000;--tag-bg:rgba(204,0,0,.08);--tag-border:rgba(204,0,0,.2); --flow-arrow:#cc0000;--h1-from:#8b1a1a;--h1-to:#cc0000; --badge-color:#8b1a1a;--stat-num:#cc0000; --tab-active-color:#cc0000;--tab-active-bg:rgba(204,0,0,.08);--tab-active-border:#cc0000; --section-title:#cc0000;--concept-title:#8b1a1a; --cheat-head-bg:#8b1a1a;--cheat-head-text:#ffffff;--cheat-key:#8b1a1a; --cmd-bg:#fef2f2;--cmd-text:#8b1a1a; }
+  [data-theme="dark"]{ --accent:#ff6b6b;--accent2:#ff9d6b;--accent3:#a78bfa; --highlight-bg:#1f1010;--highlight-text:#ff6b6b;--highlight-border:#ff4444; --your-exp-bg:rgba(167,139,250,.1);--your-exp-border:rgba(167,139,250,.3);--your-exp-text:#c4b5fd; --acc-hover:rgba(255,107,107,.04);--acc-open-border:#ff4444;--acc-open-bg:rgba(255,68,68,.03); --num-color:#ff6b6b;--num-bg:rgba(255,107,107,.1); --tag-color:#ff6b6b;--tag-bg:rgba(255,107,107,.08);--tag-border:rgba(255,107,107,.2); --flow-arrow:#ff6b6b;--h1-from:#ff6b6b;--h1-to:#ff4444; --badge-color:#ff6b6b;--stat-num:#ff6b6b; --tab-active-color:#ff6b6b;--tab-active-bg:rgba(255,107,107,.08);--tab-active-border:#ff6b6b; --section-title:#ff6b6b;--concept-title:#ff6b6b; --cheat-head-bg:#2d1010;--cheat-head-text:#ff6b6b;--cheat-key:#ff6b6b; --cmd-bg:#1f1010;--cmd-text:#ff6b6b; }
+  [data-theme="light"] .toggle-knob{background:#cc0000;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#ff6b6b;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Stats row ───────────────────────────────────────────────────────────── */
+.stats{display:flex;gap:.75rem;margin-bottom:2rem;flex-wrap:wrap;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.65rem 1rem;text-align:center;flex:1;min-width:90px;}
+.stat-num{font-size:1.6rem;font-weight:800;color:var(--stat-num);font-family:'IBM Plex Mono',monospace;line-height:1;}
+.stat-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:'IBM Plex Mono',monospace;margin-top:.25rem;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .4s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{max-height:3000px;padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+}
+
+</style>
+</head>
+<body>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>OpenShift (OCP)</h1>
+  <p class="subtitle">// enterprise kubernetes · projects · SCCs · operators · imagestreams · gitops · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
+  <div class="tab" onclick="switchTab('deepdive',this)">Deep Dive</div>
+  <div class="tab" onclick="switchTab('qa',this)">Q &amp; A</div>
+  <div class="tab" onclick="switchTab('scenarios',this)">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">🔴 What OCP Is</div>
+      <div class="concept-body">
+        OpenShift Container Platform is Red Hat's enterprise Kubernetes distribution. It ships upstream K8s plus a hardened OS (RHCOS), an integrated web console, built-in CI/CD primitives, role-based image management, and an operator ecosystem. Everything from cluster installation to upgrades is managed by operators — OCP's own control plane is operator-driven. The result: a fully integrated platform with strong security defaults rather than a bare cluster you assemble yourself.
+        
+        
+        <div class="tags">
+          
+          <span class="tag red">enterprise K8s</span>
+          
+          <span class="tag orange">operator-driven</span>
+          
+          <span class="tag purple">RHCOS</span>
+          
+          <span class="tag">integrated platform</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📁 Projects & Namespaces</div>
+      <div class="concept-body">
+        OCP wraps Kubernetes namespaces in <strong>Projects</strong>, which carry additional metadata (display name, description, requester annotation) and trigger automatic setup: default network policies, image pull secrets, and RBAC role bindings are created on project creation. The <code>project-request</code> template controls what gets bootstrapped. Users cannot create bare namespaces — <code>oc new-project</code> enforces the template, ensuring consistent baseline security across all tenants.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">oc new-project</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">ProjectRequest</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Namespace + RBAC + NetworkPolicy</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">multi-tenancy</span>
+          
+          <span class="tag">namespace isolation</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🌐 Routes & Ingress</div>
+      <div class="concept-body">
+        A <strong>Route</strong> is OCP's native load balancing primitive, handled by the HAProxy-based Ingress Controller (Router). Three TLS termination modes: <strong>edge</strong> (TLS terminated at the router, plain HTTP to the pod), <strong>passthrough</strong> (TLS all the way to the pod, router cannot inspect), <strong>re-encrypt</strong> (TLS to router, new TLS cert to the pod). OCP also supports standard K8s Ingress objects, but Route offers OCP-specific features like weighted routing, sticky sessions, and custom router sharding.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">edge TLS</span>
+          
+          <span class="tag orange">passthrough</span>
+          
+          <span class="tag purple">re-encrypt</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔒 Security Context Constraints</div>
+      <div class="concept-body">
+        SCCs are OCP's extended pod security model — more granular than K8s PodSecurityAdmission. They control what a pod can do at the kernel level: run as root, use host networking/PID/IPC, mount specific volume types, set Linux capabilities, use specific UID ranges. Every pod is admitted against an SCC. The admission controller assigns the most restrictive SCC the pod's service account is allowed to use. Built-in SCCs range from <code>restricted</code> (default, safest) to <code>privileged</code> (no restrictions).
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">restricted (default)</span>
+          
+          <span class="tag orange">anyuid</span>
+          
+          <span class="tag red">privileged</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">⚙️ Operators & OLM</div>
+      <div class="concept-body">
+        An <strong>Operator</strong> is a K8s controller that encodes operational knowledge about an application — installation, upgrade, backup, recovery — as code. The <strong>Operator Lifecycle Manager (OLM)</strong> manages operator installation, versioning, and dependency resolution from OperatorHub (Red Hat's catalog). OCP's own control plane (etcd, API server, scheduler, DNS, monitoring) is managed by cluster operators. When a cluster operator degrades, OCP blocks upgrades until it recovers — operators are the health contract.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">OperatorHub</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">OLM</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Operator Pod</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">CRD + Controller</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">OLM</span>
+          
+          <span class="tag green">OperatorHub</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🖼️ ImageStreams & Builds</div>
+      <div class="concept-body">
+        An <strong>ImageStream</strong> is a layer of indirection over container image references. It tracks tags (<code>:latest</code>, <code>:3.1.0</code>) and can trigger automatic rollouts when an upstream image updates. <strong>BuildConfig</strong> defines how to build images: <strong>Source-to-Image (S2I)</strong> injects source code into a builder image without writing a Dockerfile; <strong>Docker</strong> strategy uses a Dockerfile; <strong>Pipeline</strong> strategy delegates to a Tekton pipeline. ImageStreams decouple your Deployment from a specific registry URL, enabling promotion across environments by pointing the stream tag to a different digest.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">S2I</span>
+          
+          <span class="tag">image promotion</span>
+          
+          <span class="tag orange">build triggers</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🖥️ Machine Config & MCO</div>
+      <div class="concept-body">
+        <strong>MachineConfig</strong> objects declare the desired OS state of a node: kernel arguments, systemd units, files on disk, SSH authorized keys. The <strong>Machine Config Operator (MCO)</strong> applies changes by draining and rebooting nodes in a rolling fashion via <strong>MachineConfigPools</strong>. Pools (worker, master, custom) control which nodes receive which configs and the max unavailable during rollout. Changes to a MachineConfig always trigger a node reboot — plan rollout windows carefully for production workloads.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">MachineConfig change</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">MCO</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Node drain</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Apply + reboot</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">node OS config</span>
+          
+          <span class="tag red">rolling reboot</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🗄️ Control Plane & etcd</div>
+      <div class="concept-body">
+        OCP's control plane runs on master nodes as static pods managed by the Cluster Version Operator. <strong>etcd</strong> stores all cluster state — Deployments, Secrets, ConfigMaps, CRDs, everything. etcd is a three-member raft cluster on the master nodes; losing two masters simultaneously makes the cluster read-only. etcd backup (<code>etcdctl snapshot save</code>) is the primary disaster recovery mechanism. etcd performance (fsync latency) directly affects API server responsiveness — slow etcd disk is a common root cause of API timeouts under load.
+        
+        
+        <div class="tags">
+          
+          <span class="tag red">etcd backup critical</span>
+          
+          <span class="tag orange">3-node raft</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">☁️ OCP on AWS — IPI & ROSA</div>
+      <div class="concept-body">
+        Two ways to run OCP on AWS. <strong>IPI (Installer-Provisioned Infrastructure)</strong>: the OCP installer creates all AWS resources automatically — VPC, subnets, EC2 instances (master + worker), ELBs, Route 53 entries, IAM roles, and security groups. You own and operate the cluster; Red Hat provides the software subscription. Masters run on <code>m6i.xlarge</code> minimum; workers are configurable. Storage defaults to EBS via the EBS CSI driver (gp3 StorageClass). <strong>ROSA (Red Hat OpenShift Service on AWS)</strong>: fully managed OCP where Red Hat operates the control plane. You pay per node-hour plus the OCP subscription. ROSA uses AWS STS for IAM (no long-lived credentials on the cluster). Red Hat handles upgrades, etcd backups, and control plane incidents. ROSA HCP (Hosted Control Plane) is the newer architecture — control plane runs as pods in a Red Hat-managed cluster, provisioning in under 15 minutes.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">IPI installer</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">AWS APIs</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">EC2 + VPC + ELB + IAM</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">OCP cluster</span>
+          
+        </div>
+        
+        <div class="flow">
+          
+          <span class="flow-step">ROSA CLI</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Red Hat + AWS</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Managed control plane</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Worker nodes (yours)</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">IPI self-managed</span>
+          
+          <span class="tag green">ROSA managed</span>
+          
+          <span class="tag purple">STS / IRSA</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">SCCs block most third-party images by default</span>
+      OCP's default <code>restricted</code> SCC prevents pods from running as root or a specific UID. Many upstream images (databases, tools) assume they can run as root or UID 0. The fix is granting the pod's service account the <code>anyuid</code> SCC — but do this selectively, not cluster-wide. Always check the image's required UID range first; many images can be configured to use arbitrary UIDs with a simple env var.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">DeploymentConfig is deprecated — use Deployment</span>
+      <code>DeploymentConfig</code> is an OCP-specific resource predating K8s <code>Deployment</code>. It was deprecated in OCP 4.14 and will be removed. DC offered image change triggers and lifecycle hooks that K8s Deployment didn't have, but those gaps are now filled by OpenShift GitOps, Tekton, and ImageStream triggers on Deployments. Migrate DCs to Deployments before upgrading past 4.14.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Cluster upgrades must be sequential — no version skipping</span>
+      OCP enforces upgrade paths: you cannot skip minor versions. 4.12 → 4.14 requires stopping at 4.13. The Cluster Version Operator (CVO) validates the upgrade graph before starting. Additionally, some z-stream versions are blocked (known regressions) — always check the upgrade graph in the web console or via <code>oc adm upgrade</code>. Rushing an upgrade without checking the graph wastes time and risks cluster instability.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">ImageStream tag triggers cause surprise rollouts</span>
+      If a Deployment references an ImageStream tag and an image update lands (either a new push or an upstream base image update in the cluster registry), OCP automatically triggers a new rollout. Teams that aren't aware of this see unexpected pod restarts. Audit ImageStream trigger annotations on your Deployments in production; disable triggers for images you manage externally.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">No LimitRange = pods without requests won't schedule predictably</span>
+      Without a <code>LimitRange</code> in a namespace, pods with no resource requests are assigned BestEffort QoS class — the first to be evicted under node pressure. ResourceQuotas without LimitRanges are also ineffective: a quota on CPU requires every pod to declare CPU requests, but without a LimitRange default, pods that omit requests are rejected. Always pair ResourceQuota with a LimitRange.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">oc and kubectl are not always interchangeable</span>
+      <code>kubectl</code> works for standard K8s resources, but OCP-specific resources (Routes, BuildConfigs, ImageStreams, SCCs, Projects, MachineConfigs) require <code>oc</code>. More critically, <code>oc</code> enforces OCP security defaults that <code>kubectl</code> may bypass — for example, <code>kubectl create namespace</code> skips the ProjectRequest template and creates a raw namespace without RBAC bootstrapping. Use <code>oc</code> as your primary CLI in OCP environments.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use OCP When</div>
+      <ul>
+        
+        <li>Regulated industries requiring HIPAA, PCI-DSS, or FedRAMP certifications — OCP holds these out of the box</li>
+        
+        <li>On-premises or hybrid cloud deployments where a managed K8s service isn't available or compliant</li>
+        
+        <li>Teams needing integrated CI/CD, build tooling, and image management without assembling separate tools</li>
+        
+        <li>Organizations already in the Red Hat ecosystem (RHEL, Ansible, Satellite) that want consistent tooling</li>
+        
+        <li>Enterprises that need a full web console, multi-tenancy controls, and RBAC without additional configuration</li>
+        
+        <li>Air-gapped or disconnected environments — OCP supports full mirror-based installs</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use OCP When</div>
+      <ul>
+        
+        <li>Pure public cloud workloads where EKS, GKE, or AKS provide equivalent managed K8s cheaper</li>
+        
+        <li>Tight budget — OCP subscription licensing is significant and adds to infrastructure cost</li>
+        
+        <li>Teams needing the latest K8s features immediately — OCP typically lags upstream by 2–3 minor versions</li>
+        
+        <li>Small teams or startups without dedicated platform engineers — the operational surface is large</li>
+        
+        <li>Workloads that don't need OCP's security or compliance features — you pay the complexity tax without the benefit</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">🔄 OCP vs Kubernetes Resource Equivalents</div>
+      <table>
+        
+        <tr><td>Namespace</td><td>Project (wraps namespace, adds RBAC bootstrap and metadata)</td></tr>
+        
+        <tr><td>Ingress</td><td>Route (HAProxy-backed, TLS termination modes, weighted routing)</td></tr>
+        
+        <tr><td>Deployment</td><td>Deployment (preferred) or DeploymentConfig (deprecated in 4.14)</td></tr>
+        
+        <tr><td>PodSecurityAdmission</td><td>Security Context Constraint (SCC) — more granular</td></tr>
+        
+        <tr><td>ImagePullSecret</td><td>ImageStream + integrated registry pull-through</td></tr>
+        
+        <tr><td>Helm chart</td><td>Operator (for stateful apps) or Helm (both supported)</td></tr>
+        
+        <tr><td>kubectl</td><td>oc (superset of kubectl, required for OCP-specific resources)</td></tr>
+        
+        <tr><td>Node OS management</td><td>MachineConfig + MCO (declarative, rolling reboots)</td></tr>
+        
+        <tr><td>Cluster upgrades</td><td>Cluster Version Operator (CVO) — operator-managed, sequential</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">🔒 SCC Reference</div>
+      <table>
+        
+        <tr><td>restricted-v2</td><td>Default in OCP 4.11+. No root, no privilege escalation, drops all capabilities, seccomp enforced.</td></tr>
+        
+        <tr><td>restricted</td><td>Legacy default (pre-4.11). No root, arbitrary UID from namespace range. Use restricted-v2 for new workloads.</td></tr>
+        
+        <tr><td>nonroot</td><td>Pod must run as non-root UID. No specific UID constraint. Less strict than restricted.</td></tr>
+        
+        <tr><td>anyuid</td><td>Allows any UID including root. Required for images that assume root. Grant selectively to service accounts.</td></tr>
+        
+        <tr><td>privileged</td><td>No restrictions — host network, host PID, all capabilities. Reserved for trusted system workloads only.</td></tr>
+        
+        <tr><td>hostnetwork</td><td>Allows host network and host ports. Used for network infrastructure pods (CNI, monitoring agents).</td></tr>
+        
+        <tr><td>node-exporter</td><td>OCP-specific for Prometheus node exporter. Host PID + network access.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">⚙️ Key OCP Operator States</div>
+      <table>
+        
+        <tr><td>Available</td><td>Operator is running and functional. Normal state.</td></tr>
+        
+        <tr><td>Progressing</td><td>Operator is rolling out a change (upgrade in progress).</td></tr>
+        
+        <tr><td>Degraded</td><td>Operator has a problem. OCP blocks cluster upgrades until resolved.</td></tr>
+        
+        <tr><td>oc get co</td><td>Check all cluster operator statuses — first command in any troubleshooting session.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">☁️ OCP on AWS — Key Reference</div>
+      <table>
+        
+        <tr><td>Install method (IPI)</td><td>openshift-install creates all AWS infra automatically. Requires AWS credentials with broad IAM permissions during install only.</td></tr>
+        
+        <tr><td>Master node sizing</td><td>Minimum m6i.xlarge (4 vCPU / 16 GB). Recommend m6i.2xlarge for etcd I/O headroom. Never use burstable (T-series) for masters — etcd requires consistent disk performance.</td></tr>
+        
+        <tr><td>Worker node sizing</td><td>Depends on workload. m6i.xlarge–2xlarge for general; r6i for memory-heavy (JVM, databases); c6i for CPU-intensive. Spot instances viable for stateless workers with Cluster Autoscaler.</td></tr>
+        
+        <tr><td>Default storage class</td><td>gp3-csi (EBS gp3 via EBS CSI driver). 3000 IOPS / 125 MBps baseline. Increase IOPS for etcd disks and database PVCs. Set reclaimPolicy: Retain for production PVCs.</td></tr>
+        
+        <tr><td>IAM — IPI</td><td>Cloud Credential Operator creates per-component IAM users (not roles) by default. Use STS mode (--credentials-mode=Manual) for short-lived tokens — required for FIPS/FedRAMP compliance.</td></tr>
+        
+        <tr><td>IAM — ROSA</td><td>ROSA uses AWS STS exclusively — no long-lived IAM credentials on the cluster. Operator IAM roles are created per-cluster via rosa CLI during install.</td></tr>
+        
+        <tr><td>Ingress / Load Balancer</td><td>IPI creates a Classic ELB for the default Ingress Controller. Prefer NLB (annotation: service.beta.kubernetes.io/aws-load-balancer-type: nlb) for better performance and TLS passthrough.</td></tr>
+        
+        <tr><td>Private cluster</td><td>Set publish: Internal in install-config.yaml to create a private cluster (API + ingress on internal ELBs only). Requires VPN or Direct Connect to access. Common for regulated workloads.</td></tr>
+        
+        <tr><td>ROSA vs IPI cost</td><td>ROSA: per node-hour charge + OCP subscription. IPI: EC2 + EBS + ELB + OCP subscription. ROSA eliminates control plane EC2 costs but adds managed service premium. Break-even depends on control plane size.</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">💻 CLI Commands</div>
+      <div class="cmd-block">
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Project & app management</div>
+          
+          <span class="cmd">oc new-project my-team --display-name='My Team' --description='Production workloads'</span>
+          
+          <span class="cmd">oc new-app --image=registry.example.com/myapp:latest --name=myapp</span>
+          
+          <span class="cmd">oc get all -n my-namespace</span>
+          
+          <span class="cmd">oc rollout status deployment/myapp -n my-namespace</span>
+          
+          <span class="cmd">oc rollout undo deployment/myapp</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">SCC & RBAC</div>
+          
+          <span class="cmd">oc adm policy add-scc-to-serviceaccount anyuid -z my-sa -n my-namespace</span>
+          
+          <span class="cmd">oc adm policy who-can use scc anyuid</span>
+          
+          <span class="cmd">oc adm policy add-role-to-user edit user@example.com -n my-namespace</span>
+          
+          <span class="cmd">oc get scc && oc describe scc restricted-v2</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Debugging</div>
+          
+          <span class="cmd">oc debug pod/mypod</span>
+          
+          <span class="cmd">oc debug node/worker-1 -- chroot /host bash</span>
+          
+          <span class="cmd">oc logs deployment/myapp --previous</span>
+          
+          <span class="cmd">oc describe pod mypod -n my-namespace</span>
+          
+          <span class="cmd">oc get events -n my-namespace --sort-by='.lastTimestamp'</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Cluster admin</div>
+          
+          <span class="cmd">oc get co                                  # cluster operator health</span>
+          
+          <span class="cmd">oc adm upgrade                             # check upgrade graph</span>
+          
+          <span class="cmd">oc adm upgrade --to-latest                 # trigger upgrade</span>
+          
+          <span class="cmd">oc get nodes && oc adm top nodes</span>
+          
+          <span class="cmd">oc get mcp                                 # MachineConfigPool status</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">⚖️ OCP vs EKS vs GKE vs AKS</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+            <th>Dimension</th>
+            
+            <th>OpenShift (OCP)</th>
+            
+            <th>Amazon EKS</th>
+            
+            <th>Google GKE</th>
+            
+            <th>Azure AKS</th>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>K8s version currency</td>
+            
+            <td>Lags ~2–3 minor versions; tested, supported</td>
+            
+            <td>Current, fast releases</td>
+            
+            <td>Current, fast releases; Autopilot available</td>
+            
+            <td>Current; sometimes slow on patches</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Security defaults</td>
+            
+            <td>Hardened by default (SCCs, RHCOS, OPA). Strong baseline.</td>
+            
+            <td>Permissive; security is your responsibility to configure</td>
+            
+            <td>Good defaults; Binary Authorization, Workload Identity</td>
+            
+            <td>Decent defaults; integrates with Azure AD and Defender</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Managed control plane</td>
+            
+            <td>Self-managed or ROSA (managed); you own masters on self-managed</td>
+            
+            <td>Fully managed; $0.10/hr per cluster</td>
+            
+            <td>Fully managed; free control plane</td>
+            
+            <td>Fully managed; free control plane</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Multi-cloud / on-prem</td>
+            
+            <td>Yes — bare metal, vSphere, AWS, Azure, GCP, IBM Cloud</td>
+            
+            <td>AWS-only (EKS Anywhere for on-prem)</td>
+            
+            <td>GCP-only (Anthos for on-prem)</td>
+            
+            <td>Azure-only (Arc for on-prem)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Built-in CI/CD</td>
+            
+            <td>Tekton, OpenShift GitOps (ArgoCD), BuildConfigs, S2I</td>
+            
+            <td>None native; use CodePipeline, Jenkins, GitHub Actions</td>
+            
+            <td>Cloud Build integration; no native K8s CI/CD</td>
+            
+            <td>Azure DevOps integration; no native K8s CI/CD</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Cost model</td>
+            
+            <td>Subscription per core (significant). Infrastructure on top.</td>
+            
+            <td>Pay per node + $0.10/hr cluster fee. Data transfer costs.</td>
+            
+            <td>Pay per node. Autopilot charges per Pod resource request.</td>
+            
+            <td>Pay per node. No cluster fee. Azure Spot available.</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best for</td>
+            
+            <td>Enterprise, regulated, hybrid/on-prem, Red Hat shops</td>
+            
+            <td>AWS-native teams; large existing AWS investment</td>
+            
+            <td>GCP teams; strong ML/data workloads; Autopilot simplicity</td>
+            
+            <td>Azure/Microsoft shops; Azure AD integration critical</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">What is a Security Context Constraint (SCC) and how does it differ from Kubernetes PodSecurityAdmission?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">An SCC is an OCP admission policy that controls what Linux-level privileges a pod can request at runtime: whether it can run as root, which UIDs are allowed, whether it can use host networking/PID/IPC, which volume types it can mount, and which Linux capabilities are permitted. Every pod is evaluated against the SCCs that its service account has access to; the admission controller assigns the most restrictive applicable SCC.
+K8s PodSecurityAdmission (PSA) enforces one of three profiles (privileged, baseline, restricted) at the namespace level with no per-pod granularity. SCCs are per-service-account and per-pod, significantly more granular. OCP also ships predefined SCCs (<code>restricted-v2</code>, <code>anyuid</code>, <code>privileged</code>, etc.) rather than requiring you to define the policy from scratch.</div>
+        
+        <div class="staff-add">The granularity of SCCs is a double-edged sword. Per-service-account control is powerful, but it means every namespace can accumulate a different security posture over time as teams grant SCCs ad hoc. The risk is SCC sprawl: 50 namespaces each with their own set of service accounts granted <code>anyuid</code>. Govern SCC grants the same way you govern RBAC — audit regularly with <code>oc adm policy who-can use scc anyuid</code>, and automate provisioning rather than allowing manual grants. The question to ask at design time: "what's the minimum SCC this workload needs?" not "what SCC makes it work?"</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">How does an OCP Route differ from a Kubernetes Ingress, and when would you choose one over the other?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">A Route is OCP's native HTTP/HTTPS exposure primitive, handled by the HAProxy-based Ingress Controller (Router). Key differences from K8s Ingress: Routes support three TLS termination modes — <strong>edge</strong> (TLS ends at the router, plain HTTP to the pod), <strong>passthrough</strong> (TLS reaches the pod; the router cannot inspect or terminate), and <strong>re-encrypt</strong> (router terminates TLS and opens a new TLS connection to the pod using a separate cert). Routes also support weighted routing between services for A/B testing, custom router annotations for fine-grained HAProxy behavior, and route sharding for multi-router setups.
+K8s Ingress is the portable standard and works with any Ingress controller. In OCP, both objects are supported and Routes can be created automatically from Ingress objects. Prefer Routes for OCP-specific features (passthrough TLS, weighted routing); prefer Ingress for portability across clusters.</div>
+        
+        <div class="staff-add">Passthrough TLS is the mode most teams get wrong. With passthrough, the router forwards the raw TCP stream — it cannot do path-based routing, add headers, or perform health checks at the HTTP level. It's correct for mutual TLS (mTLS) workloads where the application needs to validate client certificates, or for protocols that embed their own TLS. Re-encrypt is better when you need end-to-end encryption but also need the router to inspect traffic for routing decisions. Design TLS termination explicitly per route — letting it default often leads to mismatched security posture across services.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">What is an ImageStream and what problem does it solve?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">An ImageStream is a layer of indirection over container image references. Instead of a Deployment pointing directly to <code>registry.example.com/myapp:3.1.0</code>, it points to an ImageStream tag (<code>myapp:production</code>). The stream tracks what digest that tag currently resolves to. When the underlying image updates — either a new push to the registry or a promotion via <code>oc tag</code> — OCP can automatically trigger a new rollout on any Deployment or DeploymentConfig watching that tag.
+ImageStreams also enable image promotion across environments: <code>oc tag myapp:staging myapp:production</code> points the production tag at the staging image digest without any re-build or re-push. They abstract the registry URL from the workload definition, making environment-specific registry differences transparent.</div>
+        
+        <div class="staff-add">ImageStream triggers are powerful but dangerous if not understood. An annotation on a Deployment (<code>image.openshift.io/triggers</code>) causes automatic rollouts on any tag update. In production, you often don't want automatic rollouts triggered by image changes — you want GitOps to control rollout timing. Audit your production Deployments for ImageStream trigger annotations and disable them for workloads where rollout timing must be controlled. Use ImageStreams for image promotion (the <code>oc tag</code> workflow) without enabling automatic triggers in sensitive environments.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">What is the difference between DeploymentConfig and Deployment in OCP, and why is DC deprecated?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><code>DeploymentConfig</code> (DC) is an OCP-specific resource that predates the K8s <code>Deployment</code>. It offered features K8s lacked at the time: image change triggers (auto-rollout on ImageStream update), custom lifecycle hooks (pre/mid/post deployment), and recreate/rolling strategies similar to K8s. K8s Deployment has since caught up on most functionality. DCs were deprecated in OCP 4.14 and will eventually be removed.
+Use K8s <code>Deployment</code> for all new workloads. Migrate existing DCs using the migration guide in the OCP docs — most are straightforward, replacing DC-specific fields with Deployment equivalents. ImageStream triggers on Deployments are possible via annotations, though as noted they should be used deliberately.</div>
+        
+        <div class="staff-add">The deprecation of DeploymentConfig is a signal about OCP's direction: move toward vanilla K8s primitives, not OCP-specific extensions. The same principle applies to other OCP-specific resources — use them only where they genuinely add value over the K8s equivalent. For migration at scale, script the conversion using <code>oc</code> and test in a dev namespace first. The main gap to cover is lifecycle hooks — if your DC uses a mid-lifecycle hook (e.g., running a DB migration between old and new pods), model this as an init container or a pre-upgrade Job in your GitOps pipeline instead.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">Walk me through OCP's RBAC model — how do Projects, Roles, RoleBindings, and SCCs work together?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">OCP RBAC has two layers. <strong>API-level RBAC</strong> (from K8s): Roles and ClusterRoles define sets of verbs on resources; RoleBindings assign them to users or service accounts within a project; ClusterRoleBindings apply cluster-wide. Built-in cluster roles: <code>admin</code> (full project control), <code>edit</code> (deploy and manage apps, no RBAC changes), <code>view</code> (read-only).
+<strong>Pod-level SCCs</strong> are a parallel gate: even if a user has <code>edit</code> on a namespace, the pod's service account must have access to an SCC that allows the pod's security requirements. The two systems don't interact directly — RBAC controls what you can do with the K8s API; SCCs control what the pod can do at the OS level.</div>
+        
+        <div class="staff-add">The most common misconfiguration is conflating RBAC and SCCs. A developer with <code>edit</code> RBAC who deploys a pod that needs <code>anyuid</code> will get an admission error even though their RBAC is correct — because the pod's service account (not the user) needs the SCC grant. Automate SCC grants as part of namespace provisioning: if a team deploys database workloads that need specific UIDs, grant the appropriate SCC to a dedicated service account via a GitOps-managed RoleBinding, not via one-off <code>oc adm policy</code> commands. This makes the security posture visible, auditable, and reproducible.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">A pod fails to start with a `forbidden: unable to validate against any security context constraint` error. How do you diagnose and fix it?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The pod's service account does not have access to any SCC that permits what the pod is requesting. Diagnose: <code>oc describe pod &lt;name&gt;</code> to see the specific SCC validation failure; <code>oc get events</code> for the admission error message. Understand what the pod needs — check <code>securityContext</code> in the pod spec for <code>runAsUser</code>, <code>runAsGroup</code>, <code>privileged</code>, <code>capabilities</code>. Then check which SCCs the pod's service account can use: <code>oc adm policy who-can use scc anyuid</code> (or the SCC you think is needed).
+Fix: determine the minimum SCC required. If the image must run as root, grant <code>anyuid</code> to the service account: <code>oc adm policy add-scc-to-serviceaccount anyuid -z &lt;sa&gt; -n &lt;ns&gt;</code>. Prefer a dedicated service account per workload rather than using the <code>default</code> SA.</div>
+        
+        <div class="staff-add">Before granting <code>anyuid</code>, push back on the image. Many images that appear to need root only need a specific UID range, which can be set with <code>runAsUser</code> in the pod spec — and then a custom SCC (or <code>nonroot</code>) works without full root access. Granting <code>anyuid</code> to the <code>default</code> service account in a namespace is a common shortcut that grants root capability to every pod in that namespace without a service account specified. Use <code>oc adm create-bootstrap-project-template</code> to establish a project template that provisions a dedicated service account per workload class as part of namespace setup.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">What is Source-to-Image (S2I) and what does it offer over a standard Dockerfile build?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">S2I is a build strategy where OCP injects application source code into a prebuilt <strong>builder image</strong> that knows how to compile and run that language. The developer provides source code; the platform handles the Dockerfile-equivalent logic. A Java S2I builder, for example, runs Maven/Gradle, packages the artifact, and produces a final application image — without the developer writing a Dockerfile.
+Advantages over Dockerfile: builder images are maintained by the platform team (one place to update base image, security patches, JDK version); developers can't introduce insecure Dockerfile patterns; the build is reproducible and auditable. Disadvantage: less control — if your build doesn't fit the S2I convention, you fight the tooling rather than just writing a Dockerfile.</div>
+        
+        <div class="staff-add">S2I made sense when Dockerfile skills were rare. In most modern engineering orgs, developers know Docker and Dockerfile builds are more flexible and portable. The real value of S2I today is the builder image supply chain — the platform team controls what base images are used, ensuring patched images are used consistently without relying on individual developers to update their FROM line. You get that benefit via Dockerfile + a curated base image catalog too, without S2I constraints. Reserve S2I for orgs with strong central platform ownership and developers who shouldn't need to reason about container internals.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-08</span>
+        <span class="acc-question">How do ResourceQuota and LimitRange work together in an OCP project, and what breaks without them?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>ResourceQuota</strong> sets hard limits on aggregate consumption in a namespace: total CPU requests, memory requests, number of pods, PVCs, etc. If a pod would cause the namespace to exceed a quota, it's rejected. <strong>LimitRange</strong> sets per-container defaults and maximums: if a container doesn't specify requests/limits, LimitRange injects the defaults; if a container requests more than the maximum, it's rejected.
+Without LimitRange defaults, pods without resource requests are BestEffort QoS — first evicted under node pressure. ResourceQuota on CPU/memory requires every pod to declare requests; without LimitRange defaults, pods that omit requests are rejected by the quota admission. The combination is required: LimitRange provides defaults so developers don't have to specify every field; ResourceQuota enforces the namespace ceiling.</div>
+        
+        <div class="staff-add">Design quotas from actual usage, not guesses. A common mistake is setting quotas too low at project creation, forcing constant requests for increases — this creates toil for the platform team and friction for developers. A better model: generous initial quota (150% of estimated peak), monitoring on actual vs. quota, and a governance process for quota expansion requests. Also quota the number of Services (LoadBalancer type especially) and PersistentVolumeClaims — teams often exhaust these before CPU or memory.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-09</span>
+        <span class="acc-question">What is a MachineConfig and when would you apply one in production?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">A MachineConfig is a declarative description of what the RHCOS node's OS state should be: kernel arguments (e.g., enabling huge pages, disabling swap), systemd unit files (e.g., a custom service), files on disk (e.g., <code>/etc/sysctl.d/</code> tuning, custom CA certs), and SSH authorized keys. The MCO renders MachineConfigs into an Ignition config and applies it by draining the node and rebooting it.
+Common use cases: adding corporate CA certificates to all nodes, kernel tuning for database or high-performance workloads, enabling specific kernel modules, deploying a custom systemd service for monitoring agents that must run on the host.</div>
+        
+        <div class="staff-add">The reboot requirement is the constraint that drives all design decisions around MachineConfig. In production, every MC change = rolling reboot of the affected MachineConfigPool. For the worker pool, this means nodes drain and restart one by one — workloads reschedule and the cluster temporarily loses capacity. Batch MC changes rather than applying one change per MC object: multiple MachineConfigs are merged into a single rendered config, and the reboot happens once per render cycle. Also: never modify a MachineConfig that's already applied in production without testing in a dev cluster first — a malformed Ignition config can brick a node.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-10</span>
+        <span class="acc-question">Walk me through what happens when you run `oc new-app` with a Git repository URL.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">OCP inspects the repository to detect the language/framework (presence of <code>pom.xml</code> → Java, <code>package.json</code> → Node.js, etc.). Based on detection, it selects an S2I builder ImageStream from the cluster's catalog. It creates: a <strong>BuildConfig</strong> (S2I build with the source repo), an <strong>ImageStream</strong> for the output image, a <strong>Deployment</strong> (or DC in older versions) pointing to the ImageStream, and a <strong>Service</strong> exposing the pod. A first build is triggered immediately. The Route must be created separately with <code>oc expose service</code>.</div>
+        
+        <div class="staff-add"><code>oc new-app</code> is great for demos and learning but rarely appropriate for production. It creates opinionated resources with defaults that may not match your org's standards (resource requests, liveness probes, security context, label taxonomy). In production, use Helm charts, Kustomize, or GitOps-managed manifests that you control explicitly. Treat <code>oc new-app</code> as a learning scaffold — run it to see what it creates, then use those manifests as a starting point to customize, not as the final deployment artifact.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-11</span>
+        <span class="acc-question">How does a rolling deployment work in OCP, and how do you ensure zero downtime?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">OCP's rolling deployment (K8s <code>RollingUpdate</code> strategy) creates new pods with the updated image, waits for them to pass readiness checks, then terminates old pods. Controlled by <code>maxUnavailable</code> (how many old pods can be down at once) and <code>maxSurge</code> (how many extra pods can exist during rollout). Zero-downtime requires: a properly configured <code>readinessProbe</code> (without it, new pods receive traffic before they're ready), <code>preStop</code> hook with a sleep if the app needs time to drain connections, and <code>terminationGracePeriodSeconds</code> long enough for in-flight requests to complete.</div>
+        
+        <div class="staff-add">The most common zero-downtime failure is a missing or too-fast readiness probe. If a pod passes readiness before the application is warm (JVM JIT, cache load, etc.), it receives traffic and returns errors for the first N seconds. Test your readiness probe's timing under load, not just in idle conditions. The other gap: PodDisruptionBudgets. Without a PDB, a node drain or cluster upgrade can evict all pods of a Deployment simultaneously. Define PDBs with <code>minAvailable: 1</code> for any Deployment that must be continuously available — this guarantees at least one replica survives any infrastructure event.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-12</span>
+        <span class="acc-question">How do you manage secrets in OCP, and what are the risks of the default approach?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">OCP uses K8s Secrets natively: base64-encoded key-value pairs stored in etcd, projected into pods as environment variables or volume mounts. OCP adds: the integrated Secret Store (via External Secrets Operator for Vault/AWS Secrets Manager integration), and etcd encryption at rest (enabled in OCP 4.x by default for Secrets).
+The default approach risks: Secrets stored in etcd are only as secure as your etcd backup security; base64 is not encryption — anyone with <code>oc get secret</code> access reads the value; Secrets in env vars are exposed in <code>oc describe pod</code> output and container process lists. Prefer volume mounts over env vars for sensitive values.</div>
+        
+        <div class="staff-add">Treat OCP's native Secrets as a transport mechanism, not a vault. For production workloads, integrate with an external secret store (HashiCorp Vault, AWS Secrets Manager) via the External Secrets Operator — this keeps the source of truth outside the cluster, enables rotation without pod restarts, and centralizes audit logging for secret access. RBAC on Secrets is often misconfigured: <code>edit</code> role in a namespace includes <code>get secrets</code> by default — review this and use a more restrictive role if developers shouldn't see production secrets. Never store secrets in ConfigMaps (unencrypted by policy).</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-13</span>
+        <span class="acc-question">How do you troubleshoot a pod stuck in `CrashLoopBackOff` in OCP?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Structured approach: (1) <code>oc logs &lt;pod&gt; --previous</code> — get logs from the last crash; most root causes are in the application logs. (2) <code>oc describe pod &lt;pod&gt;</code> — check Events for OOMKilled, Liveness probe failures, volume mount errors, image pull failures. (3) If the container starts then immediately exits, use <code>oc debug pod/&lt;pod&gt;</code> to open a shell in a copy of the pod with the entrypoint overridden — inspect the filesystem, env vars, and volume mounts. (4) Check resource limits — OOMKilled means the container hit its memory limit; increase the limit or fix the memory leak.</div>
+        
+        <div class="staff-add"><code>oc debug pod/&lt;pod&gt;</code> is the most underused OCP troubleshooting tool. It creates a copy of the pod with the command overridden to a shell, using the same image, volumes, env vars, and security context — letting you reproduce the environment exactly without the crash loop. For nodes, <code>oc debug node/&lt;node&gt; -- chroot /host bash</code> gives you a root shell on the host OS, useful for diagnosing kubelet issues, disk pressure, or CNI problems. Build the habit of reaching for <code>oc debug</code> before resorting to exec into a running container — it's safer and doesn't affect production pods.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-14</span>
+        <span class="acc-question">What is etcd in OCP and why is its backup critical?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">etcd is the distributed key-value store that holds all of OCP's cluster state: every Deployment, Pod, Secret, ConfigMap, CRD instance, RBAC policy, and Operator configuration. Without etcd, the cluster cannot function — the API server is a stateless façade over etcd. etcd runs as a three-node raft cluster on the master nodes. Losing two masters (or etcd quorum) makes the cluster read-only.
+etcd backup (<code>etcdctl snapshot save</code>) captures a point-in-time snapshot of the entire cluster state. It's the primary DR mechanism: restoring from backup to a rebuilt control plane brings back all workloads, config, and RBAC. Without a backup, a failed cluster means rebuilding everything from scratch.</div>
+        
+        <div class="staff-add">etcd backup is the minimum; testing restore is the actual requirement. Back up etcd to an external store (S3, NFS) on a schedule — OCP 4.x includes a built-in backup CronJob. But back-of-envelope: can you restore the cluster in your RTO window? A restore from backup restores cluster state but not persistent volume data — your database PVCs are separate. etcd performance also matters for day-to-day operations: slow fsync latency (target &lt;10ms) causes API server slowness. If <code>etcd_disk_wal_fsync_duration_seconds</code> is high, the etcd disk is too slow — use dedicated SSDs for master nodes, never shared NFS.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">Design a multi-team OCP cluster with proper isolation, quotas, and RBAC. How do you onboard a new team?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Cluster-level design: a namespace naming convention (team-environment, e.g., <code>payments-prod</code>), a MachineConfigPool per node class if teams need node isolation, and NetworkPolicy defaults in the project template to deny cross-namespace traffic by default. Per-team onboarding: create projects (dev, staging, prod) via a GitOps-managed namespace provisioner (not manually); apply ResourceQuota and LimitRange from a template; bind the team's RBAC group to <code>edit</code> in dev/staging and a custom <code>restricted-edit</code> (no secret reads) in prod; provision a dedicated service account per workload type with the minimum required SCC pre-granted.</div>
+        
+        <div class="staff-add">The hard part of multi-team clusters is drift. Teams request quota increases, ad-hoc SCC grants accumulate, and RBAC sprawls over time. Solve this with GitOps-driven namespace management: every namespace's quota, RBAC, and LimitRange is a manifest in a Git repo; changes require PR review; ArgoCD enforces the desired state and alerts on drift. Define what "onboarding a team" means as a reusable template or Helm chart — not a runbook. A team should be fully onboarded in under 15 minutes via automation. The goal is a cluster that's auditable at any moment: who has access to what, at what quota.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">How do you implement GitOps on OCP using OpenShift GitOps (ArgoCD)?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">OpenShift GitOps ships ArgoCD as a cluster Operator. Install via OperatorHub; the operator manages ArgoCD instances. Define an <strong>Application</strong> CR pointing to a Git repo and a target namespace. ArgoCD continuously reconciles Git state → cluster state. For multi-environment pipelines: one Git repo with overlays per environment (Kustomize) or values per environment (Helm); promote by updating the image tag or Kustomize overlay in Git — the merge to the environment branch triggers ArgoCD sync. For secrets: use External Secrets Operator to pull from Vault; never store raw secrets in Git.</div>
+        
+        <div class="staff-add">The organizational shift is bigger than the tooling change. GitOps requires that every cluster change goes through Git — no <code>oc apply</code> directly in production. Enforce this via ArgoCD's auto-sync + self-heal (ArgoCD reverts manual changes), and remove direct edit access to production namespaces for developers. The transition period is painful: teams resist losing <code>oc</code> access. Invest in developer experience — fast PR-to-deploy pipelines, clear feedback from ArgoCD on sync status, and runbooks for emergency changes (break-glass access with full audit trail). The discipline pays off in auditability and rollback capability.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">Explain OCP's networking model — what is OVN-Kubernetes and how does it differ from OpenShift SDN?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">OCP 4.12+ defaults to <strong>OVN-Kubernetes</strong> as the CNI. OVN (Open Virtual Network) implements networking using kernel-level OVS (Open vSwitch) flows managed by a control plane. It supports NetworkPolicy natively, egress firewall, hybrid networking (Windows nodes), and better performance than the older SDN. Each node runs an OVN agent that programs OVS flows.
+<strong>OpenShift SDN</strong> (legacy, deprecated): a simpler model using VXLAN overlays with three modes (subnet, multitenant, networkpolicy). Less flexible but simpler to reason about. Multitenant mode provided implicit namespace isolation that NetworkPolicy requires explicit rules to replicate. Migrate from SDN to OVN-K during upgrades — SDN is removed in OCP 4.17.</div>
+        
+        <div class="staff-add">OVN-Kubernetes gives you NetworkPolicy with better performance and more features, but also more complexity to troubleshoot. When a pod can't reach another pod and NetworkPolicy is involved, the debugging path changes: <code>oc exec</code> into a pod + <code>curl</code> is still the first step, but the actual policy is programmed into OVS flows that require <code>ovn-nbctl</code> and <code>ovs-ofctl</code> to inspect at the node level. Build familiarity with <code>oc get networkpolicy</code>, <code>oc describe networkpolicy</code>, and the OVN diagnostic tools before you need them in an incident. OVN's egress IP feature (stable IP per namespace for external firewall rules) is worth knowing — it's frequently asked about in network-sensitive enterprises.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-04</span>
+        <span class="acc-question">Walk me through a zero-downtime OCP minor version upgrade in production.</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Prerequisites: check the upgrade graph (<code>oc adm upgrade</code>), confirm the target version is in the supported path (no skipping minors), verify all cluster operators are healthy (<code>oc get co</code>), ensure <code>etcd</code> backup is current, and review the release notes for deprecated APIs. Process: <code>oc adm upgrade --to=&lt;version&gt;</code> triggers the CVO. The CVO upgrades the control plane first (masters one at a time via MachineConfigPool), then worker nodes (drain, upgrade RHCOS, reboot, uncordon). Worker upgrades are rate-limited by <code>maxUnavailable</code> in the worker MachineConfigPool — tune this for your workload tolerance.</div>
+        
+        <div class="staff-add">The upgrade is operator-managed but the risks are workload-specific. Common failure modes: a deprecated API in a running CRD causes the upgrade to stall (check with the API deprecation alert in OCP's monitoring); a workload without a PodDisruptionBudget gets evicted during node drain; the upgrade takes longer than expected because a node fails to drain (a stuck PDB or a non-evictable pod). Monitor the upgrade actively via the web console upgrade progress view, not just trigger-and-forget. Have a rollback plan: OCP does not support in-place rollback of minor versions — rollback means restoring from etcd backup and rebuilding the control plane. That's a significant operation — prevention is the strategy.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-05</span>
+        <span class="acc-question">When would you write a custom Operator versus using Helm or plain Kubernetes manifests?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Operators codify operational knowledge as code — they're appropriate when: the lifecycle of the application requires complex state machine logic (install, configure, upgrade, backup, restore are all distinct states with failure recovery); you need to react to runtime events and self-heal (e.g., a database operator that detects a failed replica and triggers recovery automatically); or you're building a reusable platform capability that other teams will consume via a simple CRD interface.
+Helm is right for: application deployment packaging where lifecycle is handled by external processes (CI/CD pipeline controls upgrades); third-party software with existing charts; environments without Operator development expertise. Plain manifests are right for: simple stateless applications with no operational complexity.</div>
+        
+        <div class="staff-add">Writing a custom Operator has a significant upfront cost: you need the Operator SDK or controller-runtime, reconciliation loop design, status condition handling, and the operational knowledge to embed. The payoff only materializes when: (a) the operational knowledge is complex enough to justify it, and (b) the operator will be used by many teams or run many instances. A single stateless service deployed via GitOps Helm chart does not need an Operator. The bar I use: if a human would need a runbook with more than 5 steps to handle day-2 operations, an Operator might pay off. If those 5 steps are just "apply this YAML and run this SQL," a Helm chart + Tekton Pipeline is simpler.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-06</span>
+        <span class="acc-question">How do you manage secrets at scale in OCP — specifically integrating HashiCorp Vault?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Two patterns. <strong>External Secrets Operator (ESO)</strong>: deploy ESO from OperatorHub; define a <code>SecretStore</code> (Vault credentials, address) and <code>ExternalSecret</code> CRs that map Vault paths to K8s Secret keys. ESO reconciles on a schedule — the Secret is kept in sync with Vault, rotating automatically. <strong>Vault Agent Injector (Sidecar)</strong>: Vault injects a sidecar that authenticates to Vault via the pod's service account (Vault K8s Auth) and writes secrets to a shared in-memory volume at <code>/vault/secrets</code>. The application reads files, not env vars — rotation is handled by the sidecar without pod restart.</div>
+        
+        <div class="staff-add">ESO is generally preferred: simpler to reason about, the Secret is a standard K8s object visible via <code>oc get secret</code> (with appropriate RBAC), and it works with any application without sidecar changes. The trade-off: the Secret is materialized in etcd — a cluster compromise exposes it. Vault Agent Sidecar keeps the secret out of etcd entirely, which is the stronger isolation model for highly sensitive values (private keys, payment credentials). For most workloads, ESO + etcd encryption at rest is sufficient. Regardless of approach: audit Vault policy assignments regularly, use namespaced K8s Auth roles (one Vault role per namespace/service-account pair), and rotate all secrets on a schedule — not just after breaches.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-07</span>
+        <span class="acc-question">Design an image promotion pipeline across dev, staging, and production environments in OCP.</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Build once, promote by reference — never rebuild the same image for each environment. Pipeline: (1) CI builds the image on code merge, pushes to a dev registry with a commit-sha tag. (2) Dev namespace ImageStream points to the commit-sha tag; automated tests run. (3) On test pass, promote: <code>oc tag myapp:commit-sha myapp:staging</code> — the staging ImageStream now references the exact digest that passed tests. (4) After staging validation, <code>oc tag myapp:staging myapp:production</code>. Each environment's Deployment watches its environment-specific ImageStream tag; the image is the identical binary at each stage.</div>
+        
+        <div class="staff-add">The "build once" constraint is violated most often by teams rebuilding for each environment with environment-specific env vars baked into the image. Configuration must be externalized (ConfigMaps, Secrets, env vars at runtime) — not compiled into the image. Enforce this in the build: the CI pipeline should fail if the image changes between promotion stages. For multi-cluster environments, use a central registry (OCP's integrated registry with cross-cluster exposure, or Quay.io) rather than per-cluster registries — it's the single source of truth for what binary is running where, which is essential for incident response and compliance.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-08</span>
+        <span class="acc-question">How do you observe and monitor OCP cluster health at scale?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">OCP ships a full Prometheus + Alertmanager + Grafana stack via the Cluster Monitoring Operator. It monitors cluster components out of the box (API server, etcd, nodes, network). <strong>User Workload Monitoring (UWM)</strong> is a separate Prometheus instance for application metrics — enable it via the <code>cluster-monitoring-config</code> ConfigMap. Key cluster health signals: cluster operator status (<code>oc get co</code>), etcd <code>wal_fsync_duration_seconds</code> (latency), node resource pressure (disk, memory, PID), API server request latency and error rate, and pod scheduling latency.</div>
+        
+        <div class="staff-add">The built-in monitoring stack is comprehensive for cluster health but requires extension for application observability. User Workload Monitoring (UWM) is the right first step — it lets teams deploy ServiceMonitors for their apps without cluster-admin access. The pitfall: UWM uses a separate Prometheus that doesn't share rules or dashboards with the cluster Prometheus. For a unified view, many orgs federate into an external platform (Datadog, Grafana Cloud, Thanos). Also instrument your upgrade process: track upgrade duration, operator degradation events during upgrade, and pod eviction counts — these become inputs to your change management process for future upgrades.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-09</span>
+        <span class="acc-question">What is Advanced Cluster Management (ACM) and when does it justify the complexity?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">ACM (Red Hat Advanced Cluster Management for Kubernetes) is a hub-and-spoke multi-cluster management plane. A hub cluster runs ACM; spoke clusters are imported and managed via a pull-based agent. ACM provides: fleet-wide policy enforcement (OPA/Gatekeeper policies deployed cluster-wide), application deployment across clusters (Subscription model or GitOps integration), cluster lifecycle management (provision, upgrade, decommission), and observability aggregation across clusters.
+ACM justifies its complexity at three or more clusters — below that, per-cluster management is simpler. Above five clusters, manual per-cluster operations become unsustainable, and consistent policy enforcement without ACM requires significant process discipline.</div>
+        
+        <div class="staff-add">ACM's policy engine is the most valuable feature for compliance-driven organizations — it can enforce that every cluster has specific NetworkPolicies, LimitRanges, or namespace configurations, and report violations centrally. Without it, you rely on process and audits to maintain consistency. The governance model requires upfront design: what policies are mandatory (enforced + auto-remediated), what are advisory (report only), and who can create exceptions? Get that design right before deploying ACM — the policy engine is powerful enough to break clusters if policies are misconfigured and set to enforce.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-10</span>
+        <span class="acc-question">How do you enforce security and configuration policies across OCP at scale — OPA/Gatekeeper, Kyverno, or ACM?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">OPA/Gatekeeper (the K8s Admission Controller backed by Open Policy Agent) is the most flexible: write Rego policies as ConstraintTemplates, instantiate them as Constraints. Example: deny any pod that requests <code>privileged: true</code>, require all Deployments to have resource requests. ACM integrates with Gatekeeper to distribute policies fleet-wide. Kyverno is an alternative with a simpler YAML-based policy language — better for teams without Rego expertise; supports mutation (automatically adding labels, resource defaults) as well as validation.</div>
+        
+        <div class="staff-add">The enforcement model matters more than the tool choice. Start with warn-only (audit mode) for all policies — this surfaces violations without breaking deployments and builds a baseline. Graduate to enforce after the violation backlog is clear. Never set a new policy to enforce in a production cluster without an audit period — you risk blocking a deployment at the worst possible time. The organizational challenge: whose job is it to fix policy violations on other teams' workloads? Define ownership and escalation paths before policy enforcement creates blockers during incident response.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-11</span>
+        <span class="acc-question">How do you run stateful workloads (databases) in OCP, and what are the storage considerations?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">OCP supports stateful workloads via StatefulSets + PersistentVolumeClaims. Storage is provisioned via StorageClasses backed by CSI drivers (Trident for NetApp, EBS CSI for AWS, vSphere CSI, Ceph/OpenShift Data Foundation). Key considerations: choose a StorageClass with the right access mode (ReadWriteOnce for single-pod databases, ReadWriteMany for shared filesystems); set <code>reclaimPolicy: Retain</code> for production PVCs so a PVC delete doesn't destroy data; size PVs with growth headroom; use Pod Anti-Affinity to spread replicas across nodes/zones.</div>
+        
+        <div class="staff-add">The question to answer before running a database in OCP: is the operational complexity worth it? Self-managed databases in K8s require expertise in both the database and the platform. Operators (PostgreSQL Operator, MongoDB Operator) reduce this — they handle failover, backup, minor upgrades — but add an operator dependency. For a small team, a managed database (RDS, Cloud Spanner) with the application in OCP is often lower total operational cost. Run databases in OCP when: data residency or network latency requires colocation with the application, or when cost at scale justifies it. Never run a database in OCP without a tested backup and restore procedure that doesn't rely on PVC snapshots alone.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-12</span>
+        <span class="acc-question">How do you design NetworkPolicies for a multi-team OCP cluster?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Start with a default-deny NetworkPolicy in every namespace: no ingress or egress allowed unless explicitly permitted. Then layer allow rules: pods within the same namespace can communicate freely (namespace selector); allow ingress from the OCP router (HAProxy) to any pod exposing a Route; allow egress to the cluster DNS (port 53 to the DNS service IP). Per-team: each team adds explicit ingress rules for cross-namespace traffic they need (e.g., <code>monitoring</code> namespace can scrape metrics on port 8080).</div>
+        
+        <div class="staff-add">The default-deny baseline catches cross-team pollution early — teams that accidentally expose services broadly are caught immediately rather than discovered in a security audit. The operational burden is managing the policy library as teams change. Use a GitOps namespace template that auto-applies the default-deny policy on project creation, and require peer-reviewed PRs for any cross-namespace ingress rule. At scale, OVN-Kubernetes's AdminNetworkPolicy (cluster-scoped) is valuable: the platform team defines immutable baseline policies that namespace-scoped NetworkPolicy cannot override — the router ingress rule and DNS egress rule can be cluster-wide, removing them from the per-namespace template.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-13</span>
+        <span class="acc-question">Compare running self-managed OCP on AWS EC2 (IPI) versus ROSA — when do you choose each?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>IPI on EC2</strong> — you own everything: the installer provisions EC2 instances, VPC, ELBs, IAM users, Route 53 entries, and security groups. You operate the control plane (master nodes are yours, etcd backup is yours, upgrades are yours). Full flexibility: choose any instance type, customize the VPC layout, deploy into an existing VPC (<code>existing VPC</code> install), configure private clusters, air-gapped installs, or custom AMIs. Control plane costs are visible EC2 spend. Requires platform engineering bandwidth for cluster operations.
+<strong>ROSA</strong> — Red Hat operates the control plane (masters are on Red Hat's AWS account, not yours). You manage worker nodes and workloads. ROSA uses AWS STS for all IAM interactions — no long-lived credentials on the cluster. Upgrades are managed with a maintenance window policy; Red Hat responds to control plane incidents. ROSA integrates natively with AWS services: IAM roles for service accounts (IRSA), PrivateLink for private cluster access, CloudWatch log forwarding. Faster to provision (30–45 minutes vs. 90+ for IPI).</div>
+        
+        <div class="staff-add">The decision turns on operational ownership appetite and compliance requirements. ROSA is the right default if your team doesn't have Kubernetes cluster operators — Red Hat's SRE team handles control plane incidents, etcd backups, and upgrades. The trade-off: less control over master node sizing, network topology constraints (ROSA uses a fixed VPC CIDR structure), and higher per-node cost than raw EC2. IPI is right when: you need to deploy into an existing VPC (common in enterprises with strict network governance), need custom master sizing for large etcd, need air-gapped or GovCloud installs, or require full control over the upgrade schedule. One nuance: ROSA HCP (Hosted Control Plane) is the newer ROSA architecture — control plane runs as pods in a Red Hat-managed cluster rather than dedicated EC2 masters. HCP provisions in under 15 minutes, costs less (no master EC2 bill), and is the direction ROSA is heading. Prefer ROSA HCP over classic ROSA for new deployments.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How would you architect a multi-cluster OCP strategy for a large enterprise — and when does a single cluster break down?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Single cluster breaks down when: you need blast radius isolation between business domains (a platform incident in one domain shouldn't affect others); regulatory requirements mandate data residency in separate regions; scale exceeds what a single cluster can support cleanly (~500 nodes is practical maximum before management overhead grows); or upgrade cadence differs between teams. Multi-cluster patterns: <strong>hub-spoke</strong> (ACM managing N spoke clusters), each spoke scoped to a team, environment, or region; <strong>tiered</strong> (one cluster per environment: dev, staging, prod); <strong>federated</strong> (multiple prod clusters behind a global load balancer for geo-distribution and DR).</div>
+        
+        <div class="staff-add">Multi-cluster multiplies operational burden by N without tooling. ACM is the prerequisite, not an afterthought — deploy it before your third cluster, not after your tenth. The governance question is harder than the technology: who owns each cluster, what's the upgrade SLA for each, who is on-call, and how does fleet-wide policy change management work? Define a cluster class taxonomy early (dev clusters get relaxed quotas and faster upgrades; prod clusters have strict change management), and enforce the difference via ACM policy sets. The failure mode of multi-cluster without governance: 15 clusters, each slightly different, each managed by a different person, with no audit trail.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-02</span>
+        <span class="acc-question">How do you evaluate OCP versus a managed Kubernetes service (EKS, GKE, AKS) for a new platform initiative?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Evaluate on five axes. <strong>Compliance</strong>: does the target regulatory framework (FedRAMP, HIPAA, SOC2, PCI) require specific certifications or on-premises data residency? OCP has the most certifications and runs on-prem; managed services are cloud-only. <strong>Operational model</strong>: what's the team's expertise and appetite for platform engineering? OCP provides more capability but requires more engineering depth. <strong>Cost at scale</strong>: OCP licensing is per-core and significant; EKS/GKE/AKS charge per cluster and per node. At large scale, total cost can favor OCP; at small scale, managed wins on simplicity. <strong>Ecosystem alignment</strong>: Red Hat ecosystem (RHEL, Ansible)? AWS ecosystem? This matters for tooling integration and support contracts. <strong>K8s version currency</strong>: OCP lags; managed services are current.</div>
+        
+        <div class="staff-add">The hidden cost of the managed K8s choice is everything the platform team has to build themselves: multi-tenancy controls, SCC equivalents (PSA is less powerful), integrated CI/CD, a curated operator catalog. OCP ships these. For an org with a dedicated platform engineering team, this is fine — they'll build a better-fit solution for their context. For an org that wants a platform that works on day one with strong security defaults and less assembly, OCP's total cost of ownership may be lower even with the licensing. The worst outcome is choosing a managed K8s service and then rebuilding OCP's features on top. Clarify upfront: what's the minimum viable platform, and does it require features OCP ships that you'd otherwise build?</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-03</span>
+        <span class="acc-question">How would you design a platform engineering practice on top of OCP to serve 20+ product teams?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Platform engineering for OCP is a product discipline, not an ops function. The platform team's outputs are: a self-service onboarding flow (new team → namespace, quota, RBAC, CI/CD pipeline template in &lt;30 minutes via automation); a curated operator catalog (vetted, supported operators from OperatorHub available to teams); a base image supply chain (RHEL-based builder images, patched on a schedule, promoted through a registry pipeline); a GitOps framework (ArgoCD, standard Helm/Kustomize conventions, secret management pattern); and an observability contract (UWM enabled, dashboards available per namespace, alerting SLAs defined).</div>
+        
+        <div class="staff-add">The platform team's failure mode is building features nobody uses because they weren't designed with the consumer in mind. Run the platform like a product: have internal customers (product teams), collect NPS and time-to-deploy metrics, maintain a developer experience team (DX) separate from the infrastructure team. The DX team owns developer tooling, inner loop speed, and documentation. The infrastructure team owns cluster reliability and security. Neither works without the other. Measure platform maturity by how long it takes a new team to go from zero to first deployment in production — if it's more than a day, there's a platform gap to close.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-04</span>
+        <span class="acc-question">What are the trade-offs of the Operator-first philosophy at org scale?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Operators are OCP's primary extension mechanism — the platform is operator-driven, the ecosystem delivers software via operators, and teams are encouraged to write operators for their domain. The benefits: lifecycle management as code, self-healing, declarative APIs via CRDs, consistent operational patterns across the org. The costs: Operators add a controller process per application that must be operated itself (what happens when the operator crashes?); CRD API versions must be maintained (deprecation and migration); operator upgrades can break CRD contracts; and the skill set to write production-quality operators (controller-runtime, reconciliation design, status condition handling) is non-trivial.</div>
+        
+        <div class="staff-add">The proliferation problem: in a large org with 30+ teams writing operators, the fleet accumulates controllers that nobody understands, CRDs with unclear ownership, and operators that were written for one use case and never maintained. Govern the operator portfolio: require approval for new cluster-scoped operators, define an operator lifecycle policy (who maintains it, what's the SLA for CVE patching), and audit the operator catalog annually. The alternative — Helm charts for everything — is often underestimated. For stateless workloads with predictable lifecycles, Helm + GitOps is simpler and more portable than an Operator. Reserve Operators for genuinely complex stateful applications where the operational knowledge justifies the investment.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-05</span>
+        <span class="acc-question">Design a disaster recovery strategy for OCP clusters with defined RPO and RTO targets.</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">OCP DR has two components: <strong>control plane recovery</strong> (etcd restore) and <strong>workload recovery</strong> (PV data + Deployment manifests). For the control plane: etcd snapshots on a schedule (hourly for prod), stored externally (S3/NFS), tested quarterly with a full restore drill on a non-production cluster. For workloads: GitOps-managed manifests mean Deployment state is in Git — cluster rebuild + ArgoCD sync recovers stateless workloads. Stateful data (PVs) requires a separate backup strategy: Velero for PV snapshots, or application-level backup (pg_dump for PostgreSQL).
+RPO drives backup frequency; RTO drives automation. A 1-hour RTO requires automated cluster provisioning (IPI or UPI scripted) + automated restore, not a manual runbook.</div>
+        
+        <div class="staff-add">DR strategy is as much about practicing as designing. The plan on paper is not the plan — the plan is what actually happens during a restore drill. Test the full DR scenario annually: intentionally take down a cluster, restore from backup, and measure actual RTO and RPO. The gaps revealed by the drill (a stale backup, an undocumented dependency, a manual step that took 45 minutes) are the inputs to the next iteration. For multi-cluster DR: active-passive with ACM managing failover is the pattern. Define what "declared a disaster" means explicitly — who makes the call, what evidence is required, and who initiates the failover. Ambiguity here is a DR failure mode.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-06</span>
+        <span class="acc-question">How do you approach OCP licensing, cost optimization, and capacity planning at scale?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">OCP is licensed per core (physical or virtual). Licensing cost grows with cluster size — right-sizing nodes matters. Optimization levers: use compute nodes with higher core counts (fewer license units per workload unit); autoscale worker nodes (Machine Autoscaler in OCP reduces idle capacity); bin-pack workloads by setting accurate resource requests to maximize pod density per node. For capacity planning: track namespace resource requests vs. actual usage per team (Prometheus <code>kube_pod_container_resource_requests</code> vs. <code>container_cpu_usage_seconds_total</code>); charge-back by namespace to make teams accountable for waste.</div>
+        
+        <div class="staff-add">License cost creates pressure to under-provision nodes, which leads to noisy-neighbor and eviction problems. The better optimization path is reducing idle capacity (autoscaling, smaller workloads) rather than reducing node count below the cluster's workload needs. Also: evaluate ROSA (managed OCP on AWS) and similar managed offerings at scale. At high node counts, Red Hat's managed service can be cheaper than self-managed OCP when you account for the platform engineering FTE cost — the break-even point varies by org. Run the TCO comparison annually: self-managed vs. ROSA, including the engineering time cost of upgrade management, incident response, and capacity planning.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-07</span>
+        <span class="acc-question">How does Conway's Law apply to OCP cluster and namespace design?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Conway's Law states systems mirror the communication structures of their builders. In OCP: cluster and namespace boundaries will reflect your org chart whether you design it that way or not. Teams that own a service end up owning a namespace. Clusters often align to org units (infrastructure cluster, payments cluster) because security and operational requirements differ by org boundary. The risk: if team boundaries are wrong (a monolith team that should be split, two teams that should merge), the namespace and cluster boundaries encode that organizational dysfunction and make it harder to change.</div>
+        
+        <div class="staff-add">Use namespace and cluster design as a forcing function for getting team boundaries right — not just a technical exercise. When two teams need to share a namespace because their services are tightly coupled, that's a signal about the team boundary, not just the deployment architecture. When a team needs cluster-admin on their namespace because they can't trust platform team turnaround time, that's a platform team responsiveness problem, not a security problem. The Platform Engineering function should participate in team topology design (Team Topologies by Skelton/Pais is the reference). OCP is a reflection of org design — build the org you want the platform to look like.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">🏢 Scenario 1 — Multi-Team Cluster Onboarding</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Your platform team manages a single shared OCP cluster. Ten new product teams are joining over the next quarter, each with dev, staging, and production workloads. Some teams run stateless microservices; others run databases. Teams must be isolated from each other — a misconfigured workload in one team's namespace must not affect another team's pods or data.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>30 namespaces to provision (10 teams × 3 environments)</li><li>Each team gets different resource quotas by environment (dev < staging < prod)</li><li>No team should be able to access another team's secrets or exec into their pods</li><li>Database teams need a service account with anyuid SCC; stateless teams do not</li><li>Onboarding must be repeatable and auditable — no manual oc apply in production</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Namespace provisioning automation:</strong> build a GitOps-driven namespace template (Helm chart or Kustomize overlay per team/env) that creates namespace, ResourceQuota, LimitRange, default NetworkPolicy (deny-all), and RBAC bindings in a single PR-reviewed apply — no manual steps</li><li><strong>RBAC isolation:</strong> bind each team's LDAP/SSO group to <code>edit</code> in their own namespaces only; use a custom role in prod that removes <code>exec</code> and <code>get secrets</code> from developers; service accounts for CI/CD are separate from human user accounts</li><li><strong>SCC governance:</strong> provision a dedicated service account per workload class on namespace creation; database team namespaces get a pre-configured SA bound to <code>anyuid</code>; stateless namespaces get only <code>restricted-v2</code>; document and audit with <code>oc adm policy who-can use scc anyuid</code></li><li><strong>Network isolation:</strong> the default-deny NetworkPolicy in the project template prevents cross-namespace traffic; teams add explicit allow rules via PR-reviewed manifests; OVN-Kubernetes AdminNetworkPolicy locks in platform-level rules (router ingress, DNS egress) that team-level policies cannot override</li><li><strong>Quota design:</strong> start generous (150% of estimated peak), monitor actual vs. quota, adjust quarterly; use ResourceQuota on object counts (PVCs, Services, Routes) not just CPU/memory</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Manually running <code>oc adm policy add-scc-to-serviceaccount anyuid -z default</code> in production namespaces — grants root capability to every pod using the default SA; creates ungoverned, audit-invisible security gaps</li><li>Sharing a single namespace across multiple teams for 'simplicity' — eliminates RBAC isolation and quota enforcement; a single team's resource burst affects everyone</li><li>No default-deny NetworkPolicy — all pods in the cluster can communicate by default; a compromised pod can reach any service across teams</li><li>Manual onboarding process documented in a wiki — non-reproducible, drifts over time, impossible to audit or roll back</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">⬆️ Scenario 2 — Zero-Downtime Minor Version Cluster Upgrade</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Your production OCP cluster is running 4.12 and must be upgraded to 4.14. The cluster serves 15 product teams with a mix of stateless microservices and stateful databases. The upgrade window is a Saturday maintenance window of 4 hours, but critical payment services must maintain 99.9% availability throughout — no hard downtime.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Cannot skip 4.13 — must go 4.12 → 4.13 → 4.14 (two upgrade cycles)</li><li>Payment processing pods must not be evicted simultaneously — maintain at least 2 replicas at all times</li><li>Stateful databases must not lose data during node drains</li><li>API deprecations between 4.12 and 4.14 must be resolved before upgrade</li><li>The upgrade must be able to pause and resume — no 4-hour continuous window guaranteed</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Pre-upgrade checklist:</strong> run <code>oc adm upgrade</code> to verify the upgrade graph; audit cluster operators (<code>oc get co</code>) — all must be Available before starting; pull the API deprecation report from the OCP web console; check for DCs (deprecated) and migrate to Deployments; back up etcd</li><li><strong>API deprecation handling:</strong> between 4.12 and 4.14, several APIs are removed — Ingress networking/v1beta1, CronJob batch/v1beta1. Use <code>oc get apirequestcounts</code> to identify which deprecated APIs are still in active use; update manifests and Helm charts before the upgrade window</li><li><strong>PodDisruptionBudgets:</strong> ensure every critical Deployment has a PDB with <code>minAvailable: 1</code> at minimum; the node drain process respects PDBs — it waits for new pods to come up before evicting old ones; payment services should have PDB <code>minAvailable: 2</code> to maintain the 2-replica constraint</li><li><strong>MachineConfigPool strategy:</strong> set worker MCP <code>maxUnavailable: 1</code> before upgrading — this limits how many workers drain simultaneously; for a 20-node cluster, the worker upgrade takes ~20 node-reboot cycles but prevents capacity collapse</li><li><strong>Two-phase approach:</strong> upgrade 4.12 → 4.13 in the first maintenance window; let the cluster stabilize for a week; upgrade 4.13 → 4.14 in the second window — this limits blast radius to one minor version per window</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Starting the upgrade without checking cluster operator health — a degraded operator before upgrade often becomes a blocking failure mid-upgrade with no clean rollback path</li><li>No PodDisruptionBudgets on critical services — node drains can evict all replicas simultaneously if the scheduler decides it's safe; payment services going to zero during a drain is a self-inflicted outage</li><li>Attempting to skip from 4.12 directly to 4.14 — the CVO blocks this, wasting upgrade window time</li><li>Not testing the upgrade on a staging cluster first — API deprecations, operator incompatibilities, and Helm chart issues are always cheaper to find in staging than production</li><li>Triggering the upgrade and walking away — the upgrade must be actively monitored; a stalled node drain or a degraded operator during the process requires intervention, not a retry in the morning</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">🔐 Scenario 3 — Security Incident: Overly Privileged Pod Exfiltrating Data</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A security team alert fires at 3am: a pod in the <code>analytics</code> namespace is making outbound connections to an external IP not in your approved egress list. Investigation reveals the pod is running with <code>anyuid</code> SCC and has host network access. The pod belongs to a third-party analytics agent deployed 6 months ago. You suspect the agent image has been compromised or contains malicious behavior.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Cannot take down the entire cluster — 14 other teams' production workloads are unaffected</li><li>Must preserve forensic evidence before terminating the pod</li><li>The `analytics` namespace contains legitimate data pipelines that must keep running</li><li>Root cause must be determined: compromised image vs. malicious insider vs. misconfiguration</li><li>The SCC grant should never have been made to this workload — how it happened must be traced</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Immediate containment:</strong> apply a NetworkPolicy to the analytics namespace blocking all egress except DNS and known internal services — this cuts off the exfiltration channel without killing the pod; use <code>oc label pod &lt;pod&gt; quarantine=true</code> and apply a NetworkPolicy targeting that label for more surgical isolation</li><li><strong>Forensic preservation:</strong> before terminating, capture: <code>oc exec &lt;pod&gt; -- ps aux</code>, <code>netstat -tlnp</code>, <code>/proc/&lt;pid&gt;/environ</code> (env vars including any injected secrets), <code>oc get pod &lt;pod&gt; -o yaml</code> (full spec including SCC assignment), and pod logs; use <code>oc debug pod/&lt;pod&gt;</code> to inspect the filesystem without killing the running pod</li><li><strong>SCC audit:</strong> <code>oc adm policy who-can use scc anyuid</code> to see all service accounts with anyuid; <code>oc get rolebindings,clusterrolebindings -A | grep anyuid</code> to trace how the grant was made; check git history of the namespace manifests for when and who added the SCC binding</li><li><strong>Image investigation:</strong> pull the image digest (not tag) from <code>oc get pod -o jsonpath='{.status.containerStatuses[].imageID}'</code>; scan with a container image scanner; compare the digest against the known-good build artifacts from 6 months ago — if the digest changed, the image was tampered with post-push</li><li><strong>Remediation:</strong> revoke the anyuid SCC from the service account immediately; if the image is compromised, remove the Deployment, rotate any secrets the pod had access to, and report the image tag as compromised to the registry; if a misconfiguration, trace the approval process that allowed anyuid on this workload and close the governance gap</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Immediately deleting the pod before collecting forensic evidence — you lose all runtime state; the exfiltration IP, process tree, and env vars are gone</li><li>Taking down the entire namespace to stop the exfiltration — unnecessary blast radius; NetworkPolicy isolation is surgical and immediate without affecting other workloads</li><li>Not rotating secrets — if the pod had access to Secrets (database passwords, API keys), assume they are compromised; the exfiltration may have already sent them to the attacker</li><li>Fixing the immediate pod without auditing the SCC grant process — the root cause is a governance failure (anyuid was granted without proper review); without fixing the process, the same situation recurs</li><li>Trusting the image tag instead of the digest — image tags are mutable; a tag like <code>:latest</code> or <code>:stable</code> can be silently updated; always pin production images by digest and verify digest against your build pipeline</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>function toggleTheme(){
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  h.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+function switchTab(name, el){
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+}
+
+function toggleAcc(header){
+  const item = header.parentElement;
+  item.classList.toggle('open', !item.classList.contains('open'));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,857 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# HashiCorp Vault — Interview Field Guide Content
+# Edit this file to update the guide. Run: python generate.py vault
+# ══════════════════════════════════════════════════════════════════════════════
+
+meta:
+  id: vault
+  title: HashiCorp Vault
+  title_short: Vault
+  subtitle: "// secrets management · dynamic credentials · PKI · auth methods · policies · senior → principal"
+  category: Security
+  icon: "🔐"
+
+colors:
+  toggle_light: "#D97706"
+  toggle_dark:  "#F59E0B"
+  light_vars: >-
+    --accent:#D97706;--accent2:#0077aa;--accent3:#92400e;
+    --highlight-bg:#fef9ee;--highlight-text:#D97706;--highlight-border:#D97706;
+    --your-exp-bg:rgba(146,64,14,.06);--your-exp-border:rgba(146,64,14,.2);--your-exp-text:#92400e;
+    --acc-hover:rgba(217,119,6,.04);--acc-open-border:#D97706;--acc-open-bg:rgba(217,119,6,.04);
+    --num-color:#D97706;--num-bg:rgba(217,119,6,.1);
+    --tag-color:#D97706;--tag-bg:rgba(217,119,6,.08);--tag-border:rgba(217,119,6,.2);
+    --flow-arrow:#D97706;--h1-from:#92400e;--h1-to:#D97706;
+    --badge-color:#92400e;--stat-num:#92400e;
+    --tab-active-color:#D97706;--tab-active-bg:rgba(217,119,6,.08);--tab-active-border:#D97706;
+    --section-title:#D97706;--concept-title:#92400e;
+    --cheat-head-bg:#92400e;--cheat-head-text:#ffffff;--cheat-key:#92400e;
+    --cmd-bg:#fef9ee;--cmd-text:#92400e;
+  dark_vars: >-
+    --accent:#F59E0B;--accent2:#00d4ff;--accent3:#fbbf24;
+    --highlight-bg:#1c1400;--highlight-text:#F59E0B;--highlight-border:#F59E0B;
+    --your-exp-bg:rgba(251,191,36,.08);--your-exp-border:rgba(251,191,36,.25);--your-exp-text:#fcd34d;
+    --acc-hover:rgba(245,158,11,.04);--acc-open-border:#F59E0B;--acc-open-bg:rgba(245,158,11,.03);
+    --num-color:#F59E0B;--num-bg:rgba(245,158,11,.08);
+    --tag-color:#F59E0B;--tag-bg:rgba(245,158,11,.08);--tag-border:rgba(245,158,11,.2);
+    --flow-arrow:#F59E0B;--h1-from:#fbbf24;--h1-to:#F59E0B;
+    --badge-color:#F59E0B;--stat-num:#F59E0B;
+    --tab-active-color:#F59E0B;--tab-active-bg:rgba(245,158,11,.08);--tab-active-border:#F59E0B;
+    --section-title:#F59E0B;--concept-title:#F59E0B;
+    --cheat-head-bg:#1c1400;--cheat-head-text:#F59E0B;--cheat-key:#F59E0B;
+    --cmd-bg:#1c1400;--cmd-text:#F59E0B;
+
+# ── OVERVIEW ──────────────────────────────────────────────────────────────────
+overview:
+  concepts:
+    - title: "🔐 What Vault Is"
+      body: >
+        Vault is a secrets management platform that centralizes storage, access control, and
+        lifecycle management for sensitive data. It goes beyond static storage: it can
+        **dynamically generate credentials** on demand (database passwords, cloud IAM tokens,
+        TLS certificates) that expire automatically, and act as an **encryption-as-a-service**
+        layer so applications never handle raw keys. Every secret access is **audited**.
+        The core contract: authenticate → receive a short-lived token → use it to read secrets
+        or request dynamic credentials → credentials expire and are revoked.
+      flows:
+        - ["Client authenticates", "Vault issues token", "Client reads secret / requests credential", "Lease expires → auto-revoked"]
+      tags:
+        - {text: "dynamic credentials", color: green}
+        - {text: "audit every access", color: orange}
+        - {text: "encryption as a service", color: purple}
+
+    - title: "🔑 Auth Methods"
+      body: >
+        Auth methods are how clients prove their identity to Vault. Multiple methods can be
+        enabled simultaneously on different paths. Vault validates the identity against an
+        external system and issues a **token** with policies attached.
+
+        **AppRole**: role ID (public) + secret ID (private). The secret ID is a single-use or
+        time-limited credential. Standard for CI/CD pipelines and services without a platform
+        identity.
+
+        **Kubernetes**: pod's service account JWT is validated against the Kubernetes API. Zero
+        credentials to manage — the platform provides identity.
+
+        **AWS/GCP/Azure**: validates the cloud platform's signed instance identity document.
+        Ideal for cloud-hosted workloads.
+
+        **LDAP / OIDC**: for human operators.
+      tags:
+        - {text: "Kubernetes = platform identity", color: green}
+        - {text: "AppRole = service identity", color: orange}
+        - {text: "OIDC = human operators", color: purple}
+
+    - title: "🗄️ Secret Engines"
+      body: >
+        Secret engines are plugins that store or generate secrets. Each is mounted at a path.
+
+        **KV v2**: versioned key-value store. Supports check-and-set (CAS) to prevent blind
+        overwrites, soft delete with metadata retention, and version history.
+
+        **Database**: generates short-lived, unique credentials for Postgres, MySQL, MongoDB,
+        etc. Each request gets a new username/password. Compromise of one credential doesn't
+        expose others.
+
+        **PKI**: a full certificate authority. Issues TLS certificates with configurable TTLs.
+        Enables automated cert rotation at scale.
+
+        **Transit**: encryption-as-a-service. Apps encrypt/decrypt/sign data without ever
+        seeing the key material. Keys rotate without re-encrypting all data (envelope encryption).
+
+        **AWS/GCP/Azure**: generates dynamic cloud IAM credentials scoped to a role.
+      tags:
+        - {text: "KV v2 = versioned static", color: orange}
+        - {text: "database = dynamic creds", color: green}
+        - {text: "transit = EaaS", color: purple}
+
+    - title: "📋 Policies & ACLs"
+      body: >
+        Policies are **HCL or JSON documents** that grant capabilities on paths. They are
+        **deny by default** — access not explicitly granted is denied. A token's effective
+        policy is the union of all attached policies.
+
+        **Capabilities**: `create`, `read`, `update`, `delete`, `list`, `sudo`, `deny`.
+        `deny` overrides all others.
+
+        Policies use **path globs**: `secret/data/app/*` matches any sub-path.
+        `+` matches a single path segment: `secret/data/+/config` matches any team's config.
+
+        **Root policy** is all-powerful and cannot be modified. Tokens with root policy should
+        be used only for bootstrapping, then revoked.
+      tags:
+        - {text: "deny by default", color: red}
+        - {text: "union of attached policies", color: orange}
+        - {text: "+ and * globs", color: green}
+
+    - title: "⏱️ Leases, TTLs & Renewal"
+      body: >
+        Every **dynamic secret** has a **lease**: a TTL after which Vault revokes the credential
+        and the downstream system is notified (for database creds, the user is dropped).
+        Static KV secrets don't have leases.
+
+        **Renewal**: clients must renew leases before expiry. Vault returns a new TTL up to
+        the max TTL of the role. Once max TTL is reached, the credential must be re-requested
+        (new username/password for database creds).
+
+        **Revocation**: explicit (`vault lease revoke`) or automatic on expiry. Revoke-prefix
+        revokes all leases under a path — useful for incident response.
+
+        Lease expiry without renewal causes **app outages** — the credential disappears mid-flight.
+        Vault Agent or Vault SDK with background renewal handles this automatically.
+      flows:
+        - ["Request credential", "Lease issued (TTL)", "Renew before expiry", "Max TTL → re-request"]
+      tags:
+        - {text: "renew before expiry", color: orange}
+        - {text: "revoke-prefix for incidents", color: red}
+
+    - title: "🏗️ High Availability & Storage"
+      body: >
+        Vault can run in HA mode where one node is **active** (handles reads and writes) and
+        others are **standby** (forward requests to active or serve stale reads).
+
+        **Integrated storage (Raft)**: built-in consensus, no external dependency. Recommended
+        for new deployments. Raft requires a majority (quorum) of nodes to be healthy — for 3
+        nodes, 2 must be up. **Auto-unseal** (via cloud KMS) is essential in Raft clusters so
+        nodes unseal automatically after restart without human intervention.
+
+        **Consul backend**: external Consul cluster stores Vault state. Adds operational
+        complexity but was the original HA backend.
+
+        **Seal/Unseal**: Vault encrypts its storage with a **master key** derived from
+        unseal keys via Shamir's Secret Sharing. On restart, Vault is sealed — no requests
+        served — until enough key holders provide their shares.
+      tags:
+        - {text: "Raft = preferred HA", color: green}
+        - {text: "auto-unseal = mandatory in prod", color: orange}
+        - {text: "Shamir key shares", color: purple}
+
+  gotchas:
+    - title: "Vault Agent or SDK renewal — never rely on app-side timers"
+      body: >
+        Dynamic credentials expire silently if the lease is not renewed. Application-side
+        caches that don't track lease TTL cause credential expiry mid-flight. Use Vault Agent
+        (sidecar) with `template` mode so it writes credentials to a file and atomically
+        refreshes them, or use the Vault SDK's `Renewer` / `LifetimeWatcher` which handles
+        renewal, grace periods, and re-fetch after max TTL automatically.
+
+    - title: "KV v1 vs KV v2 — versioning silently changes paths"
+      body: >
+        KV v2 stores data at `secret/data/<path>` and metadata at `secret/metadata/<path>`.
+        KV v1 uses `secret/<path>`. Policies and API calls written for v1 break on v2 mounts
+        because the path is different. The Vault CLI and UI handle this transparently, but
+        the HTTP API does not — a v1 policy granting `secret/*` does **not** cover
+        `secret/data/*` on a v2 mount.
+
+    - title: "Root token is not for production use"
+      body: >
+        The root token generated at `vault operator init` has unrestricted access and bypasses
+        all policies. It should be used only to create initial auth methods and policies, then
+        **revoked** immediately (`vault token revoke <root>`). Keep the unseal keys / recovery
+        keys in separate, secure, offline storage (separate people or HSMs). Leaving a root
+        token active is an audit finding and a major blast-radius risk.
+
+    - title: "Seal on restart — unsealing is a human bottleneck without auto-unseal"
+      body: >
+        Manual unseal requires N of M key holders to be available at the same time after every
+        restart — including unexpected crashes at 3 AM. Configure **auto-unseal** via AWS KMS,
+        GCP CKMS, Azure Key Vault, or an HSM for production clusters. Auto-unseal shifts the
+        trust boundary to the cloud KMS (which has its own IAM controls) but eliminates the
+        operational bottleneck.
+
+    - title: "Token hierarchies and orphan tokens"
+      body: >
+        By default, tokens are children of the token that created them. When a parent is revoked,
+        all its children are revoked too. Long-lived service tokens created by a short-lived
+        human token will be revoked when the human's session ends — causing sudden outages.
+        Always create service tokens as **orphan tokens** (`vault token create -orphan`) or via
+        auth method login, which produces orphan tokens by default.
+
+    - title: "Audit log volume under high-throughput secret access"
+      body: >
+        Every Vault request — auth, read, write, renewal — is written to the audit log. A
+        service that reads a secret on every request at 10K RPS generates enormous audit logs.
+        Use **Vault Agent** caching or application-level caching (re-read secret only on expiry,
+        not per-request). If audit log is the write bottleneck, Vault blocks writes until audit
+        succeeds — a full disk or slow audit backend stalls the entire cluster.
+
+  when_to_use:
+    - "Centralizing secrets across many services and teams with fine-grained access control"
+    - "Dynamic database credentials — rotate automatically, each service gets unique creds"
+    - "PKI at scale — automated TLS cert issuance and rotation for services"
+    - "Encryption as a service — encrypt data without apps ever holding key material"
+    - "Cloud IAM credential generation (AWS STS, GCP service account tokens) on demand"
+    - "Audit requirements — every secret access must be logged with caller identity"
+
+  when_not_to_use:
+    - "Simple per-service config (non-sensitive) — environment variables or ConfigMaps are sufficient"
+    - "You're already fully in AWS — Secrets Manager or Parameter Store may be simpler with less ops burden"
+    - "Small teams with one or two services — operational complexity of Vault HA outweighs benefit"
+    - "Full-disk or filesystem encryption — use OS-level tooling (LUKS, dm-crypt)"
+    - "Replacing an HSM for compliance-mandated hardware key storage — Vault can integrate with HSMs but doesn't replace them"
+
+# ── DEEP DIVE ─────────────────────────────────────────────────────────────────
+deep_dive:
+  tables:
+    - title: "🔑 Auth Method Comparison"
+      full_width: true
+      rows:
+        - {key: "AppRole", value: "Role ID (non-secret) + Secret ID (single-use or TTL-bound). Best for CI/CD, services without a platform identity. Secret ID delivery is the hard problem."}
+        - {key: "Kubernetes", value: "Pod's service account JWT validated against the K8s API server. Zero secret to manage — platform provides identity. Standard for K8s-hosted workloads."}
+        - {key: "AWS IAM", value: "Instance identity document or IAM role credentials signed by AWS. No secret to pre-provision. Automatic for EC2, ECS, Lambda."}
+        - {key: "GCP / Azure", value: "GCP service account JWT or Azure managed identity token. Same zero-secret model as AWS IAM for GCP/Azure workloads."}
+        - {key: "OIDC / JWT", value: "Validates JWT issued by any OIDC provider (Okta, Auth0, Google). For human users via browser SSO or machine tokens from GitHub Actions, GitLab CI."}
+        - {key: "LDAP / AD", value: "Authenticates against an existing LDAP/Active Directory. Maps AD groups to Vault policies. For human operators in enterprises."}
+        - {key: "Token", value: "Direct token auth. Used internally and for bootstrapping. Avoid issuing long-lived tokens to services; prefer auth method login."}
+
+    - title: "🗄️ Secret Engine Reference"
+      full_width: true
+      rows:
+        - {key: "KV v2", value: "Versioned static secrets. Paths: secret/data/<key> (read/write), secret/metadata/<key> (list/delete versions). Enable CAS for safe concurrent writes."}
+        - {key: "Database", value: "Dynamic creds for Postgres, MySQL, MongoDB, Cassandra, etc. Vault creates/drops DB users. Each lease = unique user. Rotation on revoke."}
+        - {key: "PKI", value: "Certificate Authority. Issue X.509 certs with configurable TTL, SANs, key type. Supports root and intermediate CAs. Integrate with ACME for automatic renewal."}
+        - {key: "Transit", value: "Encrypt, decrypt, sign, verify, HMAC. Keys never leave Vault. Key rotation + re-wrapping without decrypting all data."}
+        - {key: "AWS", value: "Generates STS tokens or IAM user credentials scoped to an IAM policy or role. TTL-bound, auto-revoked. Avoids long-lived IAM access keys."}
+        - {key: "SSH", value: "Signs SSH public keys with a CA key. Servers trust the CA. Short-lived signed certs replace static authorized_keys. Full audit trail for SSH access."}
+        - {key: "TOTP", value: "Generates and validates TOTP codes. Use for MFA workflows inside applications."}
+
+    - title: "📋 Policy Capabilities"
+      rows:
+        - {key: "create", value: "Write a new secret (fails if it already exists at path)."}
+        - {key: "read", value: "Read the secret or credential at a path."}
+        - {key: "update", value: "Overwrite an existing secret."}
+        - {key: "delete", value: "Delete a secret or revoke a credential."}
+        - {key: "list", value: "List keys at a path (no values returned)."}
+        - {key: "sudo", value: "Access root-protected paths; required for some admin ops."}
+        - {key: "deny", value: "Explicitly deny access; overrides all other capabilities."}
+
+    - title: "⚙️ Key Vault Configuration"
+      rows:
+        - {key: "VAULT_ADDR", value: "Vault server URL. Export in shell or pass to every CLI call."}
+        - {key: "VAULT_TOKEN", value: "Active token. Set by vault login; used by CLI and SDK."}
+        - {key: "VAULT_NAMESPACE", value: "Target namespace (Vault Enterprise). Omit for root namespace."}
+        - {key: "VAULT_CACERT", value: "Path to CA cert for TLS verification of Vault's TLS cert."}
+        - {key: "max_lease_ttl", value: "Server-wide ceiling on lease TTL. Role TTL cannot exceed this."}
+        - {key: "default_lease_ttl", value: "Default TTL if role doesn't specify one."}
+        - {key: "audit_non_hmac_request_keys", value: "Keys whose values are logged in plaintext in audit log (handle carefully)."}
+
+  cli:
+    - label: "Auth & Token"
+      commands:
+        - "vault login -method=oidc                          # interactive OIDC login"
+        - "vault login -method=approle role_id=X secret_id=Y # AppRole login"
+        - "vault token lookup                                # show current token details"
+        - "vault token renew                                 # renew current token"
+        - "vault token revoke <token>                        # revoke a specific token"
+        - "vault token create -policy=myapp -ttl=1h -orphan  # create orphan service token"
+
+    - label: "KV v2 Operations"
+      commands:
+        - "vault kv put secret/myapp/config db_pass=hunter2    # write a secret"
+        - "vault kv get secret/myapp/config                    # read latest version"
+        - "vault kv get -version=3 secret/myapp/config         # read specific version"
+        - "vault kv list secret/myapp/                         # list keys"
+        - "vault kv delete secret/myapp/config                 # soft-delete (metadata kept)"
+        - "vault kv destroy -versions=1,2 secret/myapp/config  # permanent destroy"
+        - "vault kv metadata get secret/myapp/config           # view version history"
+
+    - label: "Secrets Engines & Auth Methods"
+      commands:
+        - "vault secrets enable -path=secret kv-v2             # mount KV v2 engine"
+        - "vault secrets enable database                        # mount database engine"
+        - "vault secrets list                                   # list mounted engines"
+        - "vault auth enable kubernetes                         # enable Kubernetes auth"
+        - "vault auth enable approle                            # enable AppRole auth"
+        - "vault auth list                                      # list enabled auth methods"
+
+    - label: "Leases & Dynamic Secrets"
+      commands:
+        - "vault lease lookup <lease-id>                        # inspect a lease"
+        - "vault lease renew <lease-id>                        # renew a lease"
+        - "vault lease revoke <lease-id>                       # revoke one lease"
+        - "vault lease revoke -prefix aws/creds/myrole         # revoke all in prefix"
+        - "vault read database/creds/my-role                   # request dynamic DB creds"
+
+    - label: "Operator (Admin)"
+      commands:
+        - "vault operator init -key-shares=5 -key-threshold=3  # initialize Vault"
+        - "vault operator unseal <key>                         # provide unseal key share"
+        - "vault operator seal                                  # manually seal Vault"
+        - "vault operator raft list-peers                       # view Raft cluster members"
+        - "vault operator raft snapshot save backup.snap       # take a Raft snapshot"
+        - "vault audit enable file file_path=/var/log/vault/audit.log"
+
+  comparison:
+    title: "Vault vs AWS Secrets Manager vs Azure Key Vault vs GCP Secret Manager"
+    headers: ["Dimension", "HashiCorp Vault", "AWS Secrets Manager", "Azure Key Vault", "GCP Secret Manager"]
+    rows:
+      - ["Dynamic credentials", "Yes — database, AWS, GCP, Azure, PKI, SSH", "Yes — RDS, Redshift rotation via Lambda", "Limited — managed identities, no DB dynamic creds", "No — static secrets only"]
+      - ["Encryption as a service", "Yes — Transit engine (encrypt/decrypt/sign)", "No", "Yes — key operations via Key Vault Keys", "No"]
+      - ["Auth methods", "20+ (K8s, AWS, GCP, OIDC, LDAP, AppRole…)", "IAM only", "Azure AD / managed identity only", "GCP IAM only"]
+      - ["Multi-cloud / on-prem", "Yes — cloud-agnostic, runs anywhere", "AWS only", "Azure only", "GCP only"]
+      - ["Audit logging", "Built-in, every request, pluggable backends", "CloudTrail", "Azure Monitor / Event Hub", "Cloud Audit Logs"]
+      - ["Policy model", "Path-based HCL policies, fine-grained", "IAM policies (resource-based)", "Azure RBAC + access policies", "IAM conditions"]
+      - ["Operational burden", "High — you run and manage the cluster", "Low — fully managed", "Low — fully managed", "Low — fully managed"]
+      - ["Namespaces / multi-tenancy", "Yes (Enterprise) — hierarchical namespaces", "Per-account isolation", "Per-vault isolation", "Per-project isolation"]
+      - ["Open source", "Yes (BSL license since 2023; OSS fork: OpenBao)", "No", "No", "No"]
+      - ["Best for", "Multi-cloud, on-prem, rich dynamic creds, EaaS", "AWS-only workloads, simple secret storage", "Azure-native workloads", "GCP-native, simple secret storage"]
+
+# ── Q & A ─────────────────────────────────────────────────────────────────────
+qa:
+  senior:
+    - id: S-01
+      question: "Walk through the complete flow when a Kubernetes pod authenticates to Vault and reads a secret."
+      answer: >
+        1. **Pod starts** with a Kubernetes service account. The kubelet mounts a service account JWT
+           at `/var/run/secrets/kubernetes.io/serviceaccount/token` (projected, time-limited).
+
+        2. **Vault Agent** (sidecar) or the app itself sends the JWT to Vault's Kubernetes auth endpoint:
+           `POST /v1/auth/kubernetes/login` with `{role: "myapp", jwt: "<sa-jwt>"}`.
+
+        3. **Vault validates** the JWT against the Kubernetes API server (using a configured reviewer
+           service account or the JWT itself, if `disable_local_ca_jwt=false`). It checks that the
+           service account and namespace match the configured role binding.
+
+        4. **Vault issues a token** with the policies attached to the Kubernetes auth role. The token
+           has a TTL (e.g., 1 h) and is an orphan token (not tied to Vault's internal token hierarchy).
+
+        5. **App reads secret**: `GET /v1/secret/data/myapp/config` with the token in `X-Vault-Token`.
+           Vault checks the token's policies, returns the secret.
+
+        6. **Vault Agent** writes the secret to a shared memory volume (`tmpfs`) as a rendered template
+           file. The app reads the file — no Vault SDK needed in the app.
+      staff_add: >
+        The Kubernetes auth flow depends on Vault being able to reach the K8s API server. In private
+        clusters or multi-cluster setups, network policy must allow Vault to call the K8s API.
+        The projected service account token has its own TTL (default 1 h in most distros) — Vault
+        Agent must re-login before it expires. The cleanest operational pattern is Vault Agent as a
+        sidecar: it handles re-login, token renewal, and template rendering, so the application is
+        completely decoupled from Vault's protocol. For high-security workloads, also pin the
+        Kubernetes role to a specific namespace and service account to minimize blast radius.
+
+    - id: S-02
+      question: "What is the difference between KV v1 and KV v2? What are CAS and soft delete?"
+      answer: >
+        **KV v1**: simple key-value. No versioning. Write overwrites silently. Path: `secret/<key>`.
+
+        **KV v2**: versioned. Every write creates a new version (default retention: 10 versions).
+        Read always returns the latest unless a version is specified. Path changes: data is at
+        `secret/data/<key>`, metadata at `secret/metadata/<key>`. This path difference breaks v1
+        policies — a policy on `secret/*` does not cover `secret/data/*`.
+
+        **CAS (Check-And-Set)**: a write guard. You must pass the current version number with
+        your write. If it doesn't match (another writer updated concurrently), Vault rejects the
+        write. Enable with `cas_required=true` on the mount to prevent blind overwrites in
+        concurrent pipelines.
+
+        **Soft delete**: marks versions as deleted (hides them from reads) but retains metadata
+        and the data itself. `vault kv undelete` can restore. `vault kv destroy` permanently
+        removes version data — irreversible.
+      staff_add: >
+        The path difference between v1 and v2 is the most common migration footgun. When upgrading
+        a mount from KV v1 to v2, every policy and every application API call must be updated.
+        Vault's CLI and UI abstract this away, but if applications use the HTTP API directly or
+        have Vault Agent templates using the API path, they will silently fail or get 403s after
+        the upgrade. Audit all consumers before migrating. In new deployments, always use KV v2 —
+        the soft delete and versioning make secret lifecycle management significantly safer.
+
+    - id: S-03
+      question: "Explain Vault's seal/unseal mechanism. What is Shamir's Secret Sharing and why does it matter?"
+      answer: >
+        Vault encrypts all storage with a **master key**. The master key is never stored directly —
+        it is split into N **key shares** using **Shamir's Secret Sharing**, and stored encrypted
+        by the **root key** (which itself is sealed). To unseal Vault after a restart, at least
+        M of N key shares must be provided (M = threshold). Vault reconstructs the master key from
+        the shares, decrypts its storage, and begins serving requests.
+
+        **Why Shamir matters**: no single person holds the full master key. An attacker who
+        compromises one key share gains nothing. You need M colluding insiders or M compromised
+        secure storage locations to break the seal. Typical configuration: 5 shares, threshold 3.
+
+        **Sealed state**: Vault refuses all requests. The encrypted data in storage cannot be
+        accessed even by someone with full filesystem access, because the master key is not in memory.
+
+        **Auto-unseal**: instead of Shamir shares, the master key is wrapped by an external KMS
+        (AWS KMS, GCP CKMS, Azure Key Vault). On restart, Vault calls the KMS to unwrap the master
+        key automatically. Shifts trust to the KMS's IAM controls but eliminates the human bottleneck.
+      staff_add: >
+        Manual unseal is operationally untenable for production. Requiring 3 key holders to be
+        online at 3 AM after an unexpected crash is a reliability problem, not just an inconvenience.
+        Auto-unseal is the standard for production deployments. The recovery keys (replacing unseal
+        keys with auto-unseal) are for disaster recovery — breaking the glass when the KMS is
+        unreachable. Store them in a physically separate, offline location (separate from the KMS
+        IAM credentials). The seal status is your primary health signal: a sealed Vault node is
+        dead from the application's perspective regardless of whether the process is running.
+
+    - id: S-04
+      question: "How do dynamic database credentials work, and why are they better than static credentials?"
+      answer: >
+        When the Database secret engine is configured with a connection string and a role defining
+        a creation SQL statement, Vault can generate credentials on demand:
+
+        1. App calls `vault read database/creds/<role>`.
+        2. Vault connects to the database using a privileged connection (stored in Vault's encrypted storage).
+        3. Vault executes the creation SQL with a generated username/password.
+        4. Vault returns the new credentials with a lease TTL (e.g., 1 h).
+        5. At TTL expiry (or explicit revocation), Vault executes the revocation SQL — the database user is dropped.
+
+        **Why better than static credentials**:
+        - **Blast radius**: a leaked credential is usable only until its short TTL expires — typically hours, not years.
+        - **Uniqueness**: each app instance gets its own credential. Compromise of one doesn't expose all.
+        - **Audit**: every credential is tied to the lease that created it — you know exactly which Vault token (and which Kubernetes pod / AppRole) requested it.
+        - **No rotation ceremony**: static credential rotation requires coordinating all consumers simultaneously. Dynamic creds rotate continuously without a ceremony.
+      staff_add: >
+        Dynamic credentials change the failure mode of credential exposure from "rotate everything,
+        identify all consumers, coordinate cutover" to "wait for TTL, done." This is why TTL
+        choice matters: a 24-hour TTL provides much weaker protection than a 1-hour TTL. Set
+        TTL based on how long you can tolerate a compromised credential being valid. For highly
+        sensitive systems, 15–30 minute TTLs with Vault Agent auto-renewal are appropriate.
+        The one operational complexity is connection pool behavior — if your connection pool
+        holds connections with credentials that expire, the pool must detect and re-establish
+        connections with new credentials. Most modern connection pool libraries support this
+        via health-check callbacks.
+
+    - id: S-05
+      question: "How does Vault's policy evaluation work? Walk through the evaluation order and the role of deny."
+      answer: >
+        Vault policies are **deny by default**. Access is granted only if a policy explicitly
+        permits it. A token's effective policy is the **union of all policies** attached to it
+        (via the token itself, identity groups, entity aliases, etc.).
+
+        **Evaluation**:
+        1. Collect all policies attached to the token (including `default` policy).
+        2. For the requested path, find all matching policy rules (most specific path wins for
+           globs, but `deny` overrides everything).
+        3. `deny` capability on any matching policy **overrides all other capabilities** from
+           all other policies — you cannot grant around a deny.
+        4. If no policy grants access to the path, the request is denied.
+
+        **Policy HCL example**:
+        ```hcl
+        path "secret/data/myapp/*" {
+          capabilities = ["read", "list"]
+        }
+        path "secret/data/myapp/admin/*" {
+          capabilities = ["deny"]
+        }
+        ```
+        The token can read any myapp secret, but the admin sub-path is explicitly denied.
+
+        **`default` policy**: automatically attached to all tokens. By default it allows token
+        self-lookup and renewal. Modify carefully — it applies to every token.
+      staff_add: >
+        Policy design at scale becomes its own governance problem. Without a pattern, you end up
+        with hundreds of ad-hoc policies that nobody fully understands. A scalable approach:
+        parameterize policies using **Vault identity templating** (`{{identity.entity.name}}`) so
+        a single policy template governs many entities without duplicating policy documents. Use
+        **namespaces** (Enterprise) to isolate teams — each team gets a namespace with its own
+        auth methods, secret engines, and policies, governed by the platform team's root namespace.
+        Treat policies as code — version them in Git, review changes, and apply with Terraform
+        (`hashicorp/vault` provider).
+
+    - id: S-06
+      question: "How does AppRole authentication work? How do you deliver the secret ID securely?"
+      answer: >
+        AppRole is designed for service-to-service authentication. It has two parts:
+
+        **Role ID**: a stable identifier for the application role. Not secret — can be baked
+        into the application configuration or container image.
+
+        **Secret ID**: a short-lived, single-use (or limited-use) credential. Must be kept secret.
+        The application combines both to authenticate: `POST /v1/auth/approle/login` →
+        Vault issues a token.
+
+        **Secret ID delivery** is the hard problem. Common patterns:
+        - **Cubbyhole response wrapping**: CI/CD pipeline generates a wrapped secret ID (a
+          single-use token that, when redeemed, returns the secret ID). The wrapped token is
+          passed to the app; only one system can unwrap it — if already unwrapped, it's
+          compromised.
+        - **Vault Agent**: runs with a bootstrap token (from a more trusted auth method like
+          Kubernetes) to obtain and renew AppRole tokens automatically.
+        - **Platform injection**: secrets management platform generates and injects secret IDs
+          into the environment at deploy time.
+      staff_add: >
+        AppRole was the dominant service auth pattern before cloud-native deployments. In
+        Kubernetes, AWS, GCP, or Azure, you almost always have a better option — the platform
+        provides identity (K8s service account, EC2 instance profile) that doesn't require
+        delivering a secret to bootstrap. Use AppRole when the service runs on-prem or in
+        an environment without platform identity. The wrapped secret ID pattern solves the
+        bootstrapping problem but adds complexity. If you're designing a new system on a
+        cloud or Kubernetes platform, default to the platform's native auth method.
+
+    - id: S-07
+      question: "A service is getting 403 errors reading from Vault after working fine for weeks. What's your diagnostic approach?"
+      answer: >
+        Work systematically from the most common causes:
+
+        1. **Token expired**: `vault token lookup -accessor <accessor>`. Check `expire_time`.
+           If expired, the service failed to renew — check Vault Agent logs or the SDK's
+           renewal loop.
+
+        2. **Policy changed**: someone updated the policy and accidentally removed the capability.
+           Check audit log for the policy version at the time of failure. Compare with current policy.
+
+        3. **Token revoked**: check the audit log for a revoke event on the token or its parent.
+           Parent token revocation cascades to children (unless orphan).
+
+        4. **Secret engine unmounted / path changed**: if the mount path changed, the policy
+           and the application path must both be updated.
+
+        5. **KV v1 → v2 migration**: path changed from `secret/myapp` to `secret/data/myapp`.
+           Policy doesn't cover the new path.
+
+        6. **Namespace wrong** (Enterprise): token is in a different namespace than the secret.
+
+        **Audit log** (`vault audit list`) is your ground truth — it records every request,
+        the token accessor, the path, and the result. Enable file audit and ship logs to your
+        SIEM. A 403 in Vault is either token issue, policy issue, or path issue — nothing else.
+      staff_add: >
+        The most operationally mature teams make Vault's audit log their first stop, not their
+        last. Configure structured JSON audit logging shipped to your log aggregation platform
+        (Splunk, Datadog, Elastic). A saved search for `"type":"response" "error":"*"` filtered
+        to your service's token accessor gives you an instant view of every denied request with
+        its path — which tells you exactly which policy capability is missing. Without this, you're
+        guessing. Add a runbook for "403 from Vault" to your service's ops docs — it's a
+        predictable and recurring incident type.
+
+  staff:
+    - id: ST-01
+      question: "How do you design Vault's path hierarchy and policy structure for a large organization with many teams?"
+      answer: >
+        The goal is **isolation, least privilege, and self-service** — teams should be able to
+        manage their own secrets without a central team being a bottleneck.
+
+        **Path hierarchy**:
+        ```
+        secret/data/{env}/{team}/{service}/{key}
+        # e.g. secret/data/prod/payments/api/db_password
+        ```
+        Environment and team at the top allows policy to be scoped cleanly.
+
+        **Policy pattern using templating** (avoids one policy per team):
+        ```hcl
+        path "secret/data/{{identity.groups.names.team-name.metadata.team}}/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        ```
+        Map LDAP/OIDC groups to Vault identity groups. The policy is parameterized by the
+        caller's identity — one policy document for all teams.
+
+        **Tiered access**:
+        - Service tokens: read-only to their own `{team}/{service}/*` path
+        - Team admins: read/write to `{team}/*` (via OIDC/LDAP auth)
+        - Platform team: write to all paths, manage auth methods and policies
+        - Operators: vault system paths (`sys/*`) only
+
+        **Namespaces** (Enterprise): stronger isolation. Each namespace has its own auth,
+        engines, and policies. The platform team's root namespace can manage child namespaces.
+        Prevents one team's policy mistake from affecting another.
+      staff_add: >
+        The hardest part of path hierarchy design is anticipating future needs. A flat
+        `secret/{service}/*` structure works for 10 services but fails at 100 when you
+        add staging environments and want to isolate prod from non-prod. Build environment
+        and team into the hierarchy from day one. Managing Vault config with Terraform
+        (`vault_policy`, `vault_auth_backend`, `vault_generic_secret`) is non-negotiable
+        at scale — clicking through the UI doesn't scale to hundreds of services and creates
+        configuration drift. Treat Vault configuration exactly like infrastructure code.
+
+    - id: ST-02
+      question: "How do you handle zero-downtime secret rotation for a service using a static KV secret (e.g., an API key)?"
+      answer: >
+        Static secrets can't be rotated the same way database creds are — there's no
+        Vault-managed rotation. The challenge is delivering the new secret to all running
+        instances before the old one is invalid.
+
+        **Double-write / overlap window pattern**:
+        1. Write the **new** API key to Vault at a new version (KV v2).
+        2. Register the new key with the upstream provider (both old and new are valid during transition).
+        3. Signal all service instances to reload (via a sidecar watch, SIGHUP, or endpoint).
+        4. Services fetch the new version and switch to it.
+        5. After all instances have reloaded (verify via metrics — old key no longer used), revoke the old key with the upstream provider.
+
+        **Vault Agent template with `exec` command**: Vault Agent can watch for secret version changes
+        and run a command when the template changes (e.g., `SIGHUP` the service). The service
+        re-reads the rendered file. This makes rotation a Vault-side operation with no service code change.
+
+        **Avoid**: rotating the secret and invalidating the old key simultaneously — running
+        instances will fail between the rotation and their next reload. Always have an overlap window.
+      staff_add: >
+        Zero-downtime rotation is a systems design problem that spans Vault, the upstream provider,
+        and your service. The overlap window length must exceed the time for all instances to reload
+        — in a large deployment, that could be minutes. Design the application to retry on auth failure
+        and re-read credentials from Vault on retry — this makes the service self-healing under
+        rotation rather than dependent on a perfect orchestration sequence. If the upstream provider
+        doesn't support dual-key validity, the rotation will have a brief outage window by design,
+        and the runbook must reflect that.
+
+    - id: ST-03
+      question: "Vault Agent vs direct SDK integration — how do you decide which approach to use for a service?"
+      answer: >
+        **Vault Agent (sidecar/daemon)**:
+        - Handles auth, token renewal, and secret templating outside the application
+        - Writes rendered secrets to files (`tmpfs` mount) or provides a local API proxy
+        - Application reads files or calls `http://127.0.0.1:8200` (Agent's cache proxy)
+        - Application code has **zero Vault dependency** — reads env vars or config files
+        - Best for: polyglot environments, apps you don't control, gradual adoption, Kubernetes
+
+        **Vault SDK (direct integration)**:
+        - Application authenticates and manages its own token lifecycle
+        - Fine-grained control: request dynamic creds at exact callsites, handle lease renewal per credential
+        - Better for: Go/Java/Python services where the Vault SDK is well-supported, when you need
+          per-operation audit identity, when dynamic creds (not static) are the primary use case
+        - Requires implementing `LifetimeWatcher`/`Renewer` correctly — getting this wrong causes
+          credential expiry or token exhaustion
+
+        **Hybrid**: Agent for auth and token management + app uses the Agent's local cache proxy with
+        the SDK for reads. Simplifies auth while keeping SDK flexibility.
+
+        In Kubernetes, Agent as a sidecar with Kubernetes auth is the standard pattern for most services.
+        Direct SDK integration is appropriate when the service already has Go/Java and a team experienced
+        with the SDK.
+      staff_add: >
+        The sidecar model separates concerns cleanly: the platform team owns the Vault Agent
+        configuration (injected via a mutating admission webhook, e.g., Vault Agent Injector or
+        Vault Secrets Operator), and the application team owns the application. This is the
+        operational model that scales — app teams don't need to understand Vault internals,
+        and the platform team can update Vault Agent versions independently. The Vault Secrets
+        Operator (VSO) takes this further: it syncs Vault secrets into Kubernetes Secrets and
+        handles rotation, so the application just reads from a K8s Secret or env var. VSO is
+        the preferred pattern for Kubernetes-native workloads in Vault 1.12+.
+
+    - id: ST-04
+      question: "How do you design Vault HA with Raft integrated storage? What are the failure modes?"
+      answer: >
+        **Raft cluster setup**: 3 or 5 nodes (odd number for quorum). One node is the active leader;
+        others are standby. Standby nodes forward write requests to the leader. Reads from standby
+        return slightly stale data unless `X-Vault-Index` consistency tokens are used.
+
+        **Quorum requirement**: Raft requires a majority. A 3-node cluster tolerates 1 failure.
+        A 5-node cluster tolerates 2. During a network partition, the **minority side seals itself**
+        (becomes read-only and eventually sealed) to prevent split-brain writes.
+
+        **Failure modes**:
+        - **Leader crash**: Raft elects a new leader from standby nodes in seconds. Auto-unseal ensures
+          the new leader doesn't need manual unsealing. Brief downtime during election (~5–10 s).
+        - **2 of 3 nodes down**: cluster loses quorum and stops serving writes. Manual intervention required.
+        - **Network partition**: minority nodes stop serving and eventually seal. The majority partition
+          continues. After partition heals, minority nodes rejoin and catch up via log replication.
+        - **Disk full on leader**: Vault writes fail. Raft log grows unboundedly without snapshots.
+          Configure `raft_snapshot_threshold` and ensure adequate disk.
+
+        **Operations**: take regular Raft snapshots (`vault operator raft snapshot save`). Store
+        snapshots offsite. Test restore (`vault operator raft snapshot restore`) — untested snapshots
+        are not backups.
+      staff_add: >
+        The most dangerous Raft failure mode is the one nobody tests: quorum loss during an incident.
+        Losing 2 of 3 nodes simultaneously leaves you in a hard state — Raft cannot elect a leader,
+        Vault stops serving, and recovery requires a manual peer removal (`vault operator raft remove-peer`)
+        and snapshot restore. Run a "Vault DR drill" annually: simulate 2-node failure, practice
+        restore from snapshot, measure RTO. The operations runbook for "Vault unavailable" must be
+        rehearsed before the first production incident. The second failure mode to test is auto-unseal
+        KMS unavailability — if AWS KMS is down during a Vault restart, Vault cannot unseal.
+        Have a procedure for providing Shamir recovery keys in that scenario.
+
+  principal:
+    - id: P-01
+      question: "How do you architect a Vault platform that serves 50+ engineering teams with different trust boundaries, compliance requirements, and deployment targets (Kubernetes, VMs, on-prem)?"
+      answer: >
+        **Multi-namespace architecture** (Vault Enterprise) or **dedicated clusters** per trust
+        boundary (open source). Namespaces provide logical isolation — each business unit or
+        regulated environment (PCI, SOC2) gets its own namespace with independent auth methods,
+        secret engines, and policies. The platform team's root namespace governs namespace
+        lifecycle and cross-namespace policies.
+
+        **Platform team as enabler, not bottleneck**:
+        - Publish a **Vault onboarding Terraform module**: teams call the module with their app name,
+          team, and environment. Module creates the KV mount, the Kubernetes auth role, the policy,
+          and the identity group. No manual Vault operations required by the platform team for standard
+          cases.
+        - **Golden path**: standardize on Vault Secrets Operator (K8s) or Vault Agent Injector.
+          Teams don't integrate directly with Vault's HTTP API — they declare a `VaultStaticSecret`
+          CR and the operator delivers the secret.
+        - **Policy as code**: all policies in Git. Pull requests for policy changes. A CI job
+          applies changes via Terraform. Audit trail is the Git history.
+
+        **Compliance segmentation**: PCI-scoped secrets go in a namespace with stricter policies
+        and a dedicated audit log forwarded to the PCI SIEM. No cross-namespace access from
+        non-PCI namespaces. Automated access reviews quarterly.
+
+        **Observability for the platform**:
+        - Vault cluster health dashboard: sealed status, active node, Raft peer count, GC, request rate
+        - Token expiry trending (token_count, policy distribution)
+        - Audit log pipeline to SIEM with alerts on failed auth spikes
+
+        **Disaster recovery**: primary cluster per region, DR replication (Enterprise) or cold
+        standby via snapshot restore. RTO target drives the architecture choice.
+      staff_add: >
+        The organizational challenge is more complex than the technical one. Vault naturally becomes
+        critical infrastructure — when it goes down, every service that needs a credential is affected.
+        This means the platform team must treat Vault with the same SRE rigor as a database or
+        message broker: runbooks, on-call rotations, incident playbooks, annual DR drills.
+        The second organizational challenge is secrets sprawl audit. Without regular access reviews,
+        policies accumulate stale grants, services hold tokens that were never revoked, and you
+        lose confidence in the least-privilege model. Build a quarterly review process into the
+        platform: token accessor inventory, policy entitlement report, lease age distribution.
+        The Vault audit log makes this tractable — it's all there, you just need the tooling to
+        surface it.
+
+    - id: P-02
+      question: "A Vault cluster has been compromised — an attacker accessed the root token. What is your incident response plan?"
+      answer: >
+        **Immediate containment** (minutes):
+        1. **Seal the cluster**: `vault operator seal` from a trusted node. This stops all
+           request processing and clears the master key from memory.
+        2. If the attacker may have the unseal keys, **take the cluster offline** at the
+           network level (security group / firewall rules) before unsealing again.
+        3. **Revoke the root token**: if not already used to escalate, `vault token revoke <root>`.
+
+        **Blast radius assessment** (hours):
+        4. Pull the audit log — every path the compromised token accessed, every secret read,
+           every credential generated. The audit log is append-only and was written before
+           the seal. Ship it to a forensics system.
+        5. Identify all dynamic credentials (database, cloud IAM, PKI certs) generated by the
+           compromised token or its children. These must be revoked immediately at the upstream
+           systems, not just in Vault.
+        6. Audit any Vault policies modified by the attacker — they may have broadened access
+           before using it.
+
+        **Recovery** (hours to days):
+        7. **Rotate the master key** (`vault operator rekey`) with a new key set — old unseal
+           keys no longer work. Issue new unseal keys / recovery keys to key holders.
+        8. Rotate all static secrets stored in Vault (API keys, passwords). The attacker read
+           them — assume all are compromised.
+        9. Revoke and re-issue all Vault tokens (all token hierarchies are suspect).
+        10. Perform a configuration audit: compare current state against your last known-good
+            Terraform state. Any drift is suspect.
+        11. Rotate Vault's TLS certificates and the storage encryption keys.
+
+        **Root cause and hardening**:
+        - How was the root token obtained? Was it never revoked after init?
+        - Add controls: break-glass root token procedure with alerting on every use,
+          SIEM alert on any root-policy token login.
+      staff_add: >
+        A Vault compromise is a Tier-1 incident that cascades into every connected system.
+        The audit log is your most valuable forensic asset — but only if it's been shipped
+        to an immutable external system before the compromise. An attacker with root access
+        could disable audit logging or overwrite local log files. Ship audit logs to a
+        separate, read-only SIEM in real time. This is non-negotiable for any Vault deployment
+        in a regulated environment. The second lesson from Vault compromises is that the
+        "we'll create a root token when we need it" policy is not a policy — it's a gap.
+        Define the break-glass procedure for root access, store it in a physical safe, test
+        it annually, and alert on every use automatically.
+
+# ── SCENARIOS ─────────────────────────────────────────────────────────────────
+scenarios:
+  - title: "Zero-Secret Kubernetes Workload Onboarding"
+    problem: >
+      A platform team needs to onboard 50 new microservices to Vault over the next quarter.
+      Each service needs to read its own secrets from Vault without any hard-coded credentials
+      in the container image, Kubernetes manifests, or CI/CD pipeline. The process must be
+      self-service for application teams with minimal platform team involvement.
+    constraints:
+      - "No static Vault tokens or AppRole secret IDs in any manifest or image"
+      - "Each service can only read its own secrets — not other services' secrets"
+      - "Onboarding a new service must take less than 30 minutes including platform setup"
+      - "Platform team must not become a bottleneck for secret access requests"
+    discussion:
+      - "**Kubernetes auth + service accounts**: each service gets a dedicated Kubernetes service account. Vault's Kubernetes auth validates the pod's projected service account JWT with no credentials to pre-provision. Identity comes from the platform."
+      - "**Vault Secrets Operator (VSO)**: the operator watches `VaultStaticSecret` and `VaultDynamicSecret` CRDs. Application teams declare what secrets they need; the operator syncs them to Kubernetes Secrets. Application reads from env vars or a mounted file — zero Vault SDK in app code."
+      - "**Self-service Terraform module**: platform team publishes a module `vault-app-onboarding`. Inputs: `app_name`, `team`, `environment`. Module creates: KV mount path, Kubernetes auth role bound to the service account, policy granting read on `secret/data/{team}/{app}/*`, identity group. Application team runs `terraform apply` — no platform team ticket."
+      - "**Namespace isolation**: each team gets a Vault namespace (Enterprise) or a dedicated KV mount path. A policy using `{{identity.entity.name}}` templating ensures a service can only access its own path even if it somehow acquires another service's token."
+      - "**Audit trail for onboarding**: every Vault auth role and policy created via Terraform is reviewed in a pull request. The Git history is the audit trail of who onboarded what and when."
+      - "**Secret injection into CI/CD**: GitHub Actions / GitLab CI can authenticate via OIDC (JWT auth) using the pipeline's OIDC token. CI jobs read build-time secrets (registries, signing keys) without any stored credentials in the CI system."
+    red_flags:
+      - "Storing AppRole secret IDs in Kubernetes Secrets — they're base64, not encrypted at rest by default"
+      - "One shared Kubernetes service account for all services — blast radius is the entire cluster"
+      - "Manual Vault policy creation — doesn't scale to 50 services and creates configuration drift"
+      - "Long-lived tokens handed to application teams for testing — they leak into .env files and repos"
+      - "No lease TTL on Kubernetes auth roles — tokens never expire, revocation is the only recourse"
+
+  - title: "Database Credential Rotation Without Downtime"
+    problem: >
+      A high-throughput order-processing service (500 req/s, 20 DB connections in pool) uses
+      static Postgres credentials stored in Vault KV. You need to migrate it to dynamic
+      credentials and design the operational model for ongoing rotation without any downtime.
+    constraints:
+      - "Zero downtime during migration and ongoing rotation"
+      - "Connection pool must not exhaust Postgres's max_connections during rotation"
+      - "Credential expiry must not cause a cascading failure at peak load"
+      - "Rotation events must be observable — on-call must know when credentials rotate"
+    discussion:
+      - "**Database secret engine setup**: configure Vault's database engine with a privileged connection. Create a role with a creation statement that grants the minimum required privileges. Set `default_ttl=1h`, `max_ttl=4h` — short enough for blast radius control, long enough to reduce churn."
+      - "**Vault Agent with connection pool awareness**: Vault Agent renders DB credentials to a file. The application uses a connection pool that supports a `BeforeAcquire` callback — validate the connection's credential age against the current rendered file. On mismatch, close the connection; the pool opens a new one with the new credential. No connection is dropped mid-transaction."
+      - "**Connection pool sizing during rotation**: Vault issues new credentials; old pool connections (with old creds) are still valid until their TTL expires. During the overlap window, total connections = old pool + new pool. Size Postgres `max_connections` to accommodate both. Drain old connections before they expire by shortening their idle timeout."
+      - "**Migration path**: run both static and dynamic in parallel. Enable dynamic creds; configure a shadow service instance to use them. Validate metrics for 24h. Shift traffic gradually (canary). Retire the static credential only after 100% of instances are on dynamic."
+      - "**Observability**: emit a metric on every credential refresh (Vault Agent exec hook). Alert if a refresh fails. Dashboard showing credential age distribution across the pool — an aging credential that isn't refreshing is a leading indicator of an imminent outage."
+      - "**Max TTL re-request**: when max TTL is reached, Vault cannot renew — the service must request a new credential (new username). Vault Agent handles this transparently, but the connection pool must accept that the DB username itself changes, not just the password."
+    red_flags:
+      - "Setting max_ttl=24h 'to avoid churn' — defeats the blast radius benefit of dynamic creds"
+      - "No connection pool refresh logic — connections hold stale creds until they fail mid-request"
+      - "Not sizing Postgres max_connections for the rotation overlap window — pool exhaustion during rotation"
+      - "Migrating all 20 instances simultaneously — no rollback path if the connection pool callback has a bug"
+      - "No metric on credential refresh — you learn about rotation failures from user-facing 500s"
+
+  - title: "PKI Certificate Lifecycle for a Service Mesh"
+    problem: >
+      An organization runs 200 microservices with mTLS enforced via a service mesh. Currently
+      certificates are manually issued by the security team with 1-year validity, stored in
+      Kubernetes Secrets. Certificate expiry has caused two production outages in the past year.
+      Design an automated certificate lifecycle using Vault PKI.
+    constraints:
+      - "Certificates must be rotated before expiry with no service restart required"
+      - "Cert issuance must complete in under 2 seconds (mesh sidecar startup depends on it)"
+      - "The root CA private key must never leave an HSM-backed or cloud-KMS-backed store"
+      - "Cert revocation must propagate to all services within 5 minutes"
+    discussion:
+      - "**Two-tier PKI hierarchy**: Root CA (offline, or HSM-backed via Vault PKI with auto-unseal KMS) signs an Intermediate CA stored in Vault. Services request leaf certs from the Intermediate CA. The root CA's private key is never used for routine issuance — only to re-sign the intermediate when it expires (once per year)."
+      - "**Short TTL leaf certs**: issue certs with 24h TTL (or even 4h for high-security). Short TTL means revocation is rarely needed — the cert expires quickly anyway. This eliminates the need for a complex OCSP or CRL infrastructure for most cases."
+      - "**cert-manager integration**: cert-manager with the Vault issuer automates cert issuance and renewal for Kubernetes workloads. It watches certificate expiry and renews at 2/3 of TTL elapsed. The renewed cert is written to the Kubernetes Secret the mesh sidecar reads — no pod restart required if the sidecar watches for file change."
+      - "**Vault PKI performance**: Vault PKI can issue thousands of certs per second. The bottleneck in a large mesh is usually the Vault cluster throughput and storage I/O. For 200 services with 24h TTL, that's ~200 renewals/day — negligible. For 4h TTL: ~1200/day, still negligible for a properly sized cluster."
+      - "**Revocation via short TTL**: instead of maintaining a CRL that all 200 services must poll, design for short TTLs where you can tolerate waiting out the TTL. For immediate revocation (compromised private key), use Vault's CRL or OCSP responder, and configure the mesh to check OCSP before accepting a cert."
+      - "**Intermediate CA rotation**: the Intermediate CA itself has a TTL (1–2 years). Plan its rotation before expiry: generate a new intermediate, have both the old and new trusted by services simultaneously during the transition (bundle both in the trust bundle), then revoke the old."
+    red_flags:
+      - "1-year cert TTLs — a missed renewal causes an outage; manual processes always miss eventually"
+      - "Storing the root CA private key in Vault's KV — it must be in HSM or KMS-backed storage"
+      - "No cert-manager or equivalent automation — manual issuance doesn't scale to 200 services"
+      - "Not testing intermediate CA rotation — the first time you practice it shouldn't be during expiry"
+      - "Ignoring the trust bundle distribution problem — adding a new CA is useless if services don't trust it"

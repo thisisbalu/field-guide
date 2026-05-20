@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PostgreSQL — Field Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#336791;--accent2:#c0392b;--accent3:#264e6c; --highlight-bg:#eaf1f8;--highlight-text:#336791;--highlight-border:#336791; --your-exp-bg:rgba(38,78,108,.06);--your-exp-border:rgba(38,78,108,.2);--your-exp-text:#264e6c; --acc-hover:rgba(51,103,145,.04);--acc-open-border:#336791;--acc-open-bg:rgba(51,103,145,.04); --num-color:#336791;--num-bg:rgba(51,103,145,.1); --tag-color:#336791;--tag-bg:rgba(51,103,145,.08);--tag-border:rgba(51,103,145,.2); --flow-arrow:#336791;--h1-from:#264e6c;--h1-to:#336791; --badge-color:#264e6c;--stat-num:#264e6c; --tab-active-color:#336791;--tab-active-bg:rgba(51,103,145,.08);--tab-active-border:#336791; --section-title:#336791;--concept-title:#264e6c; --cheat-head-bg:#264e6c;--cheat-head-text:#ffffff;--cheat-key:#264e6c; --cmd-bg:#eaf1f8;--cmd-text:#264e6c; }
+  [data-theme="dark"]{ --accent:#4f8cc9;--accent2:#e74c3c;--accent3:#699AC7; --highlight-bg:#0a1520;--highlight-text:#4f8cc9;--highlight-border:#4f8cc9; --your-exp-bg:rgba(105,154,199,.08);--your-exp-border:rgba(105,154,199,.25);--your-exp-text:#699AC7; --acc-hover:rgba(79,140,201,.04);--acc-open-border:#4f8cc9;--acc-open-bg:rgba(79,140,201,.03); --num-color:#4f8cc9;--num-bg:rgba(79,140,201,.08); --tag-color:#4f8cc9;--tag-bg:rgba(79,140,201,.08);--tag-border:rgba(79,140,201,.2); --flow-arrow:#4f8cc9;--h1-from:#699AC7;--h1-to:#4f8cc9; --badge-color:#4f8cc9;--stat-num:#4f8cc9; --tab-active-color:#4f8cc9;--tab-active-bg:rgba(79,140,201,.08);--tab-active-border:#4f8cc9; --section-title:#4f8cc9;--concept-title:#4f8cc9; --cheat-head-bg:#0a1520;--cheat-head-text:#4f8cc9;--cheat-key:#4f8cc9; --cmd-bg:#0a1520;--cmd-text:#4f8cc9; }
+  [data-theme="light"] .toggle-knob{background:#336791;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#4f8cc9;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Stats row ───────────────────────────────────────────────────────────── */
+.stats{display:flex;gap:.75rem;margin-bottom:2rem;flex-wrap:wrap;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.65rem 1rem;text-align:center;flex:1;min-width:90px;}
+.stat-num{font-size:1.6rem;font-weight:800;color:var(--stat-num);font-family:'IBM Plex Mono',monospace;line-height:1;}
+.stat-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:'IBM Plex Mono',monospace;margin-top:.25rem;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .4s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{max-height:3000px;padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+}
+
+</style>
+</head>
+<body>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>PostgreSQL</h1>
+  <p class="subtitle">// MVCC · indexes · query planner · isolation levels · WAL · replication · partitioning · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
+  <div class="tab" onclick="switchTab('deepdive',this)">Deep Dive</div>
+  <div class="tab" onclick="switchTab('qa',this)">Q &amp; A</div>
+  <div class="tab" onclick="switchTab('scenarios',this)">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">🔄 MVCC — Multi-Version Concurrency Control</div>
+      <div class="concept-body">
+        PostgreSQL never overwrites a row in-place. Every <code>UPDATE</code> writes a <strong>new row version</strong> (tuple) and marks the old one as dead. Every <code>DELETE</code> marks a tuple dead without removing it. Readers see the version of the row that was committed before their transaction started — <strong>reads never block writes</strong> and <strong>writes never block reads</strong>.
+Each tuple carries <code>xmin</code> (the transaction that created it) and <code>xmax</code> (the transaction that deleted or updated it). The snapshot a transaction uses determines which <code>xmin</code>/<code>xmax</code> values are visible to it.
+<strong>Dead tuples</strong> are the cost: they accumulate on disk until <code>VACUUM</code> reclaims the space. A table under heavy updates grows bloated until autovacuum catches up.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">UPDATE row</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">New tuple written (xmin=current txn)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Old tuple marked dead (xmax=current txn)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">VACUUM reclaims dead space</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">readers never block writers</span>
+          
+          <span class="tag orange">dead tuples = bloat</span>
+          
+          <span class="tag purple">VACUUM reclaims space</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📑 Indexes</div>
+      <div class="concept-body">
+        <strong>B-tree</strong> (default): balanced tree; supports <code>=</code>, <code>&lt;</code>, <code>&gt;</code>, <code>BETWEEN</code>, <code>LIKE 'foo%'</code>. Covers 95%+ of use cases.
+<strong>Hash</strong>: only <code>=</code>. Slightly faster than B-tree for pure equality, but not WAL-logged before PG10 — avoid in older versions.
+<strong>GIN</strong> (Generalized Inverted Index): for composite values where you search within the value. Full-text search (<code>tsvector</code>), JSONB containment (<code>@&gt;</code>), arrays (<code>&amp;&amp;</code>).
+<strong>GiST</strong> (Generalized Search Tree): geometric types, PostGIS geometries, ranges, full-text (<code>ts_rank</code>). Lossy — may return false positives, rechecked in heap.
+<strong>BRIN</strong> (Block Range Index): extremely small; records min/max per block range. Works only when table data is physically sorted by the indexed column (e.g., an append-only <code>created_at</code>). Terrible for random-ordered columns.
+<strong>Partial index</strong>: <code>CREATE INDEX ON orders (user_id) WHERE status = 'pending'</code> — indexes only a subset of rows. Tiny and fast when queries always include the WHERE clause.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">B-tree = default choice</span>
+          
+          <span class="tag orange">GIN = full-text / JSONB</span>
+          
+          <span class="tag purple">BRIN = append-only tables</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📊 Query Planner & EXPLAIN</div>
+      <div class="concept-body">
+        The planner generates candidate query plans and picks the one with the lowest estimated <strong>cost</strong> (arbitrary unit combining I/O + CPU). Cost estimates rely on <strong>table statistics</strong> gathered by <code>ANALYZE</code> (row count, column distinct values, most common values, histogram buckets). Stale statistics = bad plans.
+<strong><code>EXPLAIN</code></strong>: shows the plan with estimated rows and cost. <strong><code>EXPLAIN (ANALYZE, BUFFERS)</code></strong>: executes the query and shows actual rows, actual time, and buffer hits/misses — the only reliable way to know what's slow.
+Key plan nodes: <code>Seq Scan</code> (full table), <code>Index Scan</code> (b-tree seek + heap fetch), <code>Index Only Scan</code> (covering index, no heap), <code>Bitmap Heap Scan</code> (batched heap access for many index hits), <code>Hash Join</code>, <code>Nested Loop</code>, <code>Merge Join</code>.
+<code>work_mem</code> controls the memory available per sort/hash operation. Set too low → spills to disk → slow. Set too high → OOM under concurrent queries.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">EXPLAIN ANALYZE is ground truth</span>
+          
+          <span class="tag red">stale stats → bad plans</span>
+          
+          <span class="tag orange">work_mem per sort/hash</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔒 Transactions & Isolation Levels</div>
+      <div class="concept-body">
+        PostgreSQL supports four isolation levels, each preventing progressively more anomalies:
+<strong>READ COMMITTED</strong> (default): each statement sees data committed before that statement begins. Non-repeatable reads possible — the same row can return different values in two reads within the same transaction.
+<strong>REPEATABLE READ</strong>: snapshot is taken at first statement in the transaction. Protects against non-repeatable reads. Phantom reads are also prevented in PostgreSQL's implementation (unlike the SQL standard which requires SERIALIZABLE for that).
+<strong>SERIALIZABLE</strong>: full SSI (Serializable Snapshot Isolation). Transactions behave as if run serially. Serialization failures possible — application must retry on <code>ERROR 40001</code>.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">READ COMMITTED = default</span>
+          
+          <span class="tag red">SERIALIZABLE = retry on 40001</span>
+          
+          <span class="tag green">REPEATABLE READ = snapshot at txn start</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📝 WAL & Crash Recovery</div>
+      <div class="concept-body">
+        The <strong>Write-Ahead Log</strong> is an append-only journal of every change. Before a data page is modified, the change is written to WAL. On crash, PostgreSQL replays WAL from the last checkpoint to restore a consistent state — data changes never reach disk before their WAL record does.
+<strong>Checkpoints</strong> flush dirty pages to disk and write a checkpoint record to WAL. On recovery, PostgreSQL only needs to replay WAL from the last checkpoint. Frequent checkpoints → faster recovery, more I/O. <code>checkpoint_completion_target=0.9</code> spreads checkpoint writes over 90% of the checkpoint interval.
+WAL also drives <strong>replication</strong>: standbys receive WAL stream and replay it — physical (byte-for-byte identical) replication. <strong>Logical replication</strong> decodes WAL into row-level changes (INSERT/UPDATE/DELETE) for selective, cross-version replication.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Write WAL record</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Modify buffer page</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Checkpoint flushes dirty pages</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Standby replays WAL</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">WAL before data pages</span>
+          
+          <span class="tag orange">checkpoint = recovery starting point</span>
+          
+          <span class="tag purple">logical replication = row-level changes</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🗂️ Partitioning</div>
+      <div class="concept-body">
+        Partitioning splits a large table into smaller physical child tables sharing the same schema. Queries with matching <code>WHERE</code> clauses use <strong>partition pruning</strong> to scan only relevant children. Maintenance (VACUUM, index rebuilds) runs on smaller partitions.
+<strong>Range</strong>: <code>PARTITION BY RANGE (created_at)</code> — one partition per month. Best for time-series data; old partitions detach cleanly.
+<strong>List</strong>: <code>PARTITION BY LIST (region)</code> — one partition per region. Good for low-cardinality categorical splits.
+<strong>Hash</strong>: <code>PARTITION BY HASH (user_id)</code> — distributes rows evenly. Good for sharding by ID when no natural range exists.
+Partitioning adds overhead: the planner must evaluate each partition, <code>INSERT</code> routes through the partition key, foreign keys to the parent table are not supported.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">range = time-series</span>
+          
+          <span class="tag orange">hash = even distribution</span>
+          
+          <span class="tag purple">pruning = partition-key in WHERE</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Table bloat — MVCC dead tuples that autovacuum can't reclaim</span>
+      Long-running transactions pin the oldest transaction ID visible to any snapshot. Autovacuum cannot remove dead tuples newer than that pin — the table bloats even with autovacuum running at full speed. Monitor <code>pg_stat_activity</code> for long-running transactions and <code>age(relfrozenxid)</code> in <code>pg_class</code> for bloat risk. One idle-in-transaction session can block autovacuum across the entire database.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Transaction ID wraparound — the 2-billion row ticking clock</span>
+      PostgreSQL's transaction IDs are 32-bit integers — they wrap around after ~2 billion transactions. Rows older than the wraparound horizon become invisible. PostgreSQL runs <strong>emergency autovacuum</strong> (visible in <code>pg_stat_activity</code> as <code>autovacuum: VACUUM (to prevent wraparound)</code>) when the horizon approaches. If it can't keep up, PostgreSQL shuts down to prevent data corruption. Monitor <code>age(datfrozenxid)</code> in <code>pg_database</code> — alert above 1.5B.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Connection exhaustion — PostgreSQL is process-per-connection</span>
+      Each client connection spawns a new OS process. PostgreSQL performs poorly above ~200–500 connections on most hardware — context switching and shared memory overhead dominate. The fix is a <strong>connection pooler</strong> (PgBouncer in transaction mode). Application code should never connect directly to PostgreSQL at scale; connection count is not a free resource like in thread-per-connection databases.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Index bloat after bulk updates</span>
+      B-tree indexes also accumulate dead entries pointing to dead tuples. <code>VACUUM</code> marks index entries as dead but reclaims pages only during <code>VACUUM FULL</code> (which takes an <code>ACCESS EXCLUSIVE</code> lock — avoid in production). Monitor index bloat with <code>pgstattuple</code>. Use <code>REINDEX CONCURRENTLY</code> (PG12+) to rebuild a bloated index without locking.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Sequential scans despite an index existing</span>
+      The planner chooses a sequential scan when it estimates that the query will touch a large fraction of rows — fetching heap pages randomly (Index Scan) is slower than reading them sequentially. Common causes: statistics are stale (run <code>ANALYZE</code>), the selectivity estimate is wrong (correlation mismatch), or <code>random_page_cost</code> is calibrated for spinning disk on an SSD server. Set <code>random_page_cost=1.1</code> on SSD-backed servers to correctly model random I/O as nearly as cheap as sequential.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">NOT IN with NULLs returns no rows</span>
+      <code>SELECT * FROM a WHERE id NOT IN (SELECT id FROM b)</code> returns <strong>zero rows</strong> if any row in <code>b.id</code> is NULL — because <code>NULL != anything</code> is UNKNOWN, not FALSE, and <code>NOT IN</code> requires all comparisons to be FALSE. Use <code>NOT EXISTS</code> or <code>LEFT JOIN / WHERE b.id IS NULL</code> instead. This SQL behavior trips up even experienced developers.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use PostgreSQL When</div>
+      <ul>
+        
+        <li>OLTP workloads requiring ACID transactions and strong consistency</li>
+        
+        <li>Complex queries with joins, aggregations, window functions, and CTEs</li>
+        
+        <li>Semi-structured data alongside relational data (JSONB + relational in one query)</li>
+        
+        <li>Full-text search, geospatial queries (PostGIS), or graph-like recursive queries</li>
+        
+        <li>When correctness is non-negotiable and you need per-row, per-column access control</li>
+        
+        <li>General-purpose OLAP on moderate data volumes (< ~10 TB) with pg_partman + partitioning</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use PostgreSQL When</div>
+      <ul>
+        
+        <li>Write throughput exceeding a single node's capacity — consider CockroachDB, Cassandra, or sharding</li>
+        
+        <li>Pure key-value access with no relational queries — Redis or DynamoDB are simpler and faster</li>
+        
+        <li>Petabyte-scale analytics — columnar stores (Snowflake, BigQuery, Redshift) are orders of magnitude faster</li>
+        
+        <li>Pure document storage with highly variable schemas — MongoDB or a document store avoids schema migrations</li>
+        
+        <li>Multi-region active-active writes with no tolerance for conflict resolution complexity</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">📑 Index Type Reference</div>
+      <table>
+        
+        <tr><td>B-tree</td><td>Default. Supports =, <, >, BETWEEN, LIKE 'prefix%'. Handles NULLs. Multi-column indexes support leading-column prefix queries.</td></tr>
+        
+        <tr><td>Hash</td><td>Only =. Faster point lookups than B-tree at high cardinality. WAL-safe since PG10. Not useful for range queries.</td></tr>
+        
+        <tr><td>GIN</td><td>Full-text search (tsvector), JSONB @> / ?, arrays &&/@>. Slow to build, fast to query. Use gin_pending_list_limit to control build buffering.</td></tr>
+        
+        <tr><td>GiST</td><td>Geometric types, PostGIS, range types, full-text ranking. Lossy — may return false positives, rechecked against the heap.</td></tr>
+        
+        <tr><td>BRIN</td><td>Tiny index (128 bytes per range). Only useful when column values are physically sorted (e.g., append-only created_at). Terrible on random data.</td></tr>
+        
+        <tr><td>Partial</td><td>Index only rows matching a WHERE predicate. Tiny and fast. Query must include the predicate for the planner to use it.</td></tr>
+        
+        <tr><td>Covering (INCLUDE)</td><td>B-tree with extra columns in INCLUDE clause. Enables Index Only Scans by putting SELECT columns in the index leaf pages.</td></tr>
+        
+        <tr><td>Expression</td><td>Index on an expression: CREATE INDEX ON users (lower(email)). Planner uses it only if the query WHERE clause uses the same expression.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">🔒 Isolation Levels & Anomalies</div>
+      <table>
+        
+        <tr><td>READ UNCOMMITTED</td><td>Not implemented in PostgreSQL — treated as READ COMMITTED. Dirty reads are never allowed.</td></tr>
+        
+        <tr><td>READ COMMITTED</td><td>Default. Each statement sees its own snapshot. Non-repeatable reads possible. Safe for most OLTP reads.</td></tr>
+        
+        <tr><td>REPEATABLE READ</td><td>Snapshot at first statement. No non-repeatable reads or phantoms (PostgreSQL goes beyond the SQL standard here). Serialization failures possible on write conflicts.</td></tr>
+        
+        <tr><td>SERIALIZABLE</td><td>SSI — full serializability. Application must retry on ERROR 40001 (serialization_failure). Higher CPU overhead. Use for financial transactions, inventory, anything where write skew matters.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">⚙️ Key Configuration Parameters</div>
+      <table>
+        
+        <tr><td>shared_buffers</td><td>PostgreSQL buffer cache. Start at 25% of RAM. Increasing past 40% rarely helps — OS page cache also caches.</td></tr>
+        
+        <tr><td>work_mem</td><td>Memory per sort/hash operation per query node. Low → disk spill. High → OOM under concurrency. Set at session level for analytics queries.</td></tr>
+        
+        <tr><td>maintenance_work_mem</td><td>Memory for VACUUM, CREATE INDEX, ALTER TABLE. Set higher (1–2 GB) for index builds on large tables.</td></tr>
+        
+        <tr><td>effective_cache_size</td><td>Hint to the planner about total available cache (shared_buffers + OS cache). Does not allocate memory. Set to 75% of RAM.</td></tr>
+        
+        <tr><td>random_page_cost</td><td>Planner cost of random I/O relative to seq. Default 4.0 (HDD). Use 1.1–1.5 for SSDs — makes the planner prefer index scans correctly.</td></tr>
+        
+        <tr><td>max_connections</td><td>Caps OS processes. Keep low (100–200) and use PgBouncer. Each connection uses ~5–10 MB of shared memory overhead.</td></tr>
+        
+        <tr><td>wal_level</td><td>minimal / replica / logical. Must be 'replica' for streaming replication, 'logical' for logical replication or CDC.</td></tr>
+        
+        <tr><td>checkpoint_completion_target</td><td>Fraction of checkpoint interval to spread writes over. Default 0.5; set to 0.9 to reduce I/O spikes.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">🔍 EXPLAIN Output Reference</div>
+      <table>
+        
+        <tr><td>cost=X..Y</td><td>Estimated startup cost .. total cost. Arbitrary units. Compare plans; don't compare across servers.</td></tr>
+        
+        <tr><td>rows=N</td><td>Planner's estimated row count. Deviation from actual rows indicates stale statistics.</td></tr>
+        
+        <tr><td>actual time=X..Y</td><td>Only in EXPLAIN ANALYZE. Wall time in ms for first row .. last row. Per-loop; multiply by loops.</td></tr>
+        
+        <tr><td>Buffers: hit=N read=N</td><td>Only with BUFFERS option. Hit = from shared_buffers (fast). Read = from disk or OS cache (slow).</td></tr>
+        
+        <tr><td>Seq Scan</td><td>Full table scan. Fine for small tables or large fraction of rows. Bad if selectivity is high.</td></tr>
+        
+        <tr><td>Index Only Scan</td><td>Reads all needed columns from index leaf pages — no heap access. Fastest scan type. Requires covering index.</td></tr>
+        
+        <tr><td>Bitmap Heap Scan</td><td>Collects many TIDs from index, sorts them, then fetches heap pages in order. Used when many rows match — reduces random I/O.</td></tr>
+        
+        <tr><td>Nested Loop</td><td>For each outer row, probe inner relation. Fast for small outer sets with selective inner index. Slow for large cross products.</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">💻 CLI Commands</div>
+      <div class="cmd-block">
+        
+        <div class="cmd-group">
+          <div class="cmd-label">psql Essentials</div>
+          
+          <span class="cmd">psql -h host -U user -d dbname               # connect</span>
+          
+          <span class="cmd">\dt                                          # list tables</span>
+          
+          <span class="cmd">\d tablename                                 # describe table (columns, indexes)</span>
+          
+          <span class="cmd">\di                                          # list indexes</span>
+          
+          <span class="cmd">\x                                           # toggle expanded output</span>
+          
+          <span class="cmd">\timing                                      # show query execution time</span>
+          
+          <span class="cmd">\copy table TO 'file.csv' CSV HEADER        # fast client-side export</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">EXPLAIN & Query Analysis</div>
+          
+          <span class="cmd">EXPLAIN SELECT ...;                           # show plan (no execution)</span>
+          
+          <span class="cmd">EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) SELECT ...; # execute + show actuals + buffer stats</span>
+          
+          <span class="cmd">EXPLAIN (ANALYZE, FORMAT JSON) SELECT ...;   # machine-readable for pgMustard / explain.dalibo.com</span>
+          
+          <span class="cmd">SET work_mem = '256MB'; EXPLAIN ANALYZE ...  # tune memory for one query</span>
+          
+          <span class="cmd">SET enable_seqscan = off; EXPLAIN ...;       # force index scan to compare plans</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Maintenance</div>
+          
+          <span class="cmd">VACUUM tablename;                             # reclaim dead tuples (concurrent, no lock)</span>
+          
+          <span class="cmd">VACUUM ANALYZE tablename;                     # vacuum + refresh statistics</span>
+          
+          <span class="cmd">VACUUM FULL tablename;                        # compact table (ACCESS EXCLUSIVE lock — avoid in prod)</span>
+          
+          <span class="cmd">ANALYZE tablename;                            # refresh planner statistics only</span>
+          
+          <span class="cmd">REINDEX CONCURRENTLY index_name;              # rebuild index without locking (PG12+)</span>
+          
+          <span class="cmd">CLUSTER tablename USING index_name;           # physically reorder table (locks table)</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Monitoring Queries</div>
+          
+          <span class="cmd">SELECT pid, now()-query_start AS dur, state, query FROM pg_stat_activity WHERE state != 'idle' ORDER BY dur DESC;</span>
+          
+          <span class="cmd">SELECT relname, n_dead_tup, n_live_tup, last_autovacuum FROM pg_stat_user_tables ORDER BY n_dead_tup DESC;</span>
+          
+          <span class="cmd">SELECT datname, age(datfrozenxid) AS xid_age FROM pg_database ORDER BY xid_age DESC;</span>
+          
+          <span class="cmd">SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) FROM pg_tables ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC LIMIT 20;</span>
+          
+          <span class="cmd">SELECT indexrelname, idx_scan, idx_tup_read FROM pg_stat_user_indexes WHERE idx_scan = 0;</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Backup & Restore</div>
+          
+          <span class="cmd">pg_dump -Fc -Z9 dbname > db.dump             # custom compressed format</span>
+          
+          <span class="cmd">pg_restore -d newdb --jobs=4 db.dump         # parallel restore</span>
+          
+          <span class="cmd">pg_dump -t tablename dbname | psql targetdb  # dump one table</span>
+          
+          <span class="cmd">pg_basebackup -D /backup -Ft -z -P           # physical base backup (for PITR)</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">PostgreSQL vs MySQL vs MongoDB vs CockroachDB</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+            <th>Dimension</th>
+            
+            <th>PostgreSQL</th>
+            
+            <th>MySQL (InnoDB)</th>
+            
+            <th>MongoDB</th>
+            
+            <th>CockroachDB</th>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Concurrency</td>
+            
+            <td>MVCC — readers never block writers</td>
+            
+            <td>MVCC — similar to PostgreSQL</td>
+            
+            <td>Document-level locking (WiredTiger MVCC)</td>
+            
+            <td>Serializable MVCC across distributed nodes</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>ACID</td>
+            
+            <td>Full ACID per transaction</td>
+            
+            <td>Full ACID (InnoDB)</td>
+            
+            <td>Multi-doc ACID since 4.0</td>
+            
+            <td>Full distributed ACID via Raft consensus</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Schema</td>
+            
+            <td>Strict schema; ALTER TABLE for changes</td>
+            
+            <td>Strict schema; online DDL with caveats</td>
+            
+            <td>Flexible BSON documents</td>
+            
+            <td>Strict SQL schema; online schema changes</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>JSON support</td>
+            
+            <td>JSONB — indexed, queryable, full operators</td>
+            
+            <td>JSON column (not indexed as flexibly)</td>
+            
+            <td>Native document store</td>
+            
+            <td>JSONB (PostgreSQL-compatible)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Full-text search</td>
+            
+            <td>Built-in tsvector/tsquery</td>
+            
+            <td>Basic FULLTEXT index</td>
+            
+            <td>Text index (Atlas Search for advanced)</td>
+            
+            <td>Limited (extensions not supported)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Replication</td>
+            
+            <td>Streaming (physical) + logical, built-in</td>
+            
+            <td>Binary log replication; group replication</td>
+            
+            <td>Replica sets (Raft-based); sharding via mongos</td>
+            
+            <td>Native distributed replication (Raft consensus per range)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Horizontal write scaling</td>
+            
+            <td>Manual sharding / Citus extension</td>
+            
+            <td>Manual sharding; Vitess popular</td>
+            
+            <td>Native sharding (mongos)</td>
+            
+            <td>Native; distributed key-value underneath</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Geospatial</td>
+            
+            <td>PostGIS extension — industry gold standard</td>
+            
+            <td>Geometry types; limited 2D support</td>
+            
+            <td>2dsphere index; good for geo queries</td>
+            
+            <td>Basic geometry (no PostGIS)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best for</td>
+            
+            <td>Complex OLTP, analytics, general purpose</td>
+            
+            <td>Web OLTP, read-heavy, strong ecosystem</td>
+            
+            <td>Document-centric, flexible schemas</td>
+            
+            <td>Global multi-region distributed SQL</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">Explain MVCC in PostgreSQL. What is a dead tuple, and how does VACUUM reclaim it?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>MVCC</strong> allows concurrent reads and writes without blocking by keeping multiple versions of every row. When a row is updated, PostgreSQL: 1. Writes a <strong>new tuple</strong> with <code>xmin</code> = current transaction ID. 2. Sets <code>xmax</code> on the <strong>old tuple</strong> = current transaction ID (marks it deleted).
+Readers use a <strong>snapshot</strong> — a list of transaction IDs visible to them. The snapshot rules: a tuple is visible if its <code>xmin</code> committed before the snapshot and its <code>xmax</code> is either not yet committed or not in the snapshot. This means old and new versions coexist on disk — readers see the version that was current when their transaction started.
+<strong>Dead tuples</strong> are old versions no longer visible to any active snapshot. They waste space and slow down index scans (they appear in indexes but require a heap fetch to confirm visibility).
+<strong>VACUUM</strong> scans the table, identifies dead tuples (those with <code>xmax</code> below the oldest active transaction's snapshot), marks their space as reusable, and removes their index entries. It does <strong>not</strong> compact the file by default (that's <code>VACUUM FULL</code>). Regular <code>VACUUM</code> runs concurrently with reads and writes.</div>
+        
+        <div class="staff-add">The critical subtlety is the <strong>oldest active transaction pin</strong>. Autovacuum cannot remove dead tuples that are newer than the oldest snapshot any active transaction holds. A single long-running or <code>idle in transaction</code> connection can pin the horizon for hours, causing unbounded bloat. Monitor <code>pg_stat_activity</code> for sessions in <code>idle in transaction</code> state with old <code>xact_start</code>. Set <code>idle_in_transaction_session_timeout</code> (PG9.6+) to automatically terminate these sessions. For analytical queries that legitimately run for hours, run them on a read replica, not the primary.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">What are the four transaction isolation levels in PostgreSQL and what anomalies does each prevent?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">PostgreSQL implements three distinct levels (READ UNCOMMITTED maps to READ COMMITTED):
+<strong>READ COMMITTED</strong> (default): each SQL statement sees a fresh snapshot as of when that statement started. Within a single transaction, two reads of the same row can return different values if a concurrent transaction committed between them (<strong>non-repeatable read</strong>). Safe for most OLTP operations where each statement is self-contained.
+<strong>REPEATABLE READ</strong>: snapshot taken at the first statement of the transaction. All subsequent reads within that transaction see the same data. Prevents non-repeatable reads and phantom reads (PostgreSQL's implementation goes beyond the SQL standard here). Serialization failures possible on write conflicts (<code>ERROR 40001</code>).
+<strong>SERIALIZABLE</strong>: uses Serializable Snapshot Isolation (SSI). Detects read-write dependencies between concurrent transactions that would produce a non-serializable execution. Aborts one transaction with <code>ERROR 40001 — serialization_failure</code> rather than allowing write skew. Application must retry on this error. Overhead is higher but correctness is guaranteed for any concurrent access pattern.
+<strong>Choosing</strong>: READ COMMITTED for most web OLTP; REPEATABLE READ for long transactions reading a consistent view (reports, exports); SERIALIZABLE for financial transactions, inventory deductions, or any "check then act" pattern.</div>
+        
+        <div class="staff-add"><strong>Write skew</strong> is the anomaly that catches teams off guard with REPEATABLE READ. Classic example: two doctors both read that at least one other doctor is on call and both decide to go off call — the constraint "at least one doctor must be on call" is violated. REPEATABLE READ doesn't prevent this; SERIALIZABLE does. For simpler cases, <code>SELECT FOR UPDATE</code> (pessimistic locking) can prevent write skew without SERIALIZABLE isolation — it serializes the specific rows being checked. The right tool depends on contention level and retry tolerance.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">How does PostgreSQL's query planner decide between a Seq Scan and an Index Scan? What can cause it to choose wrong?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The planner estimates the <strong>cost</strong> of each candidate plan and picks the lowest. Cost has two components: I/O cost (proportional to pages read) and CPU cost (proportional to rows processed). Key parameters:
+- <code>seq_page_cost = 1.0</code> (baseline) - <code>random_page_cost = 4.0</code> (default) — random I/O costs 4× sequential - <code>cpu_tuple_cost</code>, <code>cpu_index_tuple_cost</code>, <code>cpu_operator_cost</code>
+<strong>When the planner chooses Seq Scan over an existing index</strong>: it estimates that the fraction of rows returned is large enough that fetching them via random index lookups (each requiring a heap page fetch) costs more than scanning the whole table sequentially.
+<strong>Wrong plan causes</strong>: - <strong>Stale statistics</strong>: <code>n_distinct</code>, MCV list, histogram are outdated — run <code>ANALYZE</code>. - <strong>Wrong <code>random_page_cost</code></strong>: on SSDs, random I/O is nearly as cheap as sequential.
+  Set <code>random_page_cost = 1.1</code> to make the planner correctly prefer index scans.
+- <strong>Correlation mismatch</strong>: data inserted in random order won't benefit from a BRIN index
+  or have good correlation for index-friendly access patterns.
+- <strong>Missing <code>ANALYZE</code> after bulk load</strong>: newly loaded tables have no statistics. - <strong>High <code>work_mem</code> for the query causing a hash join to be preferred</strong> over a nested loop.</div>
+        
+        <div class="staff-add">The best tool to diagnose planner decisions is <code>EXPLAIN (ANALYZE, BUFFERS)</code>. Look at <code>rows=N</code> (estimated) vs <code>actual rows=M</code> (actual). A factor of 10× or more mismatch means statistics are stale or the planner's model doesn't fit the data. For JSONB or array columns with complex access patterns, the planner has no statistics — consider partial indexes or expression indexes that mirror your query predicates. For tables with millions of rows and highly selective queries, the planner rarely makes the wrong call with good statistics; bad plans on large tables almost always trace back to stale stats or a wrong <code>random_page_cost</code> on SSDs.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">When would you choose a GIN index over a B-tree? Walk through a full-text search setup.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>Use <strong>GIN</strong> when you need to search <strong>within</strong> a composite value — the opposite of B-tree, which searches by the whole value. Primary GIN use cases: - <code>tsvector</code> full-text search (<code>@@</code> operator) - JSONB containment (<code>@&gt;</code>) and key existence (<code>?</code>, <code>?|</code>, <code>?&amp;</code>) - Array overlap/containment (<code>&amp;&amp;</code>, <code>@&gt;</code>, <code>&lt;@</code>)
+<strong>Full-text search setup</strong>: ```sql -- Add a tsvector column (or use a generated column in PG12+) ALTER TABLE articles ADD COLUMN fts tsvector
+  GENERATED ALWAYS AS (
+    to_tsvector('english', coalesce(title,'') || ' ' || coalesce(body,''))
+  ) STORED;</p>
+<p>CREATE INDEX articles_fts_idx ON articles USING gin(fts);
+-- Query SELECT id, title FROM articles WHERE fts @@ plainto_tsquery('english', 'postgresql indexing') ORDER BY ts_rank(fts, plainto_tsquery('english', 'postgresql indexing')) DESC LIMIT 20; <code>``
+GIN builds an inverted index: for each lexeme, it stores all row IDs containing it. Lookups are fast; writes are slower than B-tree (batched via pending list, flushed at</code>gin_pending_list_limit<code>). For write-heavy tables, consider</code>fastupdate=off` if GIN pending list is causing I/O spikes.</p></div>
+        
+        <div class="staff-add">GIN is powerful but comes with operational trade-offs. Index builds on large tables are slow and memory-hungry — set <code>maintenance_work_mem</code> high and build during low traffic. The pending list (<code>gin_pending_list_limit</code>, default 4 MB) buffers writes before merging into the main index structure; heavy write rates can trigger frequent merges. If you're doing JSONB querying and your documents are large and varied, profile whether GIN index size stays manageable — GIN indexes can be 2–5× the size of the data for high-cardinality JSONB. For simple key lookup in JSONB (<code>data-&gt;&gt;'user_id'</code>), a B-tree expression index is smaller and faster than GIN.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">What is WAL and how does it enable both crash recovery and replication?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>WAL (Write-Ahead Log)</strong> is an append-only sequential log of every change to the database. The WAL guarantee: a change is never applied to a data page until its WAL record is durably written to disk first (<code>fsync</code>). This means:
+<strong>Crash recovery</strong>: on restart after a crash, PostgreSQL replays WAL from the last checkpoint forward. Any change that has a WAL record is guaranteed to be recoverable, even if the data page was never flushed to disk. The database reaches a consistent state without any data loss for committed transactions.
+<strong>Physical (streaming) replication</strong>: the primary ships WAL segments to standby servers. Each standby replays the WAL, maintaining a byte-for-byte copy of the primary. Standbys can serve read queries (hot standby). Replication lag = WAL on primary not yet replayed on standby.
+<strong>Logical replication</strong>: WAL Decoder (<code>wal_level = logical</code>) reads the WAL and converts it into row-level changes (INSERT/UPDATE/DELETE). Enables selective table replication, cross-major-version replication, and CDC (Change Data Capture) for downstream systems (Debezium reads PostgreSQL's logical replication slot).</div>
+        
+        <div class="staff-add">WAL is also the foundation for <strong>point-in-time recovery (PITR)</strong>. Take a base backup (<code>pg_basebackup</code>), then continuously archive WAL segments to object storage (S3). To recover to any point in time, restore the base backup and replay WAL up to the desired LSN or timestamp. This gives you a RPO measured in seconds (WAL archive interval) rather than the backup frequency. For any production database, PITR should be the baseline DR strategy — not just nightly backups. Test your restore procedure regularly; untested PITR is not recovery, it's hope.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">What is autovacuum and what happens when it falls behind? How do you tune it?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Autovacuum</strong> is PostgreSQL's background daemon that runs <code>VACUUM</code> and <code>ANALYZE</code> on tables automatically when they accumulate enough dead tuples (<code>autovacuum_vacuum_scale_factor</code> × row count + <code>autovacuum_vacuum_threshold</code> dead tuples). It also triggers <code>ANALYZE</code> for statistics refresh on modified tables.
+<strong>What happens when it falls behind</strong>: - Dead tuples accumulate → <strong>table bloat</strong> → larger sequential scans, more I/O - Indexes accumulate dead entries → <strong>index bloat</strong> → slower index scans - <code>xmin</code> horizon stalls → <strong>transaction ID wraparound risk</strong> (the most dangerous outcome) - PostgreSQL runs emergency autovacuum (<code>to prevent wraparound</code>) which is more aggressive
+  and has higher priority but can still be outrun on extremely write-heavy tables</p>
+<p><strong>Tuning for high-write tables</strong>: <code>sql ALTER TABLE orders SET (
+  autovacuum_vacuum_scale_factor = 0.01,  -- vacuum after 1% dead tuples (not default 20%)
+  autovacuum_vacuum_cost_delay = 2,        -- less I/O throttling (ms, default 20)
+  autovacuum_vacuum_cost_limit = 800       -- more work per cycle (default 200)
+);</code> Also increase <code>autovacuum_max_workers</code> (default 3) for databases with many large tables.</p></div>
+        
+        <div class="staff-add">Autovacuum is not a fire-and-forget setting. As your tables grow and write rates increase, the default thresholds — designed for small databases — become wildly inadequate. A table with 100M rows and a 20% scale factor means autovacuum waits until 20M dead tuples accumulate before running. By then, bloat is severe and the vacuum run takes hours, during which it holds a share lock that blocks DDL. Set per-table autovacuum settings for your largest and most write-intensive tables. Monitor <code>pg_stat_user_tables.n_dead_tup</code>, <code>last_autovacuum</code>, and <code>last_autoanalyze</code> — these are your first line of observability. If <code>n_dead_tup</code> consistently grows between autovacuum runs, the tuning is still wrong.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">What is transaction ID wraparound and how do you prevent it from becoming an emergency?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">PostgreSQL's transaction IDs (XIDs) are 32-bit integers cycling from 0 to ~2.1 billion. Each new transaction gets a new XID. MVCC visibility is determined by XID comparison — whether a tuple's <code>xmin</code> is "in the past" relative to the current transaction.
+<strong>The problem</strong>: after ~2.1 billion transactions, XIDs wrap around. A row with <code>xmin</code> that was in the past becomes "in the future" — it becomes invisible. The entire database would appear empty. PostgreSQL prevents this by <strong>freezing</strong> old tuples: replacing their <code>xmin</code> with a special <code>FrozenTransactionId</code> that is always considered "in the past." <code>VACUUM</code> does this when a row is old enough (<code>vacuum_freeze_min_age</code> transactions old).
+<strong>Emergency threshold</strong>: when the oldest unfrozen XID is within 40M transactions of wraparound, PostgreSQL runs autovacuum in emergency mode. If it can't finish in time, PostgreSQL shuts down with the message "database is not accepting commands to avoid wraparound data loss."
+<strong>Prevention</strong>: monitor <code>age(datfrozenxid)</code> in <code>pg_database</code>. Alert above 1.5 billion. Ensure autovacuum runs regularly on all tables. Don't suppress autovacuum on large tables without an alternative.</div>
+        
+        <div class="staff-add">Wraparound emergencies are a known failure mode with a known prevention — yet they still cause production outages because teams disable autovacuum on large tables to avoid I/O overhead, or run long OLAP queries that hold an ancient transaction snapshot. The <code>age()</code> metric should be on every PostgreSQL dashboard. When the age approaches 1.8–2.0 billion, the situation is urgent: run <code>VACUUM FREEZE</code> manually on the table with the oldest <code>relfrozenxid</code> (check <code>pg_class</code>). In extreme cases with hours to wraparound, you can temporarily increase <code>autovacuum_vacuum_cost_delay = 0</code> at the database level to let autovacuum run at full speed at the cost of I/O impact on other workloads.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">How do you approach designing indexes for a table that has multiple different query patterns?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>Start from the queries, not the columns. For each query pattern: 1. <strong>Identify the predicate columns</strong> (WHERE, JOIN ON) — these must be in the index. 2. <strong>Identify the sort columns</strong> (ORDER BY) — B-tree indexes can satisfy ORDER BY,
+   eliminating a sort step.
+3. <strong>Identify the output columns</strong> (SELECT) — if they fit in the index, you get an
+   Index Only Scan (no heap fetch).</p>
+<p><strong>Multi-column index column order matters</strong>: - Equality predicates first, range predicates last (B-tree can use a range only on
+  the last column in a multi-column index).
+- <code>(status, created_at)</code> serves <code>WHERE status = 'pending' ORDER BY created_at</code> well.
+  Reverse order serves neither well.
+- A query using only <code>created_at</code> cannot use <code>(status, created_at)</code> — but can use
+  <code>(created_at, status)</code>. Design for your most selective queries first.</p>
+<p><strong>Covering indexes for hot queries</strong>: Add <code>INCLUDE (col1, col2)</code> to include non-predicate output columns in index leaf pages. Index Only Scans avoid heap entirely — massive speedup for queries selecting a few columns from large tables.
+<strong>Partial indexes for selective data</strong>: <code>CREATE INDEX ON orders (user_id) WHERE status = 'active'</code> is tiny and fast for an orders table where 99% of rows are closed. The query must include <code>WHERE status = 'active'</code>.
+<strong>Avoid over-indexing</strong>: each index is updated on every write. A table with 12 indexes pays a significant write penalty. Remove indexes with zero scans (<code>pg_stat_user_indexes</code> where <code>idx_scan = 0</code>) after a representative period.</p></div>
+        
+        <div class="staff-add">Index design is an iterative process driven by <code>EXPLAIN ANALYZE</code> output and query workload telemetry, not intuition. For existing production systems, use <code>pg_stat_statements</code> to identify your top N queries by total time (not just per-call — a fast query called millions of times per day may dominate). Then run EXPLAIN ANALYZE for each and look for Seq Scans on large tables and sort steps that could be eliminated by an index. The most impactful single change for most OLTP systems is adding a covering index for the 3–5 most-called queries. In Postgres 15+, <code>pg_store_plans</code> (extension) stores actual plans, not just queries — helpful for finding plan regressions after autovacuum or ANALYZE.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">When and how do you partition a PostgreSQL table? What are the operational trade-offs?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>When to partition</strong>: - Table size makes VACUUM, REINDEX, or backup/restore operationally painful (rough threshold: &gt;100 GB or &gt;500M rows) - You need to <strong>drop old data</strong> efficiently — <code>DROP</code> or <code>DETACH</code> a partition is instant, <code>DELETE</code> on a huge table is slow and bloating - Queries reliably filter on the partition key, enabling partition pruning - You want separate storage, autovacuum tuning, or tablespaces per partition
+<strong>Range partitioning</strong> for time-series data is the most common and valuable use case: <code>sql CREATE TABLE events (
+  id bigint, created_at timestamptz, payload jsonb
+) PARTITION BY RANGE (created_at);
+CREATE TABLE events_2024_01 PARTITION OF events
+  FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');</code> Use <code>pg_partman</code> to automate partition creation and retention.
+<strong>Operational trade-offs</strong>: - <strong>Pruning requires the partition key in the WHERE clause</strong> — queries without it scan all partitions (worse than a single large table). - <strong>Cross-partition queries</strong> (aggregations, sorts) are more expensive — each partition is scanned separately and results merged. - <strong>Foreign keys referencing the parent table are not supported</strong> in PostgreSQL. - <strong>Global unique constraints are not supported</strong> — unique constraints must include the partition key. - <strong>Index maintenance</strong>: each partition has its own indexes. <code>REINDEX CONCURRENTLY</code> must be run per partition.</div>
+        
+        <div class="staff-add">Partitioning solves data lifecycle problems, not performance problems — that's a common misconception. If your bottleneck is query speed on a 10 GB table, partitioning won't help and may hurt (planner overhead per partition, larger planning time). Where partitioning genuinely transforms operations is data retention: detaching and dropping a monthly partition for data older than 12 months takes milliseconds and generates no bloat. Compare this to <code>DELETE WHERE created_at &lt; '2023-01-01'</code> on 500M rows, which runs for hours, generates massive WAL, bloats the table, and spikes replication lag. Always ask "do I need the data lifecycle management benefit?" before committing to partitioning — it carries significant schema constraints.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">How does PostgreSQL replication work? When do you choose streaming replication vs logical replication?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Streaming replication</strong> (physical): the primary continuously sends WAL records to standby servers. Standbys replay WAL, maintaining a byte-for-byte identical copy. Standbys can serve read queries (<code>hot_standby = on</code>). Failover promotes a standby to primary. Works at the storage level — same PostgreSQL major version required.
+<strong>Replication slots</strong>: guarantee WAL is retained on the primary until the standby has consumed it. Prevents standby falling too far behind and being unable to catch up. Risk: if the standby disconnects long-term, WAL accumulates and fills the disk. Monitor <code>pg_replication_slots.confirmed_flush_lsn</code> and the lag in bytes.
+<strong>Logical replication</strong>: decodes WAL into row-level changes (INSERT/UPDATE/DELETE) and sends only selected tables to a subscriber. Subscriber can be a different major version, a different database, or a downstream analytics system. Used for: zero-downtime major version upgrades, selective replication, CDC with Debezium.
+<strong>Choosing</strong>: - Primary + read replicas for load distribution → <strong>streaming</strong> - Failover / HA → <strong>streaming</strong> with a standby promoted on failure (Patroni manages this) - Major version upgrade (PG14 → PG16) without downtime → <strong>logical</strong> (replicate to new version, switchover) - CDC to Kafka or a data warehouse → <strong>logical</strong> (via Debezium or pg_logical) - Cross-cloud or cross-region async replica → <strong>streaming</strong></div>
+        
+        <div class="staff-add"><strong>Patroni</strong> is the standard tool for managing streaming replication with automatic failover. It uses a DCS (etcd, Consul, ZooKeeper) as the consensus layer to avoid split-brain — only one node can acquire the leader lock and accept writes. Without a tool like Patroni, manual failover is error-prone and slow. The second operational decision is <strong>synchronous vs asynchronous replication</strong>. Async (default) means committed transactions may not yet be on the standby when the primary fails — potential data loss. Sync (<code>synchronous_commit = on</code>) means the primary waits for at least one standby to acknowledge before returning to the client. RPO = 0, but latency increases by one round-trip to the standby. For financial or audit data, sync replication is usually worth the latency cost.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-04</span>
+        <span class="acc-question">Walk through diagnosing a slow query in production without taking the database offline.</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Step 1 — Identify the query</strong>: <code>pg_stat_statements</code> (extension) aggregates queries by normalized form. Query by <code>total_exec_time</code> (total time across all calls) to find high-impact queries, not just the slowest individual call.
+<code>sql SELECT query, calls, mean_exec_time, total_exec_time, rows FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 10;</code>
+<strong>Step 2 — Get the plan</strong>: run <code>EXPLAIN (ANALYZE, BUFFERS)</code> against the query on a replica or during low traffic. Look for: - Seq Scan on large tables (missing index) - Estimated rows far from actual rows (stale statistics → run <code>ANALYZE</code>) - High <code>Buffers: read</code> (reading from disk rather than cache — I/O bound) - Sort step that could be eliminated by an index
+<strong>Step 3 — Check for locks</strong>: if the query is fast in isolation but slow in production, lock contention may be the cause. <code>sql SELECT pid, wait_event_type, wait_event, query FROM pg_stat_activity WHERE wait_event IS NOT NULL;</code>
+<strong>Step 4 — Fix without downtime</strong>: - Add an index: <code>CREATE INDEX CONCURRENTLY</code> — does not lock the table. - Update statistics: <code>ANALYZE tablename</code> — fast, concurrent. - Rewrite the query: avoid <code>NOT IN</code> with subqueries, use <code>EXISTS</code> or <code>JOIN</code> instead. - Fix <code>random_page_cost</code> if index scans are being avoided on SSD.
+<strong>Step 5 — Verify</strong>: compare <code>EXPLAIN ANALYZE</code> before and after. Check <code>pg_stat_statements</code> for reduction in <code>mean_exec_time</code> and <code>total_exec_time</code>.</div>
+        
+        <div class="staff-add">The most common mistake in query optimization is skipping directly to adding an index without running EXPLAIN ANALYZE first. An index may not help at all if the query is slow due to a poor join order (wrong statistics), lock contention, or a sequential scan that's actually appropriate for the data volume. A second mistake is running EXPLAIN (without ANALYZE) and making decisions from estimated rows — estimates can be off by orders of magnitude. Always use EXPLAIN ANALYZE on a representative dataset. For production, use <code>auto_explain</code> (extension) to log execution plans for slow queries automatically: <code>auto_explain.log_min_duration = 1000</code> logs plans for any query taking over 1 second, without requiring manual EXPLAIN runs.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How do you design a PostgreSQL HA architecture for a service with an RPO of 0 and RTO of 30 seconds?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>RPO = 0</strong> requires <strong>synchronous replication</strong> — the primary waits for at least one standby to acknowledge each WAL write before returning to the client. No committed transaction can be lost even if the primary fails.
+<strong>RTO = 30s</strong> requires <strong>automated failover</strong> with health checking and promotion.
+<strong>Architecture</strong>: - <strong>3-node cluster</strong>: 1 primary + 2 synchronous standbys (or 1 sync + 1 async as a witness).
+  With 2 sync standbys, the primary can commit as long as 1 acknowledges — tolerates
+  1 standby failure without blocking writes.
+- <strong>Patroni</strong> with <strong>etcd</strong> (3-node) as the DCS. Patroni runs on each PostgreSQL node,
+  holds a leader lock in etcd, and automatically promotes the most up-to-date standby
+  when the primary fails or becomes unhealthy. etcd provides fencing — the old primary
+  loses the lock and stops accepting writes (STONITH via pg_ctl or watchdog).
+- <strong>HAProxy / PgBouncer</strong> in front for connection routing: writes to port 5000 (primary),
+  reads to port 5001 (any standby). Patroni updates HAProxy health check endpoints automatically.
+- <strong>PgBouncer in transaction mode</strong> on each application server — keeps connection count manageable.
+<strong>Failover sequence</strong>: 1. Patroni detects primary is down (health check TTL ~10 s). 2. etcd leader lock expires, candidate standbys race to acquire it. 3. Most advanced standby (highest LSN) wins and promotes itself. 4. Patroni notifies HAProxy to reroute traffic. 5. Old primary rejoins as standby when it recovers (rewinds with <code>pg_rewind</code>).
+<strong>Monitoring</strong>: replication lag in bytes and seconds, etcd health, Patroni API status, checkpoint frequency, lock wait events.</div>
+        
+        <div class="staff-add">Synchronous replication's cost is write latency — every commit waits for a network round trip to the standby. For a primary and standby in the same AZ, that's ~0.5 ms. Across AZs in the same region, ~2–5 ms. Across regions, unacceptable for OLTP (tens of ms per commit). If the application is in the same region, synchronous replication is almost always worth it for critical data. The architectural trap to avoid: using <code>synchronous_standby_names = '*'</code> (all standbys must confirm). If any standby is lagging or unreachable, all writes block. Use <code>ANY 1 (standby1, standby2)</code> to require only one of the named standbys — writes continue as long as one is healthy. Design for partial standby failure, not just primary failure.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-02</span>
+        <span class="acc-question">You need to add a NOT NULL column with a default to a table with 500 million rows. The service cannot have downtime. Walk through your approach.</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Naive approach is wrong</strong>: <code>ALTER TABLE ADD COLUMN col type NOT NULL DEFAULT value</code> in PostgreSQL &lt; 11 rewrites the entire table (ACCESS EXCLUSIVE lock for hours). In PG11+ it's instant for constant defaults — but only for simple scalar constants, not function calls.
+<strong>Safe approach (all versions)</strong>:
+<strong>Step 1 — Add nullable column, no default, no lock</strong>: <code>sql ALTER TABLE orders ADD COLUMN metadata jsonb; -- ACCESS EXCLUSIVE lock held for milliseconds, then released</code>
+<strong>Step 2 — Backfill in small batches</strong> (background job, not a single UPDATE): <code>sql UPDATE orders SET metadata = '{}' WHERE id BETWEEN :lo AND :hi AND metadata IS NULL; -- Commit each batch. Keep batches small (1000–10000 rows). -- Pause between batches to let autovacuum keep up and avoid replication lag.</code> A single <code>UPDATE</code> of 500M rows generates enormous WAL, pins replication lag, bloats the table, and may take hours while holding a transaction. Batching avoids all of this.
+<strong>Step 3 — Add NOT NULL constraint as NOT VALID</strong> (PG12+): <code>sql ALTER TABLE orders ADD CONSTRAINT orders_metadata_not_null
+  CHECK (metadata IS NOT NULL) NOT VALID;
+-- Instant — does not scan existing rows.</code>
+<strong>Step 4 — Validate the constraint</strong> (concurrent, no write lock): <code>sql ALTER TABLE orders VALIDATE CONSTRAINT orders_metadata_not_null; -- Scans the table, but holds only SHARE UPDATE EXCLUSIVE (concurrent reads/writes OK).</code>
+<strong>Step 5 — (Optional) If you truly need a NOT NULL column</strong> (PG12+), after validation you can drop the CHECK constraint and convert — or live with the check constraint, which the query planner understands as equivalent.</div>
+        
+        <div class="staff-add">This pattern generalizes to all large table DDL: <strong>separate the structural change from the data backfill, and separate the backfill from the constraint enforcement</strong>. Each step is either fast (DDL with a brief lock) or concurrent (backfill or VALIDATE). The most common mistake is attempting the whole migration in a single transaction or a single <code>ALTER TABLE</code> statement that combines column add + backfill — usually discovered at 3 AM when the migration has been running for 4 hours on the wrong environment. For index creation on large tables, always use <code>CREATE INDEX CONCURRENTLY</code> — it takes longer but doesn't lock. The tooling ecosystem (Flyway, Liquibase, golang-migrate) does not prevent you from writing locking migrations — the discipline is the engineer's responsibility. Make zero-downtime migration patterns part of your team's standard library.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">Diagnosing a Production Slowdown After a Data Growth Spike</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">An e-commerce platform's order history page suddenly degrades from 50 ms to 8 seconds after the database grows from 50 GB to 300 GB over 6 months. No application code changed. The team suspects it's database-related but doesn't know where to start.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Cannot take the database offline or run VACUUM FULL during business hours</li><li>Cannot add read replicas immediately (budget approval needed)</li><li>Changes must be deployable without a release window</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Baseline with pg_stat_statements</strong>: identify the exact queries dominating <code>total_exec_time</code>. The order history page likely runs one or two critical queries — find them by correlation with the degradation timeline.</li><li><strong>EXPLAIN (ANALYZE, BUFFERS)</strong> on the offending queries: look for Seq Scan nodes on the orders or order_items table. With 50 GB the table fit in <code>shared_buffers</code> and OS cache — at 300 GB it doesn't, so formerly fast Seq Scans now read from disk.</li><li><strong>Check statistics freshness</strong>: <code>pg_stat_user_tables.last_autoanalyze</code>. If the table grew 6× without <code>ANALYZE</code> running frequently enough, the planner's row estimates are wildly wrong — it may be choosing a Seq Scan because it thinks there are 1M rows when there are 50M.</li><li><strong>Immediate fix — run ANALYZE</strong>: <code>ANALYZE orders;</code> takes seconds, is fully concurrent, and may immediately fix the plan. The planner will see correct cardinality and switch to index scans.</li><li><strong>Index audit — CREATE INDEX CONCURRENTLY</strong>: if the query has a predicate on <code>user_id</code> or <code>created_at</code> with no covering index, add one without locking. An Index Only Scan serving the whole SELECT from the index eliminates all heap I/O.</li><li><strong>Autovacuum tuning</strong>: check <code>n_dead_tup</code> and <code>last_autovacuum</code>. A fast-growing table with default autovacuum thresholds (20% scale factor) may have accumulated hundreds of millions of dead tuples, bloating the table and making every scan scan more pages than necessary.</li><li><strong>random_page_cost</strong>: if the server is SSD-backed and <code>random_page_cost</code> is still 4.0, the planner systematically undervalues index scans. Set to 1.1 — this alone can flip dozens of bad plans to index scans cluster-wide.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Running VACUUM FULL during business hours — takes ACCESS EXCLUSIVE lock for hours, worse than the original problem</li><li>Adding indexes without EXPLAIN ANALYZE — the index might not be used, or the real problem is statistics</li><li>Blaming the application and adding caching before diagnosing the query — may mask a query that will eventually overwhelm any cache</li><li>Increasing shared_buffers as the first response — it won't fix a bad query plan</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Zero-Downtime Major Version Upgrade (PG14 → PG16)</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A financial services company runs PostgreSQL 14 with 2 TB of data. They must upgrade to PostgreSQL 16 for a new feature (improved MERGE, logical replication improvements). The service runs 24/7 with an SLA of 99.9% uptime (~8 hours downtime/year budget). The entire year's budget cannot be spent on one upgrade.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Maximum tolerable downtime: 60 seconds</li><li>RPO: zero — no committed data can be lost</li><li>Must be able to roll back to PG14 within 10 minutes if PG16 has issues</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>pg_upgrade is wrong here</strong>: <code>pg_upgrade</code> is fast but requires downtime (database offline during upgrade) and produces a period where rollback means restoring a backup — too slow for the rollback SLA.</li><li><strong>Logical replication for live migration</strong>: set up a PG16 standby and replicate the entire schema and data using logical replication. The PG16 cluster receives all changes in near-real-time while PG14 continues serving traffic.</li><li><strong>Schema replication</strong>: pg_logical or the built-in logical replication protocol replicates data but not DDL. Schema must be created on PG16 manually (dump schema only with <code>pg_dump --schema-only</code>, apply to PG16) before setting up replication.</li><li><strong>Sequence synchronization</strong>: sequences are not replicated via logical replication. Before cutover, read all sequence current values from PG14 and advance PG16 sequences past those values with a safety buffer.</li><li><strong>Cutover procedure</strong>: (1) monitor replication lag until near-zero; (2) put application in read-only or maintenance mode for &lt;60 s; (3) wait for PG16 to fully catch up (confirm with <code>pg_replication_slot_lag</code>); (4) promote PG16 as primary; (5) flip application connection strings to PG16; (6) verify; (7) remove maintenance mode.</li><li><strong>Rollback</strong>: if PG16 shows issues, reconnect to PG14 (still running, not yet decommissioned). Set up reverse logical replication from PG16 → PG14 before cutover to capture any writes made during the PG16 window. Decommission PG14 only after 48-hour PG16 stability window.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Using pg_upgrade without a tested rollback path — the rollback is a restore from backup which may take hours for 2 TB</li><li>Forgetting sequence synchronization — PG16 will issue duplicate sequence values that collide with PG14 rows written during cutover</li><li>Not replicating all tables — logical replication requires explicit publication; tables missed will have stale data on PG16</li><li>Cutting over when replication lag is still significant — PG16 will be behind and serve stale reads or miss recent data</li><li>Decommissioning PG14 immediately after cutover — losing the rollback option before PG16 is proven stable</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Designing a Multi-Tenant SaaS Schema</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A SaaS platform serves 5,000 customer organizations. Each has its own data (users, documents, activity logs). The largest customers have 10M rows; most have under 10K. The team must decide between a shared schema (row-level tenant isolation), schema-per-tenant, or database-per-tenant. Cross-tenant analytics are required monthly.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Total estimated data: 2 TB across all tenants, growing 50% per year</li><li>P99 query latency: 200 ms for tenant-scoped queries</li><li>Monthly cross-tenant analytics reports (all tenants aggregated)</li><li>Security requirement: one tenant must never be able to read another's data</li><li>Operational team: 3 engineers — cannot manage 5,000 databases</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Shared schema (row-level isolation)</strong>: add <code>tenant_id</code> to every table. All 5,000 tenants share tables. Simplest operationally — one schema to migrate, one set of indexes. Requires Row-Level Security (RLS) to enforce isolation at the database level (<code>CREATE POLICY ... USING (tenant_id = current_setting('app.tenant_id')::uuid)</code>). Cross-tenant analytics is a single query.</li><li><strong>Row-Level Security as the isolation layer</strong>: enable RLS on all tables, set the current tenant ID in the session (<code>SET LOCAL app.tenant_id = 'xyz'</code>). Unauthorized access returns empty results rather than an error — test explicitly that the policy is enforced. BYPASSRLS role for analytics service. Requires careful index design: every index on tenant-scoped tables must lead with <code>tenant_id</code>.</li><li><strong>Partitioning by tenant_id (hash)</strong>: for the largest tenants with 10M rows, hash-partition by <code>tenant_id</code>. Large-tenant partitions can have their own storage and autovacuum settings. Small tenants share partitions. Adds complexity but keeps the operational model unified.</li><li><strong>Index design for multi-tenant</strong>: all filtering starts with <code>tenant_id</code>. Composite indexes <code>(tenant_id, &lt;filter_col&gt;, &lt;sort_col&gt;)</code>. Without <code>tenant_id</code> as the leading column, every query scans all tenants' data (Seq Scan or full index scan with filter).</li><li><strong>Cross-tenant analytics</strong>: with shared schema, analytics queries run across all tenants naturally. Use <code>BYPASSRLS</code> role or set <code>app.tenant_id</code> to a sentinel value that the RLS policy allows for analytics. Partition pruning can speed up per-tenant sub-aggregations.</li><li><strong>Schema-per-tenant for regulated workloads</strong>: if compliance requires schema-level isolation (some financial regulations), use schema-per-tenant within one database. Migrations must run across all schemas — tooling required (<code>pg_partman</code>-style batch migration). Cross-tenant analytics requires <code>UNION ALL</code> across schemas or a dedicated aggregation pipeline.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Skipping Row-Level Security and relying solely on application-level tenant filtering — one query bug exposes all tenants' data</li><li>No <code>tenant_id</code> as the leading column in indexes — queries scan all tenants' rows, performance degrades with tenant count</li><li>Schema-per-tenant without migration tooling — one schema change requires 5,000 manual migrations</li><li>Giving analytics queries access as a superuser (BYPASSRLS) without auditing — analytics team can read any tenant's data without oversight</li><li>Not testing RLS policies with an unprivileged session — the policy may have a bug that's invisible when connected as the table owner</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>function toggleTheme(){
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  h.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+function switchTab(name, el){
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+}
+
+function toggleAcc(header){
+  const item = header.parentElement;
+  item.classList.toggle('open', !item.classList.contains('open'));
+}
+</script>
+</body>
+</html>
