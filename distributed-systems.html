@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Distributed Systems — Field Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#0F766E;--accent2:#c0392b;--accent3:#0D6B64; --highlight-bg:#edfaf8;--highlight-text:#0F766E;--highlight-border:#0F766E; --your-exp-bg:rgba(13,107,100,.06);--your-exp-border:rgba(13,107,100,.2);--your-exp-text:#0D6B64; --acc-hover:rgba(15,118,110,.04);--acc-open-border:#0F766E;--acc-open-bg:rgba(15,118,110,.04); --num-color:#0F766E;--num-bg:rgba(15,118,110,.1); --tag-color:#0F766E;--tag-bg:rgba(15,118,110,.08);--tag-border:rgba(15,118,110,.2); --flow-arrow:#0F766E;--h1-from:#0D6B64;--h1-to:#0F766E; --badge-color:#0D6B64;--stat-num:#0D6B64; --tab-active-color:#0F766E;--tab-active-bg:rgba(15,118,110,.08);--tab-active-border:#0F766E; --section-title:#0F766E;--concept-title:#0D6B64; --cheat-head-bg:#0D6B64;--cheat-head-text:#ffffff;--cheat-key:#0D6B64; --cmd-bg:#edfaf8;--cmd-text:#0D6B64; }
+  [data-theme="dark"]{ --accent:#14B8A6;--accent2:#f87171;--accent3:#2DD4BF; --highlight-bg:#021a18;--highlight-text:#14B8A6;--highlight-border:#14B8A6; --your-exp-bg:rgba(20,184,166,.08);--your-exp-border:rgba(20,184,166,.25);--your-exp-text:#2DD4BF; --acc-hover:rgba(20,184,166,.04);--acc-open-border:#14B8A6;--acc-open-bg:rgba(20,184,166,.03); --num-color:#14B8A6;--num-bg:rgba(20,184,166,.08); --tag-color:#14B8A6;--tag-bg:rgba(20,184,166,.08);--tag-border:rgba(20,184,166,.2); --flow-arrow:#14B8A6;--h1-from:#2DD4BF;--h1-to:#14B8A6; --badge-color:#14B8A6;--stat-num:#14B8A6; --tab-active-color:#14B8A6;--tab-active-bg:rgba(20,184,166,.08);--tab-active-border:#14B8A6; --section-title:#14B8A6;--concept-title:#14B8A6; --cheat-head-bg:#021a18;--cheat-head-text:#14B8A6;--cheat-key:#14B8A6; --cmd-bg:#021a18;--cmd-text:#14B8A6; }
+  [data-theme="light"] .toggle-knob{background:#0F766E;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#14B8A6;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Stats row ───────────────────────────────────────────────────────────── */
+.stats{display:flex;gap:.75rem;margin-bottom:2rem;flex-wrap:wrap;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.65rem 1rem;text-align:center;flex:1;min-width:90px;}
+.stat-num{font-size:1.6rem;font-weight:800;color:var(--stat-num);font-family:'IBM Plex Mono',monospace;line-height:1;}
+.stat-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:'IBM Plex Mono',monospace;margin-top:.25rem;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .4s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{max-height:3000px;padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+}
+
+</style>
+</head>
+<body>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>Distributed Systems</h1>
+  <p class="subtitle">// CAP · consistency models · consensus · replication · distributed transactions · fault tolerance · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
+  <div class="tab" onclick="switchTab('deepdive',this)">Deep Dive</div>
+  <div class="tab" onclick="switchTab('qa',this)">Q &amp; A</div>
+  <div class="tab" onclick="switchTab('scenarios',this)">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">⚖️ CAP Theorem & PACELC</div>
+      <div class="concept-body">
+        <strong>CAP theorem</strong>: a distributed system can guarantee at most two of three properties simultaneously during a <strong>network partition</strong>: - <strong>Consistency</strong> (C): every read returns the most recent write or an error - <strong>Availability</strong> (A): every request receives a (non-error) response - <strong>Partition tolerance</strong> (P): the system continues operating despite network partitions
+Network partitions are not optional in real distributed systems — they happen. So the real choice is <strong>CP vs AP</strong>: when a partition occurs, do you return an error (preserve consistency) or return potentially stale data (preserve availability)?
+<strong>PACELC</strong> extends CAP for the normal (no-partition) case: even when the network is healthy, there is a trade-off between <strong>Latency</strong> and <strong>Consistency</strong>. Synchronous replication is consistent but adds latency; asynchronous replication is faster but eventually consistent. Example: DynamoDB is AP/EL (available during partitions, low latency over consistency); HBase is CP/EC (consistent during partitions, consistent over latency).
+        
+        
+        <div class="tags">
+          
+          <span class="tag red">P is not optional</span>
+          
+          <span class="tag orange">CP = consistency over availability</span>
+          
+          <span class="tag green">AP = availability over consistency</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🎯 Consistency Models</div>
+      <div class="concept-body">
+        From strongest to weakest:
+<strong>Linearizability</strong> (strong consistency): operations appear to execute instantaneously at some point between their invocation and response. A read always returns the value of the most recent write, globally. Requires coordination on every operation. Used by etcd, Zookeeper, Google Spanner.
+<strong>Sequential consistency</strong>: all nodes see operations in the same order, but that order doesn't have to match real time. Stronger than causal, weaker than linearizability.
+<strong>Causal consistency</strong>: operations that are causally related are seen in causal order by all nodes. Concurrent (causally unrelated) operations may be seen in different orders. MongoDB with causal sessions, Dynamo with vector clocks.
+<strong>Eventual consistency</strong>: if no new updates are made, all replicas will converge to the same value — eventually. No guarantee on when or what intermediate reads return. DNS, Cassandra (default), DynamoDB (default).
+        
+        
+        <div class="tags">
+          
+          <span class="tag red">linearizable = globally ordered</span>
+          
+          <span class="tag orange">causal = respects happens-before</span>
+          
+          <span class="tag green">eventual = best effort convergence</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🗳️ Consensus: Raft</div>
+      <div class="concept-body">
+        <strong>Consensus</strong> is the problem of getting a group of nodes to agree on a value despite failures. Required for leader election, replicated state machines, and distributed locks.
+<strong>Raft</strong> solves consensus by electing a <strong>leader</strong> who handles all writes. Followers replicate the leader's log. Terms are monotonically increasing election epochs.
+<strong>Leader election</strong>: nodes start as followers. On timeout without a heartbeat, a follower becomes a candidate and requests votes. A candidate winning a majority becomes leader. Raft guarantees only one leader per term.
+<strong>Log replication</strong>: the leader appends entries to its log and sends them to followers. An entry is <strong>committed</strong> once a majority acknowledges it. Committed entries are never lost, even if the leader crashes.
+<strong>Safety</strong>: Raft's leader election ensures the winner always has the most complete committed log — a node votes for a candidate only if the candidate's log is at least as up-to-date.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Follower timeout</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Candidate requests votes</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Majority votes → Leader</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Leader replicates log</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Majority ack → Commit</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">majority quorum = (N/2)+1</span>
+          
+          <span class="tag green">leader has complete log</span>
+          
+          <span class="tag purple">term = election epoch</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔁 Replication Strategies</div>
+      <div class="concept-body">
+        <strong>Single-leader (leader-follower)</strong>: all writes go to the leader; replicated to followers. Simple, strong consistency possible with synchronous replication. Leader is a bottleneck and single point of failure. Used by PostgreSQL, MySQL, Kafka (partition leader), Redis Sentinel.
+<strong>Multi-leader</strong>: multiple nodes accept writes; sync changes asynchronously. Higher write throughput, lower latency for geo-distributed writes. <strong>Write conflicts</strong> are possible and must be resolved (last-write-wins, custom merge, CRDTs). Used by CockroachDB (within a region), multi-region active-active databases.
+<strong>Leaderless (Dynamo-style)</strong>: any node accepts reads/writes. Quorum reads and writes (<code>W + R &gt; N</code> for strong consistency). Conflicts resolved at read time via version vectors. Used by Cassandra, DynamoDB, Riak.
+<strong>Quorum</strong>: with N replicas, write to W nodes, read from R nodes. If <code>W + R &gt; N</code>, at least one node in every read set overlaps every write set — guaranteeing you read the latest write. Tune W and R based on read/write ratio.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">W + R > N = strong consistency</span>
+          
+          <span class="tag red">multi-leader = conflict risk</span>
+          
+          <span class="tag orange">leaderless = no SPOF</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">💥 Failure Detection & Fault Tolerance</div>
+      <div class="concept-body">
+        <strong>Timeouts</strong> are the only way to detect failures in asynchronous networks — there is no reliable "node is dead" signal. A slow response is indistinguishable from a crashed node until the timeout fires. Too short → false positives (healthy nodes marked dead); too long → slow failure detection.
+<strong>Heartbeats</strong>: nodes periodically send "I'm alive" signals. Missing heartbeats trigger failure suspicion. Raft, ZooKeeper, Kafka all use heartbeats with configurable timeouts.
+<strong>Phi Accrual Failure Detector</strong> (Cassandra, Akka): instead of a binary alive/dead, outputs a suspicion level (phi) that increases as heartbeats are missed. Callers choose a phi threshold for their use case — more nuanced than a hard timeout.
+<strong>Gossip protocol</strong>: nodes periodically exchange state with random peers; information propagates epidemically. Used for membership (Cassandra ring), failure detection, and metadata dissemination. Scales to thousands of nodes with O(log N) convergence time.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">timeouts = only failure signal</span>
+          
+          <span class="tag green">gossip = O(log N) propagation</span>
+          
+          <span class="tag red">slow ≠ dead in async networks</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📦 Distributed Transactions & Patterns</div>
+      <div class="concept-body">
+        <strong>Two-Phase Commit (2PC)</strong>: coordinator asks all participants to <strong>prepare</strong> (lock resources, write to WAL), then <strong>commits</strong> (or aborts) based on all votes. Guarantees atomicity across services. Fatal flaw: if the coordinator crashes after prepare but before commit, participants are blocked — holding locks — until the coordinator recovers. Blocking protocol.
+<strong>SAGA</strong>: a long-lived transaction decomposed into a sequence of local transactions, each with a <strong>compensating transaction</strong> (undo). If step N fails, steps N-1 through 1 are compensated in reverse. No distributed lock held across steps. Two flavors: choreography (services react to events) and orchestration (a central coordinator drives the sequence).
+<strong>Outbox pattern</strong>: instead of writing to a database AND publishing an event (dual write, risk of inconsistency), write both to the database atomically in a single local transaction using an <strong>outbox table</strong>. A separate relay process reads the outbox and publishes to the message broker — exactly once, in order.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Local DB write + Outbox row (atomic)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Relay reads outbox</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Relay publishes event</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Mark outbox row processed</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag red">2PC = blocking on coordinator crash</span>
+          
+          <span class="tag orange">SAGA = compensations not rollback</span>
+          
+          <span class="tag green">outbox = atomic dual write</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Partial failure is harder than total failure</span>
+      A completely failed node is easy to detect and handle. A node that responds slowly, drops 10% of messages, or returns incorrect results for some keys is far harder. Your system must assume that at any moment, some subset of nodes is in an unknown state: alive, dead, or Byzantine (returning incorrect data). Design for partial failure as the norm, not the exception. Cascading failures are almost always triggered by slow partial failures, not clean crashes.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">You cannot rely on wall clocks for ordering in distributed systems</span>
+      System clocks on different machines can differ by milliseconds to seconds, even with NTP. NTP corrections can move clocks backward. A timestamp-based "latest write wins" conflict resolution will silently discard writes from machines with slightly fast clocks. Use <strong>logical clocks</strong> (Lamport timestamps) or <strong>vector clocks</strong> for causal ordering. The only exception is Google Spanner's TrueTime, which uses GPS and atomic clocks with bounded uncertainty — most systems don't have this.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Idempotency is harder than adding an idempotency key</span>
+      An idempotent operation produces the same result regardless of how many times it's called. The hard part: at-least-once message delivery means your consumer will process duplicate messages. Simply storing an idempotency key is not enough if checking and storing are not atomic with the operation. A race condition between two concurrent identical requests can result in both being processed. Use a database unique constraint on the idempotency key to make the check-and-store atomic — a second write will fail, not slip through.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Network partitions are routine — not edge cases</span>
+      Teams design for the happy path (all nodes reachable) and treat partitions as rare catastrophes. In practice, brief network partitions happen multiple times per day in any large system: a switch reboot, a BGP flap, a VM live migration, a cloud AZ hiccup. Design your system to handle partitions gracefully — degrade, queue, or return cached data — rather than assuming they won't happen. A system that works perfectly for 364 days but completely fails for hours on day 365 has an effective availability far below its theoretical uptime.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Leader election does not prevent split-brain without fencing</span>
+      When a leader crashes and a new leader is elected, the old leader may still be running (GC pause, network partition making it think it's still leader). If both leaders accept writes, you have split-brain — diverged state that may be impossible to reconcile. <strong>Fencing tokens</strong> (monotonically increasing lease numbers) prevent this: every write operation includes the current fence token; the storage layer rejects writes with an outdated token. The old leader's writes are rejected because its token is stale.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">The thundering herd on cache expiry or leader failover</span>
+      When a cache entry expires, all requests that were being served from it simultaneously hit the database — the thundering herd. Similarly, when a leader fails over, all clients simultaneously try to reconnect and may overwhelm the new leader. Mitigation: <strong>probabilistic early expiration</strong> (refresh the cache slightly before TTL, randomly), <strong>request coalescing</strong> (only one goroutine fetches; others wait for the result), and <strong>exponential backoff with jitter</strong> on reconnects. Pure exponential backoff without jitter synchronizes retries — adding jitter spreads the load.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use Distributed Systems When</div>
+      <ul>
+        
+        <li>When a single machine cannot handle the load, storage, or availability requirements</li>
+        
+        <li>When fault tolerance is required — a single node failure must not cause service outage</li>
+        
+        <li>When data must be geographically distributed to reduce latency for global users</li>
+        
+        <li>When horizontal scaling is needed — adding nodes should linearly increase capacity</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use Distributed Systems When</div>
+      <ul>
+        
+        <li>When a single machine is sufficient — distributed systems add complexity without benefit at small scale</li>
+        
+        <li>When strong consistency is required and you cannot tolerate the latency or availability cost of coordination</li>
+        
+        <li>When the team lacks the operational maturity to handle split-brain, partition handling, and clock skew</li>
+        
+        <li>As a first choice — start with a well-understood single-node system and distribute only when you hit real limits</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">🎯 Consistency Model Comparison</div>
+      <table>
+        
+        <tr><td>Linearizability</td><td>Every op appears atomic at a single point in real time. Reads always see the latest committed write. Requires global coordination. Highest latency. Used by: etcd, Zookeeper, Google Spanner, CockroachDB.</td></tr>
+        
+        <tr><td>Sequential Consistency</td><td>All nodes agree on a global operation order, but that order doesn't have to match real time. Weaker than linearizability. Used in some CPU memory models.</td></tr>
+        
+        <tr><td>Causal Consistency</td><td>Causally related ops seen in causal order by all nodes. Concurrent ops may be seen in different order. Requires vector clocks or dependency tracking. Used by: MongoDB causal sessions, Amazon Aurora.</td></tr>
+        
+        <tr><td>Read-your-writes</td><td>After a client writes, it always sees that write in subsequent reads (from any replica). Not system-wide — only for the writing client. Often guaranteed via sticky sessions or session tokens.</td></tr>
+        
+        <tr><td>Monotonic reads</td><td>Once a client reads a value, subsequent reads never return an older value. Prevents 'time going backwards' for a single client.</td></tr>
+        
+        <tr><td>Eventual Consistency</td><td>Given no new updates, all replicas converge to the same value eventually. No bound on convergence time. No guarantees on intermediate reads. Used by: Cassandra (default), DynamoDB (default), DNS.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">🗳️ Consensus Protocol Comparison</div>
+      <table>
+        
+        <tr><td>Raft</td><td>Designed for understandability. Single leader per term. Log-based. Used by: etcd, CockroachDB, TiKV, Consul. Leader election is simple; log replication is straightforward. Easiest to implement correctly.</td></tr>
+        
+        <tr><td>Multi-Paxos</td><td>Original consensus algorithm. More complex than Raft; many variants (Classic, Fast, Cheap). Leader-based after initial leader election. Used by: Google Chubby, older Zookeeper versions, many academic systems.</td></tr>
+        
+        <tr><td>ZAB (Zookeeper Atomic Broadcast)</td><td>Zookeeper's proprietary protocol. Similar to Paxos/Raft. Leader-based. Guarantees total order of updates. Primary difference: optimized for broadcast (one-to-many), not point-to-point consensus.</td></tr>
+        
+        <tr><td>PBFT (Practical Byzantine Fault Tolerance)</td><td>Tolerates f Byzantine (malicious/arbitrary) faults with 3f+1 nodes. Very expensive — O(n²) message complexity. Used in blockchain and financial systems requiring Byzantine fault tolerance.</td></tr>
+        
+        <tr><td>Viewstamped Replication</td><td>Predecessor to Raft/Paxos in some sense. View-based leadership. Less well-known but theoretically equivalent to Paxos. Historical significance; rarely used in new systems.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">🔁 Replication & Quorum Reference</div>
+      <table>
+        
+        <tr><td>N (replication factor)</td><td>Total number of replicas. Typically 3 (tolerates 1 failure) or 5 (tolerates 2 failures). Increasing N improves fault tolerance but increases write cost.</td></tr>
+        
+        <tr><td>W (write quorum)</td><td>Number of nodes that must acknowledge a write. W=1 is fastest, least durable. W=N is most durable but slowest.</td></tr>
+        
+        <tr><td>R (read quorum)</td><td>Number of nodes queried for a read; returns the most recent value. R=1 is fastest. R=N is slowest.</td></tr>
+        
+        <tr><td>W + R > N</td><td>Strong consistency: any read set overlaps any write set — guaranteed to include at least one node with the latest write. N=3, W=2, R=2 is common.</td></tr>
+        
+        <tr><td>W + R ≤ N</td><td>Possible to read stale data (no guaranteed overlap between write and read quorum). Trade consistency for availability or latency.</td></tr>
+        
+        <tr><td>Hinted handoff</td><td>If a target replica is unavailable during a write, another node temporarily stores the write (hint) and delivers it when the target recovers. Improves write availability at the cost of temporary inconsistency.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">🛡️ Resilience Patterns</div>
+      <table>
+        
+        <tr><td>Circuit Breaker</td><td>After N consecutive failures to a downstream, open the circuit — stop calling the downstream and return a fast error. After a timeout, allow one probe request. If it succeeds, close the circuit. Prevents cascading failures and gives the downstream time to recover.</td></tr>
+        
+        <tr><td>Bulkhead</td><td>Isolate resources (thread pools, connection pools, semaphores) per downstream dependency. One slow dependency fills its own pool, not the shared pool — other dependencies remain unaffected. Named after ship hull compartments.</td></tr>
+        
+        <tr><td>Retry with exponential backoff + jitter</td><td>Retry on transient failures with doubling intervals. Add random jitter to avoid synchronized retry storms from many clients. Cap at a maximum backoff. Only retry on idempotent operations or those with idempotency keys.</td></tr>
+        
+        <tr><td>Timeout</td><td>Every outbound call must have a timeout. Without timeouts, a single slow downstream causes threads/goroutines to accumulate until the calling service is exhausted. Set timeouts derived from SLA requirements, not arbitrary large values.</td></tr>
+        
+        <tr><td>Backpressure</td><td>Signal to producers to slow down when consumers are overwhelmed. TCP flow control is a network-level example. Application-level: bounded queues that block producers, reactive streams with demand signaling. Prefer backpressure over unbounded buffers that hide overload.</td></tr>
+        
+        <tr><td>Idempotency key</td><td>Client-generated unique ID per logical operation. Server stores (idempotency_key, result). On duplicate, return stored result without re-executing. Enforced with a unique DB constraint on idempotency_key to prevent races.</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">💻 CLI Commands</div>
+      <div class="cmd-block">
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Raft & etcd</div>
+          
+          <span class="cmd">etcdctl endpoint health --cluster                          # check all cluster members</span>
+          
+          <span class="cmd">etcdctl endpoint status --cluster -w table                 # show leader and raft index</span>
+          
+          <span class="cmd">etcdctl member list -w table                               # list cluster members</span>
+          
+          <span class="cmd">etcdctl put /key value                                     # write a key</span>
+          
+          <span class="cmd">etcdctl get /key                                           # read a key</span>
+          
+          <span class="cmd">etcdctl watch /key                                         # watch for changes</span>
+          
+          <span class="cmd">etcdctl lease grant 60                                     # create a 60s TTL lease</span>
+          
+          <span class="cmd">etcdctl put /lock 'holder' --lease=<lease-id>             # distributed lock via lease</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Distributed Debugging</div>
+          
+          <span class="cmd"># Check clock skew across nodes (should be < 100ms)</span>
+          
+          <span class="cmd">for h in node1 node2 node3; do ssh $h 'date +%s%3N'; done</span>
+          
+          <span class="cmd"># Network partition simulation with tc (Linux traffic control)</span>
+          
+          <span class="cmd">tc qdisc add dev eth0 root netem delay 100ms              # add 100ms latency</span>
+          
+          <span class="cmd">tc qdisc add dev eth0 root netem loss 10%                 # simulate 10% packet loss</span>
+          
+          <span class="cmd">tc qdisc del dev eth0 root                                 # remove impairment</span>
+          
+          <span class="cmd"># Check connection states</span>
+          
+          <span class="cmd">ss -s                                                       # socket summary</span>
+          
+          <span class="cmd">ss -tp state established                                    # established TCP connections</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Chaos Engineering</div>
+          
+          <span class="cmd"># Chaos Mesh (Kubernetes) — inject failures</span>
+          
+          <span class="cmd">kubectl apply -f network-chaos.yaml                        # inject network partition</span>
+          
+          <span class="cmd">kubectl apply -f pod-kill.yaml                             # randomly kill pods</span>
+          
+          <span class="cmd"># Toxiproxy — proxy-based fault injection</span>
+          
+          <span class="cmd">toxiproxy-cli create mydb -l 0.0.0.0:5433 -u db:5432     # create proxy</span>
+          
+          <span class="cmd">toxiproxy-cli toxic add mydb -t latency -a latency=200    # add 200ms latency</span>
+          
+          <span class="cmd">toxiproxy-cli toxic add mydb -t bandwidth -a rate=100     # limit to 100 KB/s</span>
+          
+          <span class="cmd">toxiproxy-cli toxic remove mydb --toxic-name latency_upstream</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">CP vs AP Systems — Popular Databases & Their Trade-offs</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+            <th>System</th>
+            
+            <th>CAP Classification</th>
+            
+            <th>Consistency Model</th>
+            
+            <th>Replication</th>
+            
+            <th>Best For</th>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>etcd / Zookeeper</td>
+            
+            <td>CP</td>
+            
+            <td>Linearizable</td>
+            
+            <td>Raft / ZAB; single leader</td>
+            
+            <td>Distributed coordination, leader election, config</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>PostgreSQL (single)</td>
+            
+            <td>CP (single node)</td>
+            
+            <td>Serializable / RC</td>
+            
+            <td>Streaming (async) or sync</td>
+            
+            <td>OLTP requiring ACID; primary + replicas</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>CockroachDB</td>
+            
+            <td>CP</td>
+            
+            <td>Serializable (SSI)</td>
+            
+            <td>Raft per range; multi-region</td>
+            
+            <td>Geo-distributed SQL requiring strong consistency</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Google Spanner</td>
+            
+            <td>CP</td>
+            
+            <td>Linearizable + external</td>
+            
+            <td>Paxos; TrueTime bounded skew</td>
+            
+            <td>Global ACID transactions with GPS clock bounds</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Cassandra</td>
+            
+            <td>AP (tunable)</td>
+            
+            <td>Eventual (default) / strong (W+R>N)</td>
+            
+            <td>Leaderless; gossip; hinted handoff</td>
+            
+            <td>High-write, high-availability, time-series</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>DynamoDB</td>
+            
+            <td>AP (tunable)</td>
+            
+            <td>Eventual (default) / strong reads opt-in</td>
+            
+            <td>Multi-AZ; single-digit ms reads</td>
+            
+            <td>Serverless key-value at massive scale</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>MongoDB</td>
+            
+            <td>CP (majority write)</td>
+            
+            <td>Eventual (default) / causal sessions</td>
+            
+            <td>Replica set; Raft-based primary election</td>
+            
+            <td>Document store with flexible schema</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Redis (Sentinel)</td>
+            
+            <td>AP (async replication)</td>
+            
+            <td>Eventual (replication lag)</td>
+            
+            <td>Async leader-follower</td>
+            
+            <td>Cache, sessions, rate limiting; not a primary store</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Kafka</td>
+            
+            <td>CP (per partition)</td>
+            
+            <td>Linearizable within partition</td>
+            
+            <td>Leader + ISR replication</td>
+            
+            <td>Ordered event streaming; replay; fan-out</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">Explain the CAP theorem. What does it actually mean for practical system design — and what does it not mean?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>CAP states that a distributed system can provide at most two of: <strong>Consistency</strong> (reads return the latest write), <strong>Availability</strong> (every request gets a non-error response), and <strong>Partition tolerance</strong> (the system works despite network partitions).
+<strong>What CAP actually means</strong>: since network partitions are unavoidable in real systems, the real choice is what to do <em>when a partition occurs</em>: sacrifice consistency (AP — return possibly stale data) or sacrifice availability (CP — return an error until the partition heals).
+<strong>What CAP does not mean</strong>: - It's not a permanent choice — a system can be CP during partitions and highly available
+  the rest of the time. Partitions are rare; the PACELC model better captures the
+  latency-vs-consistency trade-off under normal operation.
+- "Consistency" in CAP means linearizability, not ACID consistency. These are different. - "Available" in CAP means every node responds — not that the system is always reachable
+  by clients. A load balancer routing around a downed node provides availability from
+  the client's perspective even if CAP's strict definition isn't met.</p>
+<p><strong>Practical examples</strong>: - CP: etcd, ZooKeeper — return an error rather than stale data during partition - AP: Cassandra (default), DynamoDB — continue serving reads/writes during partition,
+  reconcile conflicts afterward
+- Most SQL databases are effectively CP for single-node deployments</p></div>
+        
+        <div class="staff-add">The CAP theorem is often misapplied as a binary framework. In reality, most systems make nuanced trade-offs: Cassandra lets you choose quorum level per operation, so the same cluster can be CP for critical writes (<code>ALL</code>) and AP for non-critical reads (<code>ONE</code>). A more useful mental model is the <strong>consistency spectrum</strong>: what is the maximum staleness you can tolerate, and what is the cost (in latency, availability, and complexity) to reduce it? Strong consistency across a WAN link costs 100ms+ round trips per write — often unacceptable for user-facing writes. For those cases, design for causal consistency with conflict resolution rather than linearizability.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">What is the difference between linearizability, causal consistency, and eventual consistency? Give a concrete example where the wrong choice causes a bug.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Linearizability</strong>: every operation appears to execute atomically at a single point in real time. If a write completes at time T, all reads after T see the new value — globally, on any node. The strongest model; requires coordination.
+<strong>Causal consistency</strong>: operations related by causality are seen in causal order. "If you see my comment on a post, you see the post itself." Concurrent (independent) operations can be seen in different order by different nodes. No global coordination needed.
+<strong>Eventual consistency</strong>: replicas will converge given no new updates — but any individual read may return stale data. No ordering guarantees for concurrent operations.
+<strong>Bug caused by wrong consistency choice</strong>: Consider a social network using eventual consistency for profile reads. User Alice updates her privacy setting to "friends only" for her posts. Immediately after, she posts a private message. Due to replication lag: 1. The privacy setting update has not yet propagated to a read replica. 2. A request to that replica checks Alice's privacy setting — still sees "public." 3. Alice's private post is served to a stranger.
+The root cause: the privacy check and the post read must be causally ordered — if you read a post, you must see all privacy settings written before it. Causal consistency (or linearizability) would prevent this. Eventual consistency cannot.</div>
+        
+        <div class="staff-add">The correct consistency model is determined by the business invariant, not by what's easy to implement. Map your invariants first: "a user can never see data they're not authorized to see" requires consistency between the authorization check and the data read. "Show the user's shopping cart total" can tolerate eventual consistency — a 100ms stale total is acceptable. Many teams default to eventual consistency cluster-wide and then add ad-hoc fixes for violations, resulting in a patchwork of inconsistent workarounds. A deliberate consistency model per data type (using a consistent store for auth/permissions, eventually consistent for counters and feeds) is cleaner and more auditable.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">How does the Raft consensus algorithm work? Walk through leader election and log replication.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Raft nodes are in one of three states: <strong>follower</strong>, <strong>candidate</strong>, or <strong>leader</strong>.
+<strong>Leader election</strong>: Followers wait for heartbeats from the leader. If the election timeout passes (randomized 150–300ms) without a heartbeat, the follower becomes a candidate, increments its term, votes for itself, and sends <code>RequestVote</code> RPCs to all other nodes. A candidate wins if it receives votes from a majority (<code>(N/2)+1</code>) of nodes. A node only votes for a candidate whose log is at least as up-to-date as its own (prevents electing a node with stale log). Randomized timeouts prevent split votes — nodes start elections at slightly different times.
+<strong>Log replication</strong>: The leader receives client writes, appends them to its log as a new entry, and sends <code>AppendEntries</code> RPCs to all followers. An entry is <strong>committed</strong> when the leader receives acknowledgment from a majority of nodes. The leader then applies the entry to its state machine and responds to the client. Future <code>AppendEntries</code> (including heartbeats) inform followers of committed entries, which they apply to their state machines.
+<strong>Safety guarantees</strong>: - At most one leader per term (election majority) - A committed entry is never lost (only a node with the complete committed log can win an election) - Entries are applied in log order (state machine safety)
+Raft is not Byzantine-fault-tolerant — it assumes nodes are honest but may crash.</div>
+        
+        <div class="staff-add">Raft's linearizability guarantee requires that every read also goes through the leader (or that the leader confirms it's still the leader via a heartbeat quorum before serving a read). If followers serve reads directly without this check, a partitioned follower may serve stale data while the rest of the cluster has moved on. This is the subtle difference between "Raft cluster" (linearizable) and "Raft cluster with follower reads" (potentially stale). etcd, for example, provides a <code>--consistency=linearizable</code> flag that sends reads through the leader and a <code>--consistency=serializable</code> flag for fast follower reads with possible staleness. Know which mode your system uses.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">What is two-phase commit (2PC) and what are its failure modes? Why is it rarely used in microservices?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>2PC</strong> coordinates an atomic transaction across multiple participants (databases, services):
+<strong>Phase 1 — Prepare</strong>: the coordinator asks each participant to prepare (lock resources, write to WAL). Each participant responds with "yes" (ready to commit) or "no" (abort).
+<strong>Phase 2 — Commit or Abort</strong>: if all participants voted yes, the coordinator sends "commit"; otherwise sends "abort." Participants execute the decision.
+<strong>Failure modes</strong>: - <strong>Coordinator crashes after prepare, before commit</strong>: participants are in the "prepared"
+  state — locks held, transaction neither committed nor aborted. They're blocked until
+  the coordinator recovers. This is the <strong>blocking problem</strong> — 2PC is a blocking protocol.
+- <strong>Participant crashes after prepare</strong>: when it recovers, it reads its WAL and asks the
+  coordinator for the decision. If the coordinator also crashed, nobody knows the decision.
+- <strong>Network partition between coordinator and participant</strong>: same blocking scenario.
+<strong>Why microservices avoid 2PC</strong>: - It requires participants to hold locks across a network round-trip — high latency window
+  where failures cause indefinite blocking
+- Tightly couples all participating services — they must all be available for the transaction to complete - Does not compose well with HTTP APIs — 2PC requires a stateful protocol participants must support - Modern distributed systems prefer <strong>SAGA</strong> (compensating transactions) or <strong>outbox pattern</strong> for atomicity</div>
+        
+        <div class="staff-add">2PC is not inherently wrong — it's used extensively within single database systems (most databases use an internal 2PC-like protocol for distributed indexes or partitions). Its problems emerge across service boundaries, where the coordinator is a network-separated orchestrator rather than the same process as the storage engine. The three-phase commit (3PC) was designed to resolve 2PC's blocking problem by adding a pre-commit phase that allows participants to infer the coordinator's decision — but 3PC is almost never used in practice because it's more complex and still not fully non-blocking under partition. The practical answer for cross-service atomicity is SAGA + idempotent compensations.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">What is the SAGA pattern? Compare choreography vs orchestration SAGAs. What makes compensations tricky?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">A <strong>SAGA</strong> decomposes a long-lived transaction into a sequence of local transactions, each atomic within one service. If a step fails, previously completed steps are <strong>compensated</strong> (undone) with dedicated compensating transactions — not rolled back (no distributed lock).
+<strong>Choreography</strong>: each service publishes events and reacts to events from other services. No central coordinator. Loosely coupled — services don't know about each other's internals. Hard to understand the overall flow; debugging requires tracing events across services. Good for simple, linear flows with few participants.
+<strong>Orchestration</strong>: a central saga orchestrator (a dedicated service or workflow engine like Temporal, AWS Step Functions) drives the sequence by calling services in order and deciding what to do on failure. Easier to understand flow; the orchestrator is a potential bottleneck and single point of failure (mitigated by making it stateful and replicated). Good for complex flows with many branches and error paths.
+<strong>What makes compensations tricky</strong>: - <strong>Compensations must be idempotent</strong> — they may be called multiple times if the saga retries. - <strong>Compensations cannot always fully undo</strong> — a sent email, a charged card, or a shipped
+  package cannot be "rolled back." Compensations must handle semantic undos (refund, cancel notification).
+- <strong>Pivot transaction</strong>: the step after which it's too late to cancel (e.g., payment captured).
+  Design the saga so the pivot is as late as possible.
+- <strong>Concurrent modifications</strong>: if another saga or user modifies the data between the original
+  step and its compensation, the compensation may conflict. Use versioning or optimistic locking.</div>
+        
+        <div class="staff-add">Sagas introduce <strong>ACI</strong> (no Isolation) — other transactions can observe intermediate saga states. A customer's order goes through: pending → payment captured → inventory reserved → shipped. Another query during this sequence may see the order in an in-between state. Mitigate with semantic locks (a status field that marks the record as "in-progress"), countermeasures (fail queries that see in-progress records), or by designing the domain model so partial states are meaningful and visible (pending is a valid, displayable order state). Don't promise isolation the saga pattern cannot deliver — design the domain to tolerate visible intermediate states.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">What is the dual-write problem and how does the outbox pattern solve it?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The <strong>dual-write problem</strong>: a service needs to write to its database AND publish an event to a message broker atomically. These are two separate systems with no distributed transaction support. Three failure scenarios: 1. DB write succeeds, broker publish fails → state change not propagated → downstream
+   services miss the event.
+2. Broker publish succeeds, DB write fails → downstream processes an event for a change
+   that didn't happen.
+3. Process crashes between DB write and broker publish → same as scenario 1.
+<strong>Outbox pattern</strong> solves this by making both writes local: 1. Within a single local database transaction, write the business record AND an outbox
+   table row (the event payload).
+2. A separate <strong>relay process</strong> (or CDC via Debezium) reads unprocessed outbox rows
+   and publishes them to the broker.
+3. Mark rows processed (or delete them) after successful publish.
+The relay publishes <strong>at-least-once</strong> — retries on failure mean the consumer must be idempotent. The database transaction is the unit of atomicity — either both the business record and the outbox row are written, or neither is. No distributed transaction needed.</div>
+        
+        <div class="staff-add">The relay process can be implemented two ways: <strong>polling</strong> (a loop that queries the outbox table for unprocessed rows at an interval) or <strong>CDC</strong> (Change Data Capture with Debezium reading the database's transaction log). Polling is simple but adds latency (up to the poll interval) and database load. CDC is real-time and zero-polling-overhead but requires the database to have logical replication enabled (<code>wal_level = logical</code> for PostgreSQL) and adds operational complexity (Kafka Connect + Debezium). For most teams, polling with a short interval (1 s) is sufficient and simpler to operate. CDC is worth the complexity when sub-second event latency is required or when the outbox table grows very large.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">How do logical clocks (Lamport timestamps) and vector clocks work? When do you need them?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>The problem</strong>: wall clocks on different machines can't be trusted for event ordering. Even with NTP, clocks differ by milliseconds, and NTP corrections can jump clocks backward.
+<strong>Lamport timestamps</strong>: each node maintains a counter. On any event, increment the counter. On sending a message, include the counter. On receiving a message, set <code>counter = max(local, received) + 1</code>. Lamport timestamps guarantee: if event A <em>happened before</em> event B (causally), then <code>timestamp(A) &lt; timestamp(B)</code>. But the converse is not true — <code>timestamp(A) &lt; timestamp(B)</code> does not mean A happened before B. They establish a partial order.
+<strong>Vector clocks</strong>: each node maintains a vector of counters, one per node (<code>[N1: 3, N2: 1, N3: 2]</code>). On event: increment own entry. On send: include vector. On receive: take element-wise max, then increment own entry. Two events are <strong>concurrent</strong> if neither vector dominates the other. This detects <em>causality</em> precisely — you can tell if two events are causally related or truly concurrent (and thus may conflict). Used by Dynamo, Riak for conflict detection.
+<strong>When you need them</strong>: - Detecting write conflicts in leaderless replication (were these two writes causally related
+  or concurrent? If concurrent, they conflict and need resolution)
+- Event ordering in distributed logs where wall-clock ordering is unreliable - Debugging distributed systems (causal trace of which event caused which)</div>
+        
+        <div class="staff-add">Version vectors (a variant of vector clocks tracked per key rather than per node) are the practical implementation in systems like Dynamo. When two replicas disagree on a value, the version vectors tell you whether one causally supersedes the other (take the newer one) or whether they're concurrent (a conflict that needs application-level resolution — last write wins, merge, or present both to the user). The cost of vector clocks grows with the number of writers — in a system with thousands of clients all writing to the same key, the vector grows unboundedly. Dotted version vectors solve this by tracking writes per server rather than per client. Understanding this trade-off matters when designing high-write leaderless systems.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">How do you design an idempotent payment API? What makes idempotency hard in distributed systems?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">An idempotent API returns the same result for the same logical request, regardless of how many times it's called. For payments, the client generates a unique <strong>idempotency key</strong> per payment attempt and includes it in every retry.
+<strong>Server-side implementation</strong>: <code>sql CREATE TABLE idempotency_keys (
+  key VARCHAR PRIMARY KEY,          -- unique constraint is the atomic check
+  response JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);</code> On receipt of a request with key K: 1. <code>INSERT INTO idempotency_keys (key, response) VALUES (K, NULL) ON CONFLICT DO NOTHING</code>
+   returns whether this is a new or duplicate request.
+2. If new: process the payment, then update <code>response</code> with the result. 3. If duplicate: return the stored response immediately.
+<strong>What makes idempotency hard</strong>: - <strong>Race condition</strong>: two identical requests arrive simultaneously. Both check "is this key
+  new?" before either inserts. Both see "new" and both process the payment. The unique
+  constraint prevents this — only one INSERT succeeds; the other gets a conflict and waits.
+- <strong>Partial failure</strong>: request is processed, payment charged, but the response is lost before
+  being stored. On retry, the key insert succeeds (new key), payment is charged again.
+  Fix: write the key row <em>before</em> charging (<code>response=NULL</code>), then update after.
+  If the process crashes mid-charge, the key row exists with <code>response=NULL</code> — a sentinel
+  that indicates an in-progress or failed payment requiring manual review.
+- <strong>Idempotency key scope</strong>: a key reused across different operations (different amounts,
+  different merchants) must be rejected. Validate that the key's associated request matches
+  the current request parameters.</div>
+        
+        <div class="staff-add">Idempotency keys have a finite retention window — typically 24 hours to 7 days. After that, the same key may be reused safely (original request is long expired). Don't retain keys forever — it's a slow-growing table that eventually becomes a performance problem. A more subtle issue: idempotency at the API layer doesn't automatically make downstream calls idempotent. If the payment API calls a card processor, the processor call must also be idempotent — pass the idempotency key through to the processor. Stripe's API, for example, accepts <code>Idempotency-Key</code> headers that are propagated to their internal payment engine. Design idempotency end-to-end through every hop, not just at the entry point.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">How do you design a distributed rate limiter that works across multiple service instances?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>A single-instance rate limiter (token bucket or fixed window in memory) doesn't work when the service scales horizontally — each instance has its own counter, so the effective rate limit is <code>limit × instance_count</code>.
+<strong>Redis-based token bucket</strong>: Use a Redis key per (user_id, window) with atomic Lua script to check and decrement the counter in a single round-trip. Redis's single-threaded command execution makes the check-and-decrement atomic without a distributed lock.
+<code>lua local current = redis.call('GET', KEYS[1]) if current and tonumber(current) &gt;= tonumber(ARGV[1]) then
+  return 0  -- rate limit exceeded
+end redis.call('INCR', KEYS[1]) redis.call('EXPIRE', KEYS[1], ARGV[2]) return 1  -- allowed</code>
+<strong>Sliding window log</strong>: store timestamps of each request in a sorted set. Count entries in the window <code>[now - window, now]</code>. More accurate than fixed windows but higher memory usage.
+<strong>Trade-offs</strong>: - Redis becomes a synchronous dependency on every request — it must be highly available
+  and low-latency (&lt;1ms). Use Redis Cluster for HA.
+- Network round-trip to Redis adds latency. For latency-critical paths, use a local
+  approximate counter (token bucket with periodic Redis sync) — accepts slight over-limit
+  for reduced latency.
+- Redis failure: fail-open (allow all requests) or fail-closed (reject all). Fail-open
+  is usually correct — a rate limiter outage shouldn't take down the service.</p>
+<p><strong>Sliding window with approximate local counting</strong>: each instance tracks a local counter and periodically reports to Redis. Redis aggregates. Local counter is the rate limit minus the reported counts from other instances. Allows requests without a Redis round-trip most of the time; syncs periodically. Trades exactness for performance.</p></div>
+        
+        <div class="staff-add">Rate limiting decisions reveal your consistency-vs-availability trade-offs in microcosm. A strict rate limit (exactly N requests per second, no more) requires linearizable counter updates — expensive. An approximate rate limit (N ± ε requests per second, with ε proportional to instance count and sync frequency) is available and fast. For most rate limiting use cases (bot protection, cost control, fairness between tenants), approximate is entirely acceptable. For billing-critical rate limits (API tiers where overage is charged differently), exact counting with Redis is worth the cost. Make the precision requirement explicit rather than defaulting to exact counting everywhere.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">How do you handle and recover from split-brain in a distributed system with leader election?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Split-brain</strong> occurs when a network partition separates the cluster into groups, each of which elects its own leader. Both leaders accept writes — the cluster has two masters with diverging state. Reconciliation is expensive or impossible for some data types.
+<strong>Prevention — quorum-based election</strong>: a leader is only valid if it has a majority of votes. In a 3-node cluster partitioned 2+1, only the majority side (2) can elect a leader. The minority side (1) cannot reach quorum and stops accepting writes. This is the CP trade-off — the minority side becomes unavailable.
+<strong>Fencing tokens</strong>: each leadership term has a monotonically increasing token. Every write to the storage layer includes the current token. The storage layer rejects writes with an outdated token. If a partitioned old leader recovers and tries to write with token 5 while the new leader has token 6, the writes are rejected. The old leader discovers it's no longer the leader via rejection.
+<strong>Lease-based leadership</strong>: the leader holds a time-limited lease. It cannot accept writes after the lease expires. Even if the leader can't communicate with the cluster (partition), it stops writing when the lease expires, giving the cluster time to elect a new leader whose lease starts after the old one expired. etcd's leader leases work this way.
+<strong>Recovery from split-brain</strong> (if it occurs despite prevention): compare the two diverged logs. The Raft algorithm's log comparison rejects candidates without the complete committed log — in practice, only the majority side has committed entries, and the minority side's uncommitted writes are discarded on rejoin.</div>
+        
+        <div class="staff-add">Fencing tokens are not universally implemented — many systems rely only on quorum without storage-layer enforcement. This is a risk: a GC-paused leader that resumes after a new leader is elected may succeed in writing to the storage layer if the storage layer doesn't enforce fencing. The result is silent data corruption that may not be detected until a read compares diverged states. When designing systems on top of distributed databases, verify whether the database provides fencing (etcd's lease mechanism does; a plain Redis SET does not). For systems using Redis for distributed locking, the Redlock algorithm's safety properties are contested — Martin Kleppmann's critique is worth reading before depending on it for critical coordination.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-04</span>
+        <span class="acc-question">How does consistent hashing work and why do systems like Cassandra and DynamoDB use it?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>The problem with naive sharding</strong>: if you assign keys to nodes by <code>hash(key) % N</code>, adding or removing a node changes N, which remaps almost every key — requires massive data redistribution.
+<strong>Consistent hashing</strong>: arrange a "ring" of hash values from 0 to 2³²-1. Place each node at one or more points on the ring (by hashing the node's ID). To find which node owns a key, hash the key and walk the ring clockwise to the first node. Adding a node places it on the ring — only the keys between it and its predecessor move to the new node (~1/N of total keys). Removing a node moves only that node's keys to its successor.
+<strong>Virtual nodes (vnodes)</strong>: instead of placing each physical node once on the ring, place it at V points (vnodes, typically 128–256 per node). This: - Evenly distributes load even with heterogeneous or few nodes - Makes rebalancing more granular — a new node picks up vnodes from many existing nodes,
+  distributing the transfer load
+- Allows different nodes to hold different numbers of vnodes (weighted by capacity)
+<strong>Replication with consistent hashing</strong>: a key is assigned to the N clockwise successor nodes. For Cassandra with <code>replication_factor = 3</code>, each key lives on 3 consecutive nodes on the ring. If one node fails, reads and writes fall to the remaining 2 (or 1, depending on quorum settings).</div>
+        
+        <div class="staff-add">Consistent hashing elegantly solves data distribution at the cost of uneven load under skewed key distributions. If many requests hit the same key range (a hot partition), the node responsible for that range is overwhelmed regardless of how many other nodes exist. DynamoDB's adaptive capacity and Cassandra's <code>ByteOrderedPartitioner</code> (BOP) vs <code>Murmur3Partitioner</code> represent two different answers to this: BOP allows range scans but causes hot partitions on sequential keys; Murmur3 distributes randomly (no range scans) but prevents hot partitions. Choosing a partition key that distributes load evenly is a data modeling discipline, not just a configuration choice.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How do you design a globally distributed data system that serves users in multiple regions with low latency reads, strong consistency for financial data, and high availability?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>This is a multi-constraint problem: low read latency (local reads), strong consistency (no stale financial data), and high availability (no single region failure takes you down). These constraints are partially in tension — strong consistency requires cross-region coordination which adds latency.
+<strong>Tiered consistency architecture</strong>:
+<strong>Tier 1 — Strongly consistent (financial data: balances, transactions)</strong>: - Use a globally distributed SQL database (Google Spanner or CockroachDB) with
+  external consistency via TrueTime / HLC (Hybrid Logical Clocks).
+- Writes go to a global leader (or are multi-leader with serializable isolation).
+  Latency is bounded by the speed of light + algorithm overhead (~30–100ms cross-region).
+- Accept that writes are slower; financial writes are lower frequency than reads. - For reads: use <strong>stale reads</strong> (bounded staleness) for user-facing balance displays —
+  returning data up to 10 seconds stale is acceptable for a balance page.
+  Use linearizable reads only for the atomic check-then-debit operations.</p>
+<p><strong>Tier 2 — Causally consistent (user profile, preferences, non-financial state)</strong>: - Replicate to all regions with causal ordering. Users always see their own writes. - Read from local region; writes propagate asynchronously. Conflicts resolved by
+  last-writer-wins or CRDTs (counters, sets).</p>
+<p><strong>Tier 3 — Eventual consistency (feeds, analytics, leaderboards)</strong>: - Replicate asynchronously. Seconds of staleness acceptable. Read from local region.
+<strong>Multi-region HA</strong>: - Active-active for AP tiers; writes go to the nearest region. - Active-active for the CP tier is possible with multi-region Paxos groups (Spanner's model),
+  with the latency cost paid on each write.
+- Circuit breakers between regions: if region A can't reach region B's consensus group,
+  fail writes rather than silently accept stale reads that violate consistency guarantees.</p></div>
+        
+        <div class="staff-add">The hardest part of this design is not the technology — it's defining the consistency requirement per data type precisely enough to make technology choices. "Financial data must be strongly consistent" sounds clear, but what about the user's transaction history display? Must it be linearizable, or is 10-second bounded staleness acceptable? The answer changes the architecture significantly: linearizable history reads require routing to the Spanner leader; bounded-stale reads can be served from a local replica. Map out every read and write operation, its consistency requirement, and its expected frequency. The resulting matrix drives the data tier placement. Teams that skip this mapping and apply uniform strong consistency to everything pay the latency cost for operations that didn't need it.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-02</span>
+        <span class="acc-question">How do you approach chaos engineering for a complex distributed system? What failure modes are most commonly missed?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Chaos engineering is the practice of deliberately injecting failures to discover system weaknesses before they manifest as incidents.
+<strong>Structured approach</strong>:
+<strong>1. Define the steady state</strong>: what does "healthy" look like? Success rate, p99 latency, error rate, key business metric (orders per minute). Chaos experiments verify that the steady state holds under failure, not that services stay running.
+<strong>2. Start with known failure modes</strong>: before random chaos, exhaustively test expected failures: single-node crashes, single-AZ failure, network latency injection, dependency timeouts, disk full. These should be in your runbooks — verify the runbooks are correct.
+<strong>3. Hypothesis-driven experiments</strong>: "If Kafka broker 2 goes down, consumer lag should not exceed 30 seconds and no messages should be lost." Run the experiment, measure the outcome, compare against the hypothesis. A passing experiment builds confidence; a failing one reveals a weakness.
+<strong>4. Increase scope gradually</strong>: start in dev/staging, then production during low-traffic periods, then during peak traffic. GameDay events involve the full team practicing response.
+<strong>Commonly missed failure modes</strong>: - <strong>Slow dependencies</strong> (not down, just slow): a 2-second response from a downstream is
+  worse than a crash — threads accumulate waiting, cascading to the caller. Test with
+  latency injection, not just kill injection.
+- <strong>Partial availability</strong>: one instance of a downstream is healthy; others are not.
+  Load balancers may route some requests to the bad instance — circuit breakers must
+  act per-instance, not per-service.
+- <strong>Clock skew</strong>: inject clock drift and verify that Lamport/vector clock logic and
+  lease-based systems still function correctly.
+- <strong>Resource exhaustion</strong>: file descriptors, thread pool, connection pool — not just CPU and memory. - <strong>Data corruption at the boundary</strong>: malformed messages in Kafka, corrupted DB rows.
+  Does your consumer handle them? Or does one bad message halt all processing?
+- <strong>Thundering herd after recovery</strong>: a dependency comes back online — do all instances
+  simultaneously flood it? Test restart behavior, not just failure behavior.</div>
+        
+        <div class="staff-add">The organizational challenge of chaos engineering is greater than the technical one. Engineers are reluctant to break production. Leaders are reluctant to authorize it. The path forward is making the risk explicit: "we are going to experience these failures — the question is whether we discover them in a controlled experiment or during an incident at 2 AM." Start with low-risk experiments (kill one pod behind an HPA, inject 50ms latency to a non-critical service). Build confidence gradually. Establish a chaos experiment review process: proposed experiment → hypothesis → approval → execution → results → blameless post-mortem if something unexpected happens. Tools: Chaos Mesh (Kubernetes), Toxiproxy (network faults), Gremlin (managed chaos), AWS Fault Injection Simulator. The tools are secondary — the discipline of forming hypotheses and measuring outcomes is what makes chaos engineering valuable.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">Designing an Eventually Consistent Order System with SAGA</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Design the backend for an e-commerce order placement flow that spans three services: Order Service, Inventory Service, and Payment Service. An order must atomically reserve inventory AND charge the customer. Either both succeed or neither does. The system handles 5,000 orders per minute at peak.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>No distributed transactions (2PC) — services are independently deployable</li><li>A failed payment must release the inventory reservation</li><li>A customer can never be charged without inventory being confirmed reserved</li><li>The system must remain available if one service is temporarily down</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>SAGA with orchestration</strong>: an Order Saga Orchestrator (implemented with Temporal or a state machine in the Order Service) drives the sequence: (1) Reserve Inventory → (2) Charge Payment → (3) Confirm Order. The orchestrator is a durable workflow — if it crashes, it resumes from the last committed step.</li><li><strong>Step ordering matters — charge after reserve</strong>: the invariant 'never charge without inventory' dictates that inventory reservation must complete before the payment charge. If inventory fails, no charge is attempted. If payment fails after reservation, the compensation is to release the inventory reservation.</li><li><strong>Compensating transactions</strong>: each step has a compensation. Reserve Inventory → Cancel Reservation. Charge Payment → Issue Refund. Compensations must be idempotent — the orchestrator may retry them. The refund must be issued even if the payment processor is temporarily unavailable — queue it with at-least-once delivery.</li><li><strong>Outbox pattern for event publishing</strong>: after the Order Service writes the new order to its database, it publishes a <code>OrderCreated</code> event via the outbox pattern. The Inventory Service and Payment Service are triggered by events — not by synchronous calls from the orchestrator. This decouples availability: if the Inventory Service is down, the event waits in the queue.</li><li><strong>Idempotency at every step</strong>: the orchestrator retries steps on timeout. Every service operation must be idempotent using an idempotency key derived from the order ID + step name. A duplicate <code>ReserveInventory</code> for order-123 returns the cached reservation result, not a double-reservation.</li><li><strong>Visibility and observability</strong>: the order's saga state (pending, inventory-reserved, payment-captured, confirmed, compensating, failed) is stored in the Order Service database and exposed via API. Support teams can inspect why an order is stuck and manually trigger compensations if needed.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Charging before confirming inventory — violates the core invariant; customer charged for unavailable item</li><li>Non-idempotent compensation — a double-refund issued because the orchestrator retried a timed-out refund call</li><li>Synchronous calls between services without circuit breakers — one slow service causes the entire order flow to back up</li><li>No durable saga state — orchestrator crash loses all in-progress orders; they're stuck with no recovery path</li><li>Using 2PC across Order, Inventory, and Payment services — tightly couples their deployments and blocks on any one service being slow</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Building a Distributed Leaderboard with High Write Throughput</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Design a real-time leaderboard for a mobile game with 10 million active users. User scores are updated on every game completion (average 3 completions per user per hour at peak). The leaderboard must show the top 100 players globally and each user's own rank. Reads must be under 50ms; write throughput must sustain 30,000 updates/second at peak.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Global leaderboard rank for any user on demand (not just top 100)</li><li>Reads: p99 < 50ms; writes: sustained 30K/s</li><li>Score updates are monotonically increasing (scores never decrease)</li><li>Eventual consistency acceptable: leaderboard can be up to 10 seconds stale</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Redis Sorted Set (ZSET) as the leaderboard store</strong>: <code>ZADD leaderboard &lt;score&gt; &lt;user_id&gt;</code> for updates; <code>ZREVRANK leaderboard &lt;user_id&gt;</code> for a user's rank; <code>ZREVRANGE leaderboard 0 99 WITHSCORES</code> for the top 100. ZADD is O(log N); ZREVRANK is O(log N). Redis single-threaded throughput handles 30K writes/second on a single instance.</li><li><strong>Write path — Kafka as a buffer</strong>: game servers publish score events to Kafka. A consumer group reads and applies <code>ZADD</code> to Redis. Kafka absorbs burst writes and provides durability. If Redis is temporarily unavailable, events queue in Kafka. The 10-second staleness budget easily accommodates this buffering.</li><li><strong>Redis Cluster for scale</strong>: one Redis instance handles 30K ops/s but its memory is bounded. With 10M users and 8 bytes per entry, the ZSET is ~80 MB — fits on one instance. At 100M users (~800 MB), shard with Redis Cluster: hash user_id to a slot, route to the appropriate shard. Rank computation across shards is harder — requires merging.</li><li><strong>Read path — Redis replica for top-100</strong>: the top-100 list is read-heavy. Serve from Redis read replicas. Cache in application memory (refresh every 5 s) to further reduce Redis load. User's own rank is served from the primary (or replica with acceptable staleness).</li><li><strong>Sharded global rank for very large scale</strong>: at 1B users, a single ZSET is impractical. Shard by score range (0–1000, 1001–2000, etc.). To find a user's global rank: (1) find which shard their score falls in; (2) count all users in higher-score shards; (3) add local rank within their shard. Pre-compute shard sizes periodically. Approximate rank is acceptable given the 10-second staleness budget.</li><li><strong>Monotonic score updates — simplification</strong>: since scores never decrease, <code>ZADD</code> with the new score is always correct. No need to check if the new score is higher — the game server guarantees it. This eliminates a read-before-write race condition.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Using a relational database with <code>ORDER BY score DESC LIMIT 100</code> — table scans on 10M rows at 30K writes/s will collapse the database</li><li>Computing rank with <code>SELECT COUNT(*) WHERE score &gt; :user_score</code> on every rank request — O(N) per rank query kills the database</li><li>Writing directly from game servers to Redis without a queue — a burst of writes during a tournament can overwhelm Redis; no durability if Redis is unavailable</li><li>Single Redis instance with no replica — Redis failure takes down the entire leaderboard</li><li>Strong consistency requirement on ranks — a user seeing their rank fluctuate by ±5 positions in real time (due to concurrent updates) is acceptable; designing for exact real-time rank wastes resources</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Diagnosing and Recovering from a Cascading Failure</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A production system serving 500K requests/minute begins degrading. The alert fires: p99 latency climbs from 80ms to 8 seconds; error rate goes from 0.1% to 35% over 5 minutes. The system consists of an API gateway → 6 microservices → PostgreSQL + Redis + Kafka. Walk through your diagnosis and recovery approach.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Cascading failure — unclear which service is the origin</li><li>User impact is ongoing — recovery speed matters</li><li>The system has distributed tracing (Jaeger) and structured logs</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Start with blast radius, not root cause</strong>: identify which services and endpoints are failing (the 35% error rate — which endpoints? which services?). Check the service map in Jaeger for error clustering. Cascading failures have an origin; the origin usually shows the longest latency and the highest upstream error rate.</li><li><strong>Check the saturation signals</strong>: CPU, memory, connection pool exhaustion, thread pool saturation, GC pause time. A cascading failure is almost always triggered by resource exhaustion in one service — threads accumulate waiting for a slow downstream, the thread pool fills, new requests fail immediately. Look for thread pool at 100% or connection pool exhausted metrics.</li><li><strong>Check the dependency that's slow, not dead</strong>: dead dependencies trigger circuit breakers; slow ones don't. If PostgreSQL is responding in 5 seconds instead of 10ms, all services that call it have threads blocked waiting. The services themselves look unhealthy, but the root cause is the database. Look for <code>db_query_duration_p99</code> spikes.</li><li><strong>Shed load immediately if overloaded</strong>: if the API gateway has load shedding configured (rate limit or queue depth limit), activate it. Reducing incoming request rate gives the system headroom to drain its queues. A system under overload cannot recover if new load keeps arriving at the same rate.</li><li><strong>Isolate the origin service</strong>: once identified (e.g., PostgreSQL slow queries due to a missing index after a data growth spike), isolate the blast radius. If one endpoint is causing the database overload (a new slow query deployed in the last hour), kill or rate-limit that endpoint at the gateway. Let the rest of the system recover.</li><li><strong>Recovery sequence</strong>: (1) reduce load; (2) fix or isolate the origin; (3) allow services to drain their backlogs; (4) monitor recovery metrics (thread pool utilization, connection pool, request queue depth) to confirm they're decreasing; (5) gradually restore full traffic. Do not restore full traffic all at once — a recovering system can be re-overwhelmed by sudden load.</li><li><strong>Post-incident</strong>: the cascading failure happened because circuit breakers weren't configured (or thresholds were too high), bulkheads didn't isolate the failing dependency's thread pool, or load shedding wasn't enabled. The fix is not just resolving the immediate root cause — it's adding the missing resilience patterns so the next slow downstream causes a graceful degradation, not a cascade.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Chasing root cause before stopping the bleeding — identify and mitigate the blast radius first, diagnose after load is reduced</li><li>Restarting services without reducing incoming load — they come back up and immediately fill their thread pools again</li><li>Restoring full traffic at once after partial recovery — a system that just recovered is fragile; gradual ramp is safer</li><li>No circuit breakers on downstream calls — a slow dependency blocks threads in every upstream caller indefinitely until they're exhausted</li><li>No per-dependency thread pool isolation (bulkhead) — one slow downstream fills the shared thread pool and makes the service unresponsive to requests that don't even touch that downstream</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>function toggleTheme(){
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  h.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+function switchTab(name, el){
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+}
+
+function toggleAcc(header){
+  const item = header.parentElement;
+  item.classList.toggle('open', !item.classList.contains('open'));
+}
+</script>
+</body>
+</html>
