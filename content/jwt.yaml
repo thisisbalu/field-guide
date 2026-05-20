@@ -1,0 +1,908 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# JSON Web Tokens (JWT) — Interview Field Guide Content
+# Edit this file to update the guide. Run: python generate.py jwt
+# ══════════════════════════════════════════════════════════════════════════════
+
+meta:
+  id: jwt
+  title: JSON Web Tokens
+  title_short: JWT
+  subtitle: "// structure · signing algorithms · validation · attacks · refresh tokens · JWKS · senior → principal"
+  category: Security
+  icon: "🎟️"
+
+colors:
+  toggle_light: "#7C3AED"
+  toggle_dark:  "#8B5CF6"
+  light_vars: >-
+    --accent:#7C3AED;--accent2:#c0392b;--accent3:#5B21B6;
+    --highlight-bg:#f3effe;--highlight-text:#7C3AED;--highlight-border:#7C3AED;
+    --your-exp-bg:rgba(91,33,182,.06);--your-exp-border:rgba(91,33,182,.2);--your-exp-text:#5B21B6;
+    --acc-hover:rgba(124,58,237,.04);--acc-open-border:#7C3AED;--acc-open-bg:rgba(124,58,237,.04);
+    --num-color:#7C3AED;--num-bg:rgba(124,58,237,.1);
+    --tag-color:#7C3AED;--tag-bg:rgba(124,58,237,.08);--tag-border:rgba(124,58,237,.2);
+    --flow-arrow:#7C3AED;--h1-from:#5B21B6;--h1-to:#7C3AED;
+    --badge-color:#5B21B6;--stat-num:#5B21B6;
+    --tab-active-color:#7C3AED;--tab-active-bg:rgba(124,58,237,.08);--tab-active-border:#7C3AED;
+    --section-title:#7C3AED;--concept-title:#5B21B6;
+    --cheat-head-bg:#5B21B6;--cheat-head-text:#ffffff;--cheat-key:#5B21B6;
+    --cmd-bg:#f3effe;--cmd-text:#5B21B6;
+  dark_vars: >-
+    --accent:#8B5CF6;--accent2:#f87171;--accent3:#a78bfa;
+    --highlight-bg:#0d0820;--highlight-text:#8B5CF6;--highlight-border:#8B5CF6;
+    --your-exp-bg:rgba(139,92,246,.08);--your-exp-border:rgba(139,92,246,.25);--your-exp-text:#a78bfa;
+    --acc-hover:rgba(139,92,246,.04);--acc-open-border:#8B5CF6;--acc-open-bg:rgba(139,92,246,.03);
+    --num-color:#8B5CF6;--num-bg:rgba(139,92,246,.08);
+    --tag-color:#8B5CF6;--tag-bg:rgba(139,92,246,.08);--tag-border:rgba(139,92,246,.2);
+    --flow-arrow:#8B5CF6;--h1-from:#a78bfa;--h1-to:#8B5CF6;
+    --badge-color:#8B5CF6;--stat-num:#8B5CF6;
+    --tab-active-color:#8B5CF6;--tab-active-bg:rgba(139,92,246,.08);--tab-active-border:#8B5CF6;
+    --section-title:#8B5CF6;--concept-title:#8B5CF6;
+    --cheat-head-bg:#0d0820;--cheat-head-text:#8B5CF6;--cheat-key:#8B5CF6;
+    --cmd-bg:#0d0820;--cmd-text:#8B5CF6;
+
+# ── OVERVIEW ──────────────────────────────────────────────────────────────────
+overview:
+  concepts:
+    - title: "🏗️ JWT Structure"
+      body: >
+        A JWT is three **Base64URL-encoded** segments joined by dots: `header.payload.signature`.
+
+        **Header**: JSON object declaring the token type and signing algorithm.
+        `{"alg":"RS256","typ":"JWT"}`
+
+        **Payload**: JSON object containing **claims** — statements about the subject.
+        Claims are not encrypted; anyone who holds the token can read them.
+        `{"sub":"user-123","iss":"auth.example.com","exp":1716000000}`
+
+        **Signature**: cryptographic proof that the header and payload were not tampered with.
+        For RS256: `RSA_SIGN(base64url(header) + "." + base64url(payload), private_key)`.
+        A valid signature proves the token was issued by the party holding the signing key.
+      flows:
+        - ["Base64URL(header)", ".", "Base64URL(payload)", ".", "Signature(header+payload, key)"]
+      tags:
+        - {text: "payload is readable — not encrypted", color: red}
+        - {text: "signature = tamper proof", color: green}
+        - {text: "Base64URL ≠ Base64", color: orange}
+
+    - title: "🔐 Signing Algorithms"
+      body: >
+        **Symmetric (HMAC) — HS256 / HS384 / HS512**: the same secret key signs and verifies.
+        Fast and simple. The verifier must know the secret — every service that validates tokens
+        needs a copy of it. A compromised verifier exposes the signing key. Use only when the
+        issuer and all verifiers are in the same trust boundary.
+
+        **Asymmetric (RSA) — RS256 / RS384 / RS512 / PS256**: private key signs; public key
+        verifies. Verifiers never see the private key. Publish the public key via JWKS endpoint.
+        Any service can verify without being able to forge tokens. Standard for multi-service
+        and third-party OAuth2 flows.
+
+        **Asymmetric (ECDSA) — ES256 / ES384 / ES512**: elliptic-curve variant of asymmetric
+        signing. Same security as RSA with much smaller key and signature sizes (~4× smaller than
+        RS256). Preferred when bandwidth or storage of tokens matters.
+      tags:
+        - {text: "HMAC = shared secret", color: orange}
+        - {text: "RSA/ECDSA = private signs, public verifies", color: green}
+        - {text: "ES256 = smallest tokens", color: purple}
+
+    - title: "📋 Claims"
+      body: >
+        **Registered claims** (standardized, short names):
+        - `iss` (issuer): who created the token — validate against expected issuer
+        - `sub` (subject): who the token is about — the user or entity ID
+        - `aud` (audience): who the token is intended for — validate against your service ID
+        - `exp` (expiration): Unix timestamp after which the token is invalid — always validate
+        - `nbf` (not before): token not valid before this time
+        - `iat` (issued at): when the token was created
+        - `jti` (JWT ID): unique identifier — use for one-time tokens and revocation lists
+
+        **Public claims**: registered in the IANA JWT Claims Registry to avoid collisions.
+
+        **Private claims**: custom claims agreed between parties — `role`, `scope`, `tenant_id`.
+        Keep payloads small; tokens are sent on every request.
+      tags:
+        - {text: "exp + aud + iss = minimum validation set", color: red}
+        - {text: "jti = replay prevention", color: orange}
+        - {text: "payload is not private", color: purple}
+
+    - title: "✅ Validation"
+      body: >
+        Every JWT consumer must validate **all** of the following — skipping any one opens
+        an attack vector:
+
+        1. **Algorithm**: confirm `alg` header matches what you expect. Reject `none`. Never
+           accept an algorithm you didn't configure.
+        2. **Signature**: verify using the correct key for the declared algorithm.
+        3. **Expiry (`exp`)**: reject tokens past their expiry. Allow a small clock skew (≤30 s).
+        4. **Not-before (`nbf`)**: reject tokens not yet valid.
+        5. **Issuer (`iss`)**: reject tokens from unexpected issuers.
+        6. **Audience (`aud`)**: reject tokens not intended for your service. This prevents a
+           token issued for Service A from being used at Service B.
+
+        Use a well-maintained JWT library — do not implement validation by hand. Pass the
+        expected algorithm list, issuer, and audience as explicit configuration parameters.
+      tags:
+        - {text: "never skip aud validation", color: red}
+        - {text: "use a library — not hand-rolled", color: orange}
+        - {text: "clock skew ≤ 30s", color: green}
+
+    - title: "♻️ Token Lifecycle & Refresh"
+      body: >
+        **Access token**: short-lived (15 min – 1 h). Sent on every API request. Stateless —
+        the server validates the signature without a database lookup. Short TTL limits the
+        window of a stolen token.
+
+        **Refresh token**: long-lived (days to weeks). Stored securely server-side (database).
+        Used only to obtain a new access token when the current one expires. Never sent to
+        APIs — only to the token endpoint.
+
+        **Refresh flow**: client sends refresh token to auth server → server validates it
+        (checks DB, checks not revoked) → issues new access token (and optionally rotates
+        the refresh token).
+
+        **Refresh token rotation**: on every use, the server issues a new refresh token and
+        invalidates the old one. If the old token is presented again (theft detected), the
+        server revokes the entire token family.
+      flows:
+        - ["Access token expires", "Client sends refresh token", "Auth server validates + rotates", "New access token issued"]
+      tags:
+        - {text: "access token = short-lived + stateless", color: green}
+        - {text: "refresh token = long-lived + server-side", color: orange}
+        - {text: "rotation = theft detection", color: purple}
+
+    - title: "⚔️ Common Attacks"
+      body: >
+        **`alg: none`**: attacker strips the signature and sets `alg` to `none`. A naive
+        library skips verification. Fix: whitelist allowed algorithms explicitly; never accept `none`.
+
+        **Algorithm confusion (RS256 → HS256)**: if a library allows the client to choose the
+        algorithm, an attacker sets `alg: HS256` and signs with the server's **public key** as the
+        HMAC secret (public keys are public). The server verifies the HMAC using the public key —
+        and it matches. Fix: pin the expected algorithm server-side, never trust the header's `alg`.
+
+        **Weak HMAC secret**: HS256 secrets can be brute-forced offline if the attacker captures
+        a token. A 10-character alphanumeric secret can be cracked in minutes with hashcat.
+        Fix: use cryptographically random secrets of ≥256 bits, or switch to RS256/ES256.
+
+        **Missing `aud` validation**: a token for `payments-api` is accepted by `admin-api`
+        because neither validates `aud`. Fix: configure expected audience on every service.
+
+        **JWT in localStorage (XSS)**: JavaScript can read localStorage, so any XSS on your
+        domain steals the token. Fix: store in `httpOnly; Secure; SameSite=Strict` cookies.
+      tags:
+        - {text: "whitelist alg server-side", color: red}
+        - {text: "aud validation = service isolation", color: orange}
+        - {text: "httpOnly cookie > localStorage", color: green}
+
+  gotchas:
+    - title: "The payload is publicly readable — it is not encrypted"
+      body: >
+        Base64URL is an encoding, not encryption. Anyone who intercepts or captures a JWT can
+        decode the payload in seconds. Never put sensitive data in the payload: passwords,
+        PII, credit card numbers, SSNs. Put only what is needed for authorization decisions
+        (user ID, roles, scopes). If you need confidential claims, use JWE (JSON Web Encryption)
+        — a different standard that encrypts the payload. Most systems don't need JWE; they
+        need to stop putting secrets in JWT payloads.
+
+    - title: "JWT revocation is fundamentally hard — design around it"
+      body: >
+        A JWT is valid until `exp`. There is no built-in revocation mechanism — the server
+        validates the signature and expiry, not a database. Logout, password change, and
+        permission revocation don't invalidate outstanding tokens unless you maintain a
+        server-side denylist (a Redis set of revoked `jti` values). This reintroduces
+        statefulness — exactly what JWT was supposed to eliminate. The practical answer is
+        short access token TTLs (15 min) so the revocation window is bounded, combined with
+        long-lived refresh tokens that can be revoked server-side.
+
+    - title: "Clock skew between services causes valid tokens to be rejected"
+      body: >
+        If the issuer's clock is 2 minutes ahead and a verifier allows no skew, a freshly
+        issued token with `nbf = now` is rejected as "not yet valid." Conversely, lax skew
+        (>5 min) widens the window for replay attacks. Synchronize all clocks via NTP and
+        allow a small, explicit tolerance (30 s) in your validation logic. Most libraries
+        support a configurable `clockSkewSeconds` parameter.
+
+    - title: "Long-lived access tokens negate the security benefit of JWTs"
+      body: >
+        Teams sometimes set access token TTLs to 24 hours or longer "for convenience."
+        This creates a 24-hour window during which a stolen token is fully valid — essentially
+        a long-lived credential with no revocation path. The security model of JWT depends on
+        short TTLs. If your use case requires longer validity, use an opaque token backed by
+        a session store that can be revoked instantly, or accept the complexity of a denylist.
+
+    - title: "Using the same token for authentication and CSRF protection"
+      body: >
+        Storing JWTs in httpOnly cookies protects against XSS but introduces CSRF risk — a
+        malicious site can trigger cross-site requests that automatically include the cookie.
+        Mitigate with `SameSite=Strict` (or `Lax`) on the cookie, which blocks cross-site
+        requests from sending the cookie. For APIs consumed by single-page apps where
+        `SameSite` isn't sufficient, use the Double Submit Cookie pattern or a separate
+        CSRF token. Never rely on JWT presence alone as a CSRF defense.
+
+    - title: "Confusing JWT with a session — they have different revocation and scale properties"
+      body: >
+        JWTs are stateless bearer tokens — anyone who holds one can use it, and the server
+        cannot invalidate it without a denylist. Traditional sessions are stateful — stored
+        server-side, instantly revocable, but require shared session storage for horizontal
+        scale. Choose based on requirements: need instant revocation → sessions (or short JWTs
+        + denylist); need zero server state and horizontal scale → JWTs with short TTLs.
+        Many systems use both: JWTs for service-to-service auth, sessions for user login.
+
+  when_to_use:
+    - "Stateless service-to-service authentication in a microservices architecture"
+    - "Delegated authorization via OAuth2 — access tokens issued by an authorization server"
+    - "Cross-domain or cross-organization identity federation (OIDC ID tokens)"
+    - "API authentication where the server should not maintain per-user session state"
+    - "Mobile / SPA clients where cookies are impractical and stateless tokens are preferred"
+
+  when_not_to_use:
+    - "When you need instant revocation (account compromise, logout) — use sessions or short-lived tokens with a denylist"
+    - "Storing sensitive data that must remain confidential — payload is readable without JWE"
+    - "Traditional server-rendered web apps — cookie sessions are simpler and more secure"
+    - "When the payload is large — JWTs are sent on every request; large payloads hurt performance"
+    - "As a substitute for proper authorization — a JWT proves identity, not permission to every action"
+
+# ── DEEP DIVE ─────────────────────────────────────────────────────────────────
+deep_dive:
+  tables:
+    - title: "🔐 Signing Algorithm Comparison"
+      full_width: true
+      rows:
+        - {key: "HS256 / HS384 / HS512", value: "HMAC-SHA. Symmetric — same secret signs and verifies. Fast. All verifiers must hold the secret. Secret compromise = all tokens forgeable. Use only in single-service or closed systems."}
+        - {key: "RS256 / RS384 / RS512", value: "RSA-PKCS1v15. Asymmetric — private key signs, public key verifies. 2048-bit minimum key. Larger tokens (~340 bytes signature). Publish public key via JWKS. Industry standard for OAuth2."}
+        - {key: "PS256 / PS384 / PS512", value: "RSA-PSS. Same key size as RS256 but probabilistic padding — more secure than PKCS1v15. Preferred over RS256 for new systems. Same JWKS distribution model."}
+        - {key: "ES256 / ES384 / ES512", value: "ECDSA. Asymmetric. Much smaller keys and signatures than RSA (~64 bytes for ES256 vs ~256 bytes for RS256). Same security level. Preferred when token size matters. P-256 / P-384 / P-521 curves."}
+        - {key: "EdDSA (Ed25519)", value: "Edwards-curve DSA. Fastest signing and verification. Smallest signatures. Not yet universally supported in all libraries but increasingly common. Strong security properties."}
+        - {key: "none", value: "No signature. NEVER accept. Attacker can forge any claims. Always whitelist algorithms explicitly and reject 'none'."}
+
+    - title: "📋 Registered Claims Reference"
+      rows:
+        - {key: "iss (Issuer)", value: "Who issued the token. Validate against your expected auth server URL. Reject if missing or unexpected."}
+        - {key: "sub (Subject)", value: "Who the token represents — typically a user ID or service ID. Stable, unique identifier."}
+        - {key: "aud (Audience)", value: "Intended recipient. Must match your service identifier. Prevents token reuse across services. Often skipped — don't."}
+        - {key: "exp (Expiration)", value: "Unix timestamp. Reject tokens past this time. Apply a small clock skew tolerance (≤30 s)."}
+        - {key: "nbf (Not Before)", value: "Token not valid before this time. Allows issuing tokens that activate in the future."}
+        - {key: "iat (Issued At)", value: "When the token was created. Used to determine token age and enforce maximum lifetime independent of exp."}
+        - {key: "jti (JWT ID)", value: "Unique token ID. Use in a denylist for revocation, or to prevent replay of one-time tokens."}
+
+    - title: "⚔️ Attack Reference"
+      full_width: true
+      rows:
+        - {key: "alg: none", value: "Strip signature, set alg=none. Naive libraries skip verification. Fix: whitelist expected algorithms; never accept none."}
+        - {key: "Algorithm confusion", value: "Switch RS256 to HS256, sign with the server's public key as HMAC secret. Fix: ignore alg header; pin expected algorithm in server config."}
+        - {key: "Weak HMAC secret", value: "Offline brute-force of captured tokens with hashcat. Fix: 256-bit random secret; or use RS256/ES256."}
+        - {key: "Missing aud validation", value: "Token for service A accepted by service B. Fix: validate aud on every service; configure expected audience explicitly."}
+        - {key: "JWT in localStorage", value: "XSS steals token. Fix: httpOnly; Secure; SameSite cookie."}
+        - {key: "Replay attack", value: "Captured valid token reused after the user logs out. Fix: short exp + jti denylist on revocation; refresh token rotation."}
+        - {key: "Key confusion (kid injection)", value: "Attacker forges kid header to point to an attacker-controlled key. Fix: validate kid against a trusted JWKS endpoint; never fetch arbitrary URLs from the kid claim."}
+        - {key: "JWK embedded in header", value: "Some parsers trust a jwk or x5c header embedded in the token itself to verify the signature. Fix: only trust keys from your pre-configured JWKS endpoint."}
+
+    - title: "🔑 JWT vs Opaque Tokens vs Sessions"
+      full_width: true
+      rows:
+        - {key: "JWT (self-contained)", value: "Stateless — no server lookup on validation. Instant horizontal scale. Cannot be revoked without a denylist. Payload visible. Best for service-to-service, OAuth2 access tokens."}
+        - {key: "Opaque token", value: "Random string. Server looks up the token in a database/cache on every request. Instantly revocable. No information leakage. Higher per-request latency. Best for user sessions needing instant revocation."}
+        - {key: "Session cookie", value: "Server stores session state. httpOnly cookie on client. Instant revocation. CSRF risk (mitigate with SameSite). Simple for traditional web apps. Shared session store needed for horizontal scale."}
+        - {key: "PASETO (Platform-Agnostic SE Token)", value: "Safer alternative to JWT. No algorithm agility — each version fixes the algorithm (v4: Ed25519 for public, XChaCha20-Poly1305 for local). No 'none' attack possible. Gaining adoption but less tooling than JWT."}
+
+  cli:
+    - label: "Decode & Inspect (no verification)"
+      commands:
+        - "# Split and decode — shows header and payload (unverified)"
+        - "echo 'eyJ...' | cut -d. -f1 | base64 -d | python3 -m json.tool   # decode header"
+        - "echo 'eyJ...' | cut -d. -f2 | base64 -d 2>/dev/null | python3 -m json.tool  # decode payload"
+        - "# jwt-cli (install: brew install mike-engel/jwt-cli/jwt-cli)"
+        - "jwt decode eyJ...                          # decode without verifying"
+        - "jwt decode --json eyJ...                   # compact JSON output"
+
+    - label: "Verify & Create (jwt-cli)"
+      commands:
+        - "jwt encode --alg RS256 --secret @/path/to/private.pem '{\"sub\":\"user-1\",\"exp\":9999999999}'"
+        - "jwt decode --alg RS256 --secret @/path/to/public.pem eyJ...  # verify RS256"
+        - "jwt decode --alg HS256 --secret 'mysecret' eyJ...            # verify HS256"
+
+    - label: "OpenSSL Key Generation"
+      commands:
+        - "# RSA key pair (RS256 / PS256)"
+        - "openssl genrsa -out private.pem 2048"
+        - "openssl rsa -in private.pem -pubout -out public.pem"
+        - "# EC key pair (ES256)"
+        - "openssl ecparam -name prime256v1 -genkey -noout -out ec-private.pem"
+        - "openssl ec -in ec-private.pem -pubout -out ec-public.pem"
+        - "# Ed25519 key pair (EdDSA)"
+        - "openssl genpkey -algorithm Ed25519 -out ed-private.pem"
+        - "openssl pkey -in ed-private.pem -pubout -out ed-public.pem"
+
+    - label: "JWKS & Discovery"
+      commands:
+        - "# Fetch JWKS from an OIDC provider"
+        - "curl https://accounts.google.com/.well-known/openid-configuration | jq '.jwks_uri'"
+        - "curl https://accounts.google.com/oauth2/v3/certs | jq '.'       # Google JWKS"
+        - "# Decode a key from JWKS"
+        - "curl https://auth.example.com/.well-known/jwks.json | jq '.keys[] | select(.kid==\"key-1\")'"
+
+    - label: "Security Testing"
+      commands:
+        - "# Check if server accepts alg:none (should return 401)"
+        - "# 1. Decode token, 2. Set alg=none in header, 3. Remove signature, 4. Send"
+        - "python3 -c \"import base64,json; h=base64.urlsafe_b64encode(json.dumps({'alg':'none','typ':'JWT'}).encode()).rstrip(b'='); print(h.decode())\""
+        - "# Crack HS256 secret offline (hashcat)"
+        - "hashcat -a 0 -m 16500 '<jwt>' wordlist.txt"
+
+  comparison:
+    title: "JWT vs Sessions vs PASETO vs SAML"
+    headers: ["Dimension", "JWT", "Server Session", "PASETO v4", "SAML 2.0"]
+    rows:
+      - ["Format", "JSON, Base64URL, dot-separated", "Opaque ID in cookie; server holds state", "Binary / JSON, version-tagged", "XML, signed and optionally encrypted"]
+      - ["Stateless", "Yes — server validates signature only", "No — server looks up session store", "Yes — same model as JWT", "No — SP validates with IdP"]
+      - ["Revocation", "Hard — requires denylist or short TTL", "Instant — delete session from store", "Hard — same as JWT", "Possible via session management"]
+      - ["Algorithm agility", "Yes — negotiated via alg header (attack surface)", "N/A", "No — fixed per version (safer)", "XML-DSig (RSA SHA-256 standard)"]
+      - ["Payload visibility", "Visible (Base64 decoded)", "Hidden on server", "Visible (public token) or encrypted (local)", "Visible in XML"]
+      - ["Standard", "RFC 7519", "No RFC; implementation-specific", "paseto.io spec", "OASIS SAML 2.0"]
+      - ["Use case", "API auth, OAuth2, service-to-service", "Traditional web apps, instant revocation", "Same as JWT, safer algorithm model", "Enterprise SSO, ADFS, legacy IdPs"]
+      - ["Tooling", "Excellent — every language has libraries", "Built into most web frameworks", "Growing — limited compared to JWT", "Mature but complex XML tooling"]
+      - ["Size", "~200–500 bytes typical", "32-byte session ID in cookie", "Similar to JWT", "1–10 KB XML blob"]
+
+# ── Q & A ─────────────────────────────────────────────────────────────────────
+qa:
+  senior:
+    - id: S-01
+      question: "Walk through the JWT structure. What is each part and what does Base64URL encoding mean?"
+      answer: >
+        A JWT has three dot-separated parts: `header.payload.signature`.
+
+        **Header**: a JSON object Base64URL-encoded. Declares the token type (`typ: JWT`)
+        and the signing algorithm (`alg: RS256`). The `kid` (key ID) field optionally
+        identifies which key to use for verification.
+        ```
+        {"alg":"RS256","typ":"JWT","kid":"2024-key-1"}
+        ```
+
+        **Payload**: a JSON object Base64URL-encoded containing claims. Registered claims
+        (`iss`, `sub`, `aud`, `exp`, `iat`, `jti`) plus any custom claims the application needs.
+        ```
+        {"sub":"user-abc","iss":"https://auth.example.com","aud":"payments-api","exp":1716000000,"roles":["user"]}
+        ```
+
+        **Signature**: for RS256 — `RSA_SIGN(SHA256(base64url(header) + "." + base64url(payload)), private_key)`,
+        then Base64URL-encoded. Changing any character in the header or payload invalidates the signature.
+
+        **Base64URL** differs from standard Base64: uses `-` instead of `+`, `_` instead of `/`,
+        and omits `=` padding. This makes the token URL-safe for query parameters and HTTP headers.
+
+        **Key point**: Base64URL is an encoding, not encryption. The header and payload are
+        trivially decoded. The signature proves integrity and authenticity — not confidentiality.
+      staff_add: >
+        The `kid` header field is important for key rotation. A verifier that receives a token
+        with `kid: 2024-key-2` fetches the matching key from the JWKS endpoint and uses it for
+        verification. This allows the auth server to rotate keys (publish a new key alongside
+        the old one) without breaking existing tokens — verifiers automatically select the
+        right key by `kid`. Without `kid`, a key rotation requires all verifiers to update
+        their key configuration simultaneously, which is operationally painful in a distributed system.
+
+    - id: S-02
+      question: "What is the difference between HS256 and RS256? When do you use each?"
+      answer: >
+        **HS256 (HMAC-SHA256)** is symmetric — the same secret signs and verifies. The secret
+        must be shared with every service that validates tokens. If any one verifier is
+        compromised, the attacker can forge tokens for all services. Use HS256 only when:
+        the issuer and all verifiers are in the same trust boundary (same service or team),
+        and you can securely distribute and rotate the secret.
+
+        **RS256 (RSA-PKCS1v15-SHA256)** is asymmetric — the auth server holds a private key
+        and signs tokens; all other services verify using only the corresponding public key.
+        The public key is published at a JWKS endpoint and can be freely distributed. A
+        compromised verifier cannot forge tokens — it only has the public key. Use RS256 when:
+        - Multiple services verify tokens (they each fetch the public key, never the private)
+        - Third parties verify your tokens (OAuth2, OIDC, partner integrations)
+        - You want key rotation without re-distributing a secret to every service
+
+        **In practice**: RS256 (or ES256 for smaller tokens) is the correct default for any
+        multi-service system. HS256 is appropriate only for single-service use or legacy systems.
+      staff_add: >
+        The algorithm confusion attack exploits systems that trust the `alg` header from the
+        token. An attacker takes an RS256-signed token, changes the header to `alg: HS256`,
+        re-signs it using the server's **public key** as the HMAC secret, and submits it.
+        A library that honors the header's `alg` field will verify the HMAC using the public
+        key — and it succeeds, because the attacker used that same key to sign. This is why you
+        must always configure the **expected algorithm** server-side and never let the token's
+        header determine what algorithm is used for verification.
+
+    - id: S-03
+      question: "What claims must you validate on every JWT, and what attack does skipping each one enable?"
+      answer: >
+        **`alg`** — verify it matches your expected algorithm. Skipping enables the `alg: none`
+        attack (no signature) or algorithm confusion attack (RS256 → HS256 with public key).
+
+        **Signature** — verify the cryptographic signature using the correct key. Skipping means
+        any forged token with valid-looking claims is accepted.
+
+        **`exp` (expiration)** — reject tokens past their expiry. Skipping means stolen tokens
+        are valid forever — no time-bounded window for revocation.
+
+        **`nbf` (not before)** — reject tokens not yet active. Skipping allows pre-issued tokens
+        to be used before their intended activation time.
+
+        **`iss` (issuer)** — verify the token was issued by your trusted auth server.
+        Skipping allows tokens issued by an attacker-controlled server to be accepted if the
+        attacker can produce a valid signature (possible if they have a valid key pair and you
+        don't validate the issuer).
+
+        **`aud` (audience)** — verify the token is intended for your service. Skipping enables
+        **token substitution**: a token issued for `billing-api` is accepted by `admin-api`.
+        This is the most commonly skipped validation and enables privilege escalation if
+        different services have different authorization levels.
+
+        Always configure issuer, audience, and allowed algorithms explicitly in your JWT library
+        rather than validating them manually.
+      staff_add: >
+        Audience validation is the claim most often skipped in microservice architectures,
+        because teams reason "all our services trust the same auth server, so cross-service
+        token use is fine." This reasoning breaks down when services have different privilege
+        levels. If `payment-api` tokens grant write access to payment records and `analytics-api`
+        tokens grant read-only access, a stolen `payment-api` token presented to `analytics-api`
+        (without `aud` validation) is accepted with full read access — or worse, if the
+        analytics service's token is stolen and presented to the payment API. Each service
+        should validate `aud` against its own identifier, ensuring tokens are scoped to their
+        intended consumer.
+
+    - id: S-04
+      question: "Explain the `alg: none` attack and the algorithm confusion attack. How do you prevent both?"
+      answer: >
+        **`alg: none` attack**:
+        The JWT spec originally allowed `alg: none` to indicate an unsigned token.
+        Some early libraries honored this — if `alg` was `none`, they skipped signature
+        verification entirely. An attacker decodes a valid token, modifies the payload
+        (escalates privileges, changes user ID), sets `alg: none` in the header, strips the
+        signature, and the server accepts it as valid.
+
+        **Algorithm confusion attack**:
+        RS256 uses a private key to sign and a public key to verify. If a library accepts
+        the algorithm from the token header (rather than from server configuration), an attacker
+        can set `alg: HS256` in a modified token. The server then tries to verify an HMAC-SHA256
+        signature. The attacker signed the token using the server's **public key** as the HMAC
+        secret. Since public keys are public, the attacker knows the value, and the server's
+        HMAC verification succeeds.
+
+        **Prevention**:
+        - **Whitelist algorithms**: configure your JWT library with an explicit list of accepted
+          algorithms (`["RS256"]` or `["ES256"]`). Reject tokens whose `alg` header isn't in the list.
+        - **Never accept `none`**: explicitly exclude it from the allowed list.
+        - **Never use the token header to select the verification key type**: the server decides
+          the algorithm; the token's `alg` field is only used to confirm it matches.
+        - Use a reputable, well-maintained library — these attacks target hand-rolled or naive implementations.
+      staff_add: >
+        These attacks exploited ambiguity in the original JWT specification — the spec allowed
+        algorithm negotiation in a way that was inherently insecure. PASETO was created specifically
+        to remove algorithm agility: each PASETO version has exactly one algorithm baked in.
+        There is no `alg` header to manipulate. This is the correct long-term solution; JWT's
+        algorithm agility is a design flaw that requires defensive coding to work around.
+        For systems using JWT, the defense is always "configure, don't negotiate" — configure
+        the expected algorithm in your validator, and treat a mismatch as an attack, not a negotiation.
+
+    - id: S-05
+      question: "Where should JWTs be stored on the browser client? What are the security trade-offs?"
+      answer: >
+        **`localStorage` / `sessionStorage`**:
+        - Accessible by JavaScript on the same origin.
+        - Any XSS vulnerability on your site can steal the token — `document.cookie` is off-limits
+          to JavaScript, but `localStorage` is not.
+        - No CSRF risk (browser doesn't automatically send localStorage to cross-site requests).
+        - **Not recommended** for access tokens with any meaningful lifetime.
+
+        **`httpOnly; Secure; SameSite=Strict` cookie**:
+        - Cannot be accessed by JavaScript — XSS cannot read it.
+        - Automatically sent by the browser on same-site requests.
+        - CSRF risk exists if `SameSite` is not set or is set to `None`.
+        - `SameSite=Strict`: cookie not sent on cross-site requests at all — strongest CSRF protection.
+        - `SameSite=Lax`: cookie sent on top-level navigations (clicking a link) but not on
+          sub-resource requests — good balance for most apps.
+        - **Recommended** for session tokens and refresh tokens.
+
+        **In-memory (JavaScript variable)**:
+        - XSS cannot exfiltrate it (no persistent storage).
+        - Lost on page refresh — poor UX for access tokens unless paired with a silent refresh flow.
+        - Some SPAs store access tokens in memory and use httpOnly cookies for refresh tokens.
+      staff_add: >
+        The "httpOnly cookie vs localStorage" debate often misses the real question: what is the
+        threat model? If your application has a Content Security Policy (CSP) that prevents
+        inline scripts and only allows scripts from your own domain, the XSS risk to localStorage
+        is substantially reduced. If your application has no CSP, even httpOnly cookies are at
+        risk indirectly — XSS can make authenticated API calls on the user's behalf without
+        extracting the token. The correct security posture is defense in depth: httpOnly cookies
+        + strict CSP + short token TTL + CSRF protection. No single storage choice is a silver
+        bullet; all require supporting controls.
+
+    - id: S-06
+      question: "How do refresh tokens work, and what is refresh token rotation? How does it detect token theft?"
+      answer: >
+        When an access token expires, the client sends its **refresh token** to the auth
+        server's token endpoint. The server:
+        1. Validates the refresh token (looks it up in the database, checks it's not expired or revoked).
+        2. Issues a new short-lived access token.
+        3. Optionally issues a new refresh token (**rotation**) and marks the old one as used.
+
+        **Without rotation**: a stolen refresh token is valid until it expires (days/weeks).
+        The attacker quietly generates access tokens indefinitely.
+
+        **With refresh token rotation**:
+        - Every use of a refresh token produces a new one; the old one is immediately invalidated.
+        - The server tracks refresh tokens in **families** (chains of rotations from the original).
+        - If a refresh token that was already used is presented again, it means **both the legitimate
+          client and an attacker have the same token** — one is stolen. The server detects this
+          reuse and **revokes the entire token family**, logging out both the attacker and the user.
+        - The user must re-authenticate, but the attacker's session is simultaneously destroyed.
+
+        This is why refresh tokens must be stored securely (httpOnly cookie), single-use, and
+        rotated — not cached or reused.
+      staff_add: >
+        Refresh token rotation creates a subtle race condition in clients with multiple tabs or
+        concurrent requests. If two tabs simultaneously detect an expired access token and both
+        attempt to refresh, one will succeed and the other will receive a reuse-detected error,
+        triggering a full logout — even though no theft occurred. Mitigate with a mutex in the
+        client (only one tab initiates the refresh; others wait for the result) or grace period
+        logic (server allows the same refresh token to be used within a short window, e.g., 30 s,
+        treating concurrent uses as non-theft). Most mature auth libraries handle this; hand-rolled
+        refresh logic often doesn't.
+
+    - id: S-07
+      question: "What is JWKS and how does a service use it to verify JWTs without pre-sharing keys?"
+      answer: >
+        **JWKS (JSON Web Key Set)** is a standardized JSON format for publishing public keys.
+        An auth server exposes a JWKS endpoint (typically `/.well-known/jwks.json`) containing
+        all current public keys used to verify tokens.
+
+        ```json
+        {
+          "keys": [
+            {
+              "kty": "RSA",
+              "kid": "2024-key-1",
+              "use": "sig",
+              "alg": "RS256",
+              "n": "<modulus-base64url>",
+              "e": "AQAB"
+            }
+          ]
+        }
+        ```
+
+        **Verification flow**:
+        1. Service receives a JWT. Reads `kid` from the header.
+        2. If `kid` is not in the local key cache, fetches the JWKS endpoint.
+        3. Finds the key with the matching `kid`.
+        4. Reconstructs the public key from the JWKS parameters.
+        5. Verifies the JWT signature using that key.
+        6. Caches the JWKS response (respect `Cache-Control` headers) to avoid fetching on every request.
+
+        **Key rotation**: the auth server publishes a new key alongside the old one. Old tokens
+        (signed with the old key, referencing it via `kid`) continue to verify. New tokens use the
+        new key. Once all old tokens expire, the old key is removed from JWKS.
+      staff_add: >
+        JWKS caching strategy is operationally important. Fetching JWKS on every token validation
+        adds latency and makes your service dependent on the auth server's availability. Cache
+        aggressively, but with a bounded TTL (5–15 min) and a mechanism to invalidate the cache
+        when an unknown `kid` is encountered (cache miss triggers a refresh). The failure mode to
+        avoid: caching JWKS indefinitely — after a key rotation, the old key is removed from JWKS,
+        but your cache still has it. All tokens signed with the new key fail verification until the
+        cache expires. Implement: cache hit → use cached key; cache miss (unknown `kid`) → fetch
+        JWKS once more, then fail if still not found.
+
+  staff:
+    - id: ST-01
+      question: "How do you handle JWT revocation in a distributed system where services independently validate tokens?"
+      answer: >
+        Stateless JWT validation has no built-in revocation. The options, in order of complexity:
+
+        **1. Short access token TTL (15 min)**: accept that revocation has a bounded delay.
+        Password changes and permission updates take effect within one TTL window. For most
+        consumer applications this is acceptable. Pair with long-lived refresh tokens that are
+        immediately revocable server-side.
+
+        **2. `jti` denylist in a shared cache (Redis)**:
+        On logout or account compromise, write the `jti` of all outstanding tokens to a Redis set
+        with TTL matching the token's remaining validity. Every service checks the denylist on
+        validation. Reintroduces network dependency but allows instant revocation.
+        Scale challenge: the denylist must be accessible to all services; Redis must be highly available.
+
+        **3. Token version in a fast store**:
+        Store a `token_version` per user in Redis. Embed the version in the JWT claim.
+        On validation, check that the claim version matches the current version.
+        On logout/password change, increment the version — all outstanding tokens with older
+        versions are instantly invalid. One Redis lookup per request, but only one key per user.
+
+        **4. Introspection endpoint**:
+        OAuth2 RFC 7662 — verifying service calls the auth server's introspection endpoint on
+        every request. Instant revocation, full server-side control. Highest latency and coupling;
+        auth server becomes a synchronous dependency. Suitable for high-value operations (banking,
+        healthcare) where instant revocation outweighs the cost.
+
+        **In practice**: most systems use short TTLs (option 1) for access tokens and a denylist
+        or version check (option 2/3) for the rare cases that require instant revocation.
+      staff_add: >
+        The denylist approach has an important operational property: it grows with the number of
+        revocation events, not the number of users. A service with 10M users but 10K logout events
+        per day has a small denylist. Prune it automatically using Redis TTLs set to the token's
+        remaining `exp` time — entries self-expire when the token would have expired anyway. Monitor
+        denylist size and Redis memory; a spike in revocations (e.g., after a breach announcement)
+        can cause unexpected Redis growth. The token version approach (option 3) is more scalable
+        for mass revocation events (force-logout all users after a breach) — one write per user
+        instead of one write per outstanding token.
+
+    - id: ST-02
+      question: "How do you design a JWT-based auth system for a platform with 30+ microservices, each with different authorization requirements?"
+      answer: >
+        **Central auth server** (the only issuer): a single service (or a clustered, highly
+        available deployment) issues all JWTs. It holds the private signing key. Services
+        verify tokens using the public JWKS endpoint — they never call the auth server per request.
+
+        **Coarse-grained claims in the token** (`scope`, `role`, `tenant_id`): encode what the
+        token broadly allows. Keep the payload small — tokens are sent on every request. Avoid
+        embedding fine-grained permissions (individual resource IDs) in the token.
+
+        **Fine-grained authorization at the service boundary**: each service enforces its own
+        policy using the token's claims. A `scope: payments:write` claim in the token means the
+        auth server has delegated that permission; the payments service enforces whether that
+        scope allows the specific operation on the specific resource.
+
+        **Service-to-service tokens**: use short-lived tokens issued via a machine identity
+        (mTLS client cert → token exchange, or Vault's JWT auth method). These tokens carry
+        a `sub` of the calling service (e.g., `sub: order-service`) and a narrow `scope`.
+        Services should not forward user tokens to other services — they should exchange for a
+        service-scoped token.
+
+        **Token exchange (RFC 8693)**: allows a service to present a user token and receive a
+        new token scoped for a specific downstream service. Maintains the user's identity through
+        the call chain while constraining the downstream token's audience and scope.
+      staff_add: >
+        The hardest design decision in a multi-service JWT system is where authorization logic
+        lives. Two extreme patterns: **fat token** (embed all permissions in the JWT — large
+        payload, stale on permission changes), and **thin token + policy service** (embed only
+        identity in JWT, call an authorization service like OPA or Casbin at decision time).
+        Most systems land in the middle: roles and coarse scopes in the token, fine-grained
+        resource authorization in each service or a shared policy library. The key principle:
+        the auth server's job is authentication (who you are) and coarse delegation (what you're
+        broadly allowed to do); individual services own authorization (what you can do to this
+        specific resource). Conflating these makes the auth server a bottleneck for every
+        permission model change.
+
+    - id: ST-03
+      question: "How do you perform a JWT signing key rotation with zero downtime and no forced re-authentication?"
+      answer: >
+        Key rotation must not invalidate outstanding tokens signed with the old key, because
+        users would be silently logged out.
+
+        **The overlap window pattern**:
+
+        **Step 1 — Generate and publish the new key**:
+        Add the new key pair to the auth server. Publish both the old and new public keys in
+        JWKS, each with a unique `kid`. The new key is available for verification but the auth
+        server still signs new tokens with the old key. All services cache the JWKS with both keys.
+
+        **Step 2 — Switch signing to the new key**:
+        Update the auth server to sign new tokens with the new key (`kid: new-key`).
+        Old tokens (signed with the old key, `kid: old-key`) are still verified using the
+        old public key still present in JWKS. Verifiers handle both transparently via `kid` lookup.
+
+        **Step 3 — Wait for old tokens to expire**:
+        Old tokens expire naturally within one access token TTL (15 min – 1 h). After this
+        window, no valid old-key tokens remain in circulation.
+
+        **Step 4 — Remove the old key from JWKS**:
+        Remove the old key's entry from JWKS. Verifiers that cached it will eventually
+        refresh their cache. Monitor for verification failures after removal — any spike
+        indicates tokens with the old `kid` are still being presented.
+
+        **Total rotation time** = max access token TTL + JWKS cache TTL. With 1h tokens and
+        15 min JWKS cache, the rotation window is ~75 min of running both keys simultaneously.
+      staff_add: >
+        Key rotation should be a routine, automated operation — not a manual emergency procedure.
+        Schedule rotations quarterly or triggered by security policy (e.g., after a team member
+        with key access leaves). The operational risk is removing the old key before all tokens
+        have expired: monitor `kid` distribution in your token validation metrics. If you see
+        tokens with the old `kid` still arriving after the expected rotation window, investigate
+        before removing the key — long-lived refresh tokens that issue access tokens with the
+        old `kid` are a common oversight. Ensure the auth server uses the new key for all newly
+        issued tokens (access and ID tokens) before removing the old key from JWKS.
+
+    - id: ST-04
+      question: "What is the difference between JWT and JWE? When do you actually need encryption?"
+      answer: >
+        **JWT** (JWS — JSON Web Signature): signs the payload to guarantee integrity and authenticity.
+        The payload is **visible** — Base64URL decoded by anyone who holds the token.
+
+        **JWE** (JSON Web Encryption): encrypts the payload so it is **confidential**. Only the
+        intended recipient with the decryption key can read the claims. JWE adds a 5-part structure:
+        header, encrypted key, initialization vector, ciphertext, authentication tag.
+
+        **When you actually need JWE**:
+        - The token contains sensitive personal data (medical records, financial details, government IDs)
+          that must not be readable by intermediaries (CDNs, load balancers, logging pipelines)
+        - You're embedding a payload that a relying party must not inspect (e.g., an opaque token
+          that carries sensitive routing information)
+        - Regulatory requirements explicitly mandate encrypted tokens (some healthcare and financial
+          compliance frameworks)
+
+        **When you don't need JWE** (most systems):
+        - Your claims are non-sensitive (user ID, roles, scopes, tenant ID)
+        - Tokens are transmitted over TLS — the transport layer provides confidentiality in transit
+        - The token is only visible to the server and the authenticated client
+
+        JWE adds significant complexity (key management for encryption, nested token formats,
+        library support) with minimal benefit for typical authorization use cases. Fix the root
+        cause instead: don't put sensitive data in JWT claims.
+      staff_add: >
+        A common mistake is using JWE because "tokens travel over the network and might be
+        intercepted." TLS already protects the token in transit — JWE adds encryption at rest
+        in the token itself. The genuine threat model for JWE is: what if an attacker has a
+        copy of the token (stolen from a log, a database, or a client) and can decode its
+        payload? If the payload contains only authorization claims (user ID, roles), the
+        attacker gains no sensitive data beyond what they need to forge a request — and
+        forging requires breaking the signature, not just reading the payload. JWE is the right
+        answer when the payload itself contains secrets, not merely when the token is sensitive.
+
+  principal:
+    - id: P-01
+      question: "How do you design a centralized auth system issuing JWTs for 50+ microservices with different trust levels, audiences, and token lifetimes?"
+      answer: >
+        **Architecture pillars**:
+
+        **1. Single issuer, federated verification**: one auth server (clustered for HA) holds
+        all private signing keys. Services verify independently via JWKS — no per-request call
+        to the auth server. The auth server is a critical dependency for login, not for every
+        API call.
+
+        **2. Audience-scoped tokens**: every token has an explicit `aud` claim matching the
+        intended service (`payments-api`, `inventory-api`). Services reject tokens for other
+        audiences. Token exchange (RFC 8693) allows a gateway or service to request a
+        downstream-scoped token from the auth server when making service-to-service calls.
+
+        **3. Tiered token lifetimes by sensitivity**:
+        - High-value endpoints (payments, account changes): 5–15 min access tokens,
+          require step-up authentication (MFA re-prompt) for specific operations
+        - Standard API access: 15–60 min access tokens
+        - Read-only public APIs: up to 1 h
+        - Machine-to-machine (service accounts): 5–15 min, rotated automatically by the platform
+
+        **4. Claims taxonomy governance**: publish a claims registry (internal docs or schema).
+        All services agree on claim names, formats, and semantics. `role` values are defined
+        centrally; custom claims follow a namespaced convention (`https://example.com/claims/tenant`).
+        Prevents drift where `admin` means different things in different services.
+
+        **5. Observability**: instrument every token issuance (issuer, audience, subject, algorithm,
+        TTL) and every validation failure (expired, wrong aud, bad sig). Token metrics reveal
+        misconfigured clients (flooding the token endpoint), abuse patterns, and rotation issues.
+
+        **6. Auth server HA**: the auth server must be highly available — any downtime blocks all
+        logins. Active-active across AZs with a shared signing key (or replicated HSM). The JWKS
+        endpoint should be cached at the edge (CDN or load balancer cache) so it remains available
+        even if the auth server is degraded.
+      staff_add: >
+        At 50+ services, the claims governance problem dominates. Without a central registry,
+        each team invents their own claim names for the same concepts (`role` vs `roles` vs
+        `user_role` vs `permissions`), and cross-service authorization logic diverges.
+        Treat the JWT claim schema as a public API — versioned, documented, with a deprecation
+        policy. Services that consume claims are coupled to this schema; breaking changes require
+        a migration plan. The auth team should own this schema with the same rigor as an external API.
+        Automate compliance: a CI check that validates that any new claim in a token matches the
+        registered schema prevents undocumented claims from appearing in production tokens
+        and ending up in audit logs unrecognized.
+
+    - id: P-02
+      question: "Your JWT signing private key has been exfiltrated. Walk through your incident response."
+      answer: >
+        A compromised signing key means an attacker can forge any JWT for any user with any claims.
+        All tokens signed with that key are untrusted. This is a Tier-1 security incident.
+
+        **Immediate (minutes)**:
+        1. **Generate a new signing key pair** on the auth server.
+        2. **Remove the compromised key from JWKS** immediately — this causes all tokens signed
+           with the old key to fail validation across all services (a forced logout of all users).
+           This is an intentional, unavoidable disruption. Communicate it to stakeholders.
+        3. **Revoke the compromised key** in your key management system (KMS, HSM, Vault).
+        4. **Force re-authentication**: all users must log in again to receive tokens signed by the new key.
+
+        **Containment (hours)**:
+        5. Determine the **blast radius**: when was the key exfiltrated? Pull audit logs from the
+           key store. Any tokens signed between exfiltration and key removal may have been forged —
+           treat all activity in that window as potentially attacker-controlled.
+        6. Audit the window's API activity for anomalous patterns: unusual privilege claims,
+           unusual users, unusual volumes. Correlate with application logs.
+        7. Rotate all **secrets that the forged tokens may have accessed** during the window —
+           API keys, database credentials, anything the attacker could have retrieved using
+           a forged admin token.
+
+        **Recovery and hardening**:
+        8. Store private keys in an HSM or cloud KMS — never in plaintext on disk or in environment variables.
+        9. Implement key access auditing: every signing operation should produce an audit log entry.
+        10. Set up alerting for: unexpected JWKS changes, signing volume anomalies, auth server
+            accessing key material outside expected patterns.
+        11. Implement a break-glass procedure for key rotation that can be executed in under 5 minutes.
+      staff_add: >
+        The hardest decision during a key compromise is step 2 — immediately removing the key
+        from JWKS forces a global logout. This is the correct security decision but causes
+        significant user impact. The temptation is to leave the old key in JWKS while quietly
+        rotating, to avoid the outage. Resist this: the attacker can continue forging tokens
+        for as long as the compromised key remains in JWKS. The forced logout is the feature,
+        not the bug — it is the mechanism that ends the attacker's session. Prepare the
+        communications template and stakeholder runbook for this scenario before an incident
+        occurs. Every organization operating JWTs should have a "signing key compromise" playbook
+        that has been rehearsed, not written for the first time at 2 AM during the incident.
+
+# ── SCENARIOS ─────────────────────────────────────────────────────────────────
+scenarios:
+  - title: "Stateless Auth for a Microservices Platform"
+    problem: >
+      Design a JWT-based authentication and authorization system for a B2B SaaS platform
+      with 20 microservices, multiple customer tenants, and three user roles (admin, member,
+      viewer). Services must authorize requests independently without calling a central
+      service on every request. The platform targets 99.99% availability.
+    constraints:
+      - "Each service must authorize requests independently — no synchronous auth server call per request"
+      - "Tenant isolation: a token for Tenant A must never authorize access to Tenant B's data"
+      - "Role changes must take effect within 5 minutes"
+      - "The auth server must not be a single point of failure for API requests"
+    discussion:
+      - "**RS256 with JWKS**: auth server signs with a private key; services fetch the public key from JWKS and cache it locally. A degraded auth server doesn't affect ongoing API traffic — services validate tokens from cache. JWKS cache TTL of 5–10 min balances freshness with auth server independence."
+      - "**Claims design**: `{iss, sub, aud, exp, iat, jti, tenant_id, role}`. Keep it small. `tenant_id` in the token enforces tenant isolation at the service level — every service checks that the request's resource belongs to the token's `tenant_id`. This prevents cross-tenant data access even if authorization logic has a bug elsewhere."
+      - "**Audience per service group**: group services by sensitivity tier rather than one `aud` per service (which would require a token per service). `aud: platform-api` covers all standard services; `aud: admin-api` covers admin operations requiring stricter tokens with shorter TTL."
+      - "**5-minute role change propagation**: access tokens with 5-min TTL satisfy the requirement natively — a role change takes effect when the current token expires and the user gets a new one. If 5-min TTLs cause too many refresh round-trips, use 15-min tokens with a token version check in a Redis cache — on role change, increment the user's version; services check the version on validation."
+      - "**Auth server HA**: active-active across 3 AZs with a shared signing key in a cloud KMS. JWKS endpoint fronted by a CDN with 5-min TTL — the CDN serves JWKS even if the auth server is fully down. Auth server downtime blocks new logins only, not ongoing API traffic."
+      - "**Refresh token security**: refresh tokens stored in the database, hashed (not plaintext). Issued as httpOnly Secure SameSite=Strict cookies to browser clients. Rotated on every use with family-based revocation for theft detection."
+    red_flags:
+      - "Calling the auth server on every API request — reintroduces the availability coupling you're trying to avoid"
+      - "Storing tenant_id only in the application database and not in the token — services must make a DB call to enforce isolation"
+      - "Using HS256 — all 20 services must hold the signing secret; one compromised service leaks the key"
+      - "No aud validation — a viewer token for the analytics service is accepted by the admin service"
+      - "Access token TTL of 24 hours — role changes take a full day to take effect; stolen tokens valid for a day"
+
+  - title: "Migrating from Session Cookies to JWTs"
+    problem: >
+      A monolithic Rails application uses server-side sessions (stored in Redis) for user
+      authentication. The team is breaking the monolith into microservices and needs to
+      migrate to JWTs so services can independently validate identity. 50,000 active users
+      have live sessions. The migration must be transparent to users — no forced logout.
+    constraints:
+      - "Zero forced logouts during migration"
+      - "Both session and JWT auth must work simultaneously during transition"
+      - "Services must validate JWTs without calling the Rails monolith"
+      - "Rollback must be possible within 30 minutes if issues arise"
+    discussion:
+      - "**Dual-mode validation during transition**: the API gateway validates requests that carry either a session cookie (forwarded to the monolith's session validation endpoint) or a JWT (validated locally via JWKS). New service calls use JWTs; existing browser sessions continue using cookies until they expire or the user logs in again."
+      - "**Silent token upgrade on session validation**: when a user makes a request with a valid session cookie, the gateway (or monolith middleware) issues a JWT and returns it as an httpOnly cookie alongside the session response. The client now has both. On subsequent requests, the gateway prefers the JWT. Users are silently upgraded without re-authentication."
+      - "**Auth server deployment**: deploy a new auth service (or configure an IdP like Auth0/Keycloak) before migration. The monolith delegates JWT issuance to this service. The auth service's JWKS endpoint is published; microservices configure it as their trusted issuer."
+      - "**Session claim mapping**: map existing session data (user_id, role, tenant) to JWT claims. Validate that the claim mapping is correct by running shadow validation — for requests with both a session and JWT, compare the authorization decisions and alert on divergence."
+      - "**Rollback plan**: the gateway's dual-mode validation means rollback is disabling JWT validation at the gateway and falling back to 100% session validation. Session state is still in Redis and hasn't been touched. The rollback is a config change, not a data migration."
+      - "**Active session migration window**: active sessions have a TTL (e.g., 30 days). After 30 days, all live sessions have expired and users have re-authenticated against the new JWT flow. Remove session validation from the gateway. Decommission the session Redis cluster."
+    red_flags:
+      - "Forcing a global logout to migrate — user impact is avoidable with the silent upgrade pattern"
+      - "Storing JWT signing keys in the Rails monolith's environment variables — the monolith is being decomissioned; keys must live in a dedicated key store"
+      - "Microservices calling the monolith to validate JWTs — defeats the purpose; use JWKS"
+      - "No shadow validation — divergent authorization decisions between session and JWT are discovered in production by users, not in testing"
+      - "Not testing the rollback path before starting migration — a botched migration with no rollback option forces a forced logout anyway"
+
+  - title: "Detecting and Responding to JWT Abuse in Production"
+    problem: >
+      Your security team receives an alert: an unusually high volume of API requests across
+      multiple services, all carrying valid JWTs, is accessing customer data records.
+      The JWTs appear valid (correct signature, not expired) but the access patterns are
+      anomalous — one user ID accessing thousands of records per minute across multiple tenants.
+      Determine what's happening and contain it.
+    constraints:
+      - "JWTs are cryptographically valid — the signing key has not been compromised"
+      - "The attacker has a valid user account and legitimate refresh tokens"
+      - "Revocation must take effect within 60 seconds across all services"
+      - "Forensic evidence must be preserved"
+    discussion:
+      - "**Immediate containment — revoke the refresh token**: the attacker has a legitimate account with valid credentials. Identify the user account and revoke all refresh tokens in the database. New access tokens cannot be minted — within one access token TTL (15 min), the attacker loses the ability to get new tokens."
+      - "**Accelerate via token version bump**: if using the token version pattern, increment this user's version immediately. All services check the version on validation — tokens with the old version are rejected instantly, within the JWKS cache TTL (~5 min), without waiting for the access token to expire."
+      - "**If access token TTL is too long**: add the user's `sub` (or outstanding `jti` values from audit logs) to the denylist in Redis. All services check the denylist on validation. Takes effect within the next request for each service instance."
+      - "**Preserve forensic evidence first**: before revoking, export the audit log of all requests made by this user in the last 24 hours — accessed endpoints, resource IDs, timestamps, source IPs. This is your forensic record. Revocation destroys the attacker's access but not the audit trail."
+      - "**Root cause**: the 'valid JWT, anomalous behavior' pattern suggests account compromise (stolen credentials, session hijacking) rather than key compromise. Investigate the user's authentication history — unusual login locations, bulk token issuance, credential stuffing patterns. Force a password reset and MFA re-enrollment."
+      - "**Anomaly detection as prevention**: the alert fired because anomaly detection existed. If it didn't, this attack would have continued silently. Instrument per-user request rates, cross-tenant access patterns (a single token accessing multiple `tenant_id` values is an automatic flag), and resource access volume. Feed these into a SIEM with baseline alerting."
+    red_flags:
+      - "Waiting for access tokens to expire naturally (15–60 min) before checking if revocation is needed — an attacker can extract significant data in that window"
+      - "Revoking before preserving forensic evidence — losing the audit trail hampers incident response and compliance reporting"
+      - "No denylist or token version mechanism — the only revocation option is waiting for TTL expiry"
+      - "Not investigating the authentication path — if the attacker has credentials, revocation is containment, not remediation; they can re-authenticate unless the account is locked"
+      - "Treating this as a JWT problem rather than an account compromise problem — the JWTs are working correctly; the issue is the underlying account security"
