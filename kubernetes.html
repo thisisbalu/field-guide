@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kubernetes — Field Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#326CE5;--accent2:#c0392b;--accent3:#1a4db5; --highlight-bg:#eaeffc;--highlight-text:#326CE5;--highlight-border:#326CE5; --your-exp-bg:rgba(26,77,181,.06);--your-exp-border:rgba(26,77,181,.2);--your-exp-text:#1a4db5; --acc-hover:rgba(50,108,229,.04);--acc-open-border:#326CE5;--acc-open-bg:rgba(50,108,229,.04); --num-color:#326CE5;--num-bg:rgba(50,108,229,.1); --tag-color:#326CE5;--tag-bg:rgba(50,108,229,.08);--tag-border:rgba(50,108,229,.2); --flow-arrow:#326CE5;--h1-from:#1a4db5;--h1-to:#326CE5; --badge-color:#1a4db5;--stat-num:#1a4db5; --tab-active-color:#326CE5;--tab-active-bg:rgba(50,108,229,.08);--tab-active-border:#326CE5; --section-title:#326CE5;--concept-title:#1a4db5; --cheat-head-bg:#1a4db5;--cheat-head-text:#ffffff;--cheat-key:#1a4db5; --cmd-bg:#eaeffc;--cmd-text:#1a4db5; }
+  [data-theme="dark"]{ --accent:#5b8dee;--accent2:#e74c3c;--accent3:#7aa3f0; --highlight-bg:#080f1f;--highlight-text:#5b8dee;--highlight-border:#5b8dee; --your-exp-bg:rgba(91,141,238,.08);--your-exp-border:rgba(91,141,238,.25);--your-exp-text:#7aa3f0; --acc-hover:rgba(91,141,238,.04);--acc-open-border:#5b8dee;--acc-open-bg:rgba(91,141,238,.03); --num-color:#5b8dee;--num-bg:rgba(91,141,238,.08); --tag-color:#5b8dee;--tag-bg:rgba(91,141,238,.08);--tag-border:rgba(91,141,238,.2); --flow-arrow:#5b8dee;--h1-from:#7aa3f0;--h1-to:#5b8dee; --badge-color:#5b8dee;--stat-num:#5b8dee; --tab-active-color:#5b8dee;--tab-active-bg:rgba(91,141,238,.08);--tab-active-border:#5b8dee; --section-title:#5b8dee;--concept-title:#5b8dee; --cheat-head-bg:#080f1f;--cheat-head-text:#5b8dee;--cheat-key:#5b8dee; --cmd-bg:#080f1f;--cmd-text:#5b8dee; }
+  [data-theme="light"] .toggle-knob{background:#326CE5;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#5b8dee;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Stats row ───────────────────────────────────────────────────────────── */
+.stats{display:flex;gap:.75rem;margin-bottom:2rem;flex-wrap:wrap;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.65rem 1rem;text-align:center;flex:1;min-width:90px;}
+.stat-num{font-size:1.6rem;font-weight:800;color:var(--stat-num);font-family:'IBM Plex Mono',monospace;line-height:1;}
+.stat-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:'IBM Plex Mono',monospace;margin-top:.25rem;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .4s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{max-height:3000px;padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+}
+
+</style>
+</head>
+<body>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>Kubernetes</h1>
+  <p class="subtitle">// pods · scheduling · networking · storage · RBAC · autoscaling · operators · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
+  <div class="tab" onclick="switchTab('deepdive',this)">Deep Dive</div>
+  <div class="tab" onclick="switchTab('qa',this)">Q &amp; A</div>
+  <div class="tab" onclick="switchTab('scenarios',this)">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">📦 Core Workload Primitives</div>
+      <div class="concept-body">
+        <strong>Pod</strong>: the smallest deployable unit — one or more co-located containers sharing network and storage. Pods are ephemeral; never address them directly in production.
+<strong>Deployment</strong>: manages a ReplicaSet to maintain N identical pod replicas. Handles rolling updates and rollbacks. Use for stateless workloads.
+<strong>StatefulSet</strong>: like a Deployment but pods get stable network identities (<code>pod-0</code>, <code>pod-1</code>) and stable persistent storage. Pods are created/deleted in order. Use for databases, Kafka, Zookeeper — anything with per-instance state.
+<strong>DaemonSet</strong>: runs exactly one pod per (matching) node. Use for node-level agents: log collectors, monitoring daemons, CNI plugins.
+<strong>Job / CronJob</strong>: runs pods to completion. Job for one-off tasks; CronJob for scheduled work.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">Deployment = stateless</span>
+          
+          <span class="tag orange">StatefulSet = per-instance state</span>
+          
+          <span class="tag purple">DaemonSet = per-node agent</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🌐 Networking</div>
+      <div class="concept-body">
+        Every pod gets its own IP. All pods can reach each other directly — no NAT. The <strong>CNI plugin</strong> (Calico, Cilium, Flannel) implements this flat network model.
+<strong>Service</strong>: a stable virtual IP (ClusterIP) that load-balances to matching pods via label selectors. <code>kube-proxy</code> (or eBPF with Cilium) programs iptables/ipvs rules on every node to forward traffic to pod IPs.
+<strong>Ingress</strong>: HTTP/HTTPS routing from outside the cluster to Services, handled by an Ingress Controller (nginx, Traefik, ALB). Supports path-based and host-based routing, TLS termination.
+<strong>DNS</strong>: CoreDNS resolves <code>service.namespace.svc.cluster.local</code> to the Service ClusterIP. Pods resolve short names within the same namespace automatically.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">External traffic</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Ingress Controller</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Service (ClusterIP)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Pod endpoints</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">flat pod network (no NAT)</span>
+          
+          <span class="tag orange">Service = stable VIP</span>
+          
+          <span class="tag purple">CoreDNS = cluster DNS</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📅 Scheduling</div>
+      <div class="concept-body">
+        The <strong>scheduler</strong> watches for unscheduled pods and assigns each to a node through two phases: <strong>Filtering</strong> (eliminate nodes that can't run the pod — insufficient CPU/memory, taint not tolerated, affinity not matched) then <strong>Scoring</strong> (rank remaining nodes by resource balance, affinity weight, spread constraints).
+<strong>Resource requests</strong>: what the scheduler uses to bin-pack pods onto nodes. A node is considered "full" when sum of requests exceeds allocatable capacity — regardless of actual usage.
+<strong>Affinity / anti-affinity</strong>: prefer or require pods to land on nodes or near/away from other pods. <code>requiredDuringScheduling</code> is hard — scheduling fails if unmet. <code>preferredDuringScheduling</code> is soft.
+<strong>Taints &amp; tolerations</strong>: nodes repel pods unless the pod explicitly tolerates the taint. Used to reserve nodes (GPU nodes, spot nodes, infra nodes).
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">requests = scheduler currency</span>
+          
+          <span class="tag red">required = hard constraint</span>
+          
+          <span class="tag orange">taint/toleration = node reservation</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">💾 Storage</div>
+      <div class="concept-body">
+        <strong>PersistentVolume (PV)</strong>: a piece of storage provisioned in the cluster (NFS mount, EBS volume, etc.). Has an access mode and reclaim policy.
+<strong>PersistentVolumeClaim (PVC)</strong>: a request for storage by a pod. Kubernetes binds it to a matching PV. The pod mounts the PVC as a volume.
+<strong>StorageClass</strong>: defines a provisioner (AWS EBS, GCP PD, Ceph) and parameters. Dynamic provisioning creates a PV automatically when a PVC is created. <code>volumeBindingMode: WaitForFirstConsumer</code> delays provisioning until the pod is scheduled — ensures the volume is in the same AZ as the node.
+<strong>Access modes</strong>: <code>ReadWriteOnce</code> (one node), <code>ReadOnlyMany</code> (many nodes read), <code>ReadWriteMany</code> (many nodes read/write — requires NFS or shared storage like EFS).
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">PVC = storage request</span>
+          
+          <span class="tag orange">StorageClass = dynamic provisioning</span>
+          
+          <span class="tag red">RWX requires shared storage</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔒 RBAC & Security</div>
+      <div class="concept-body">
+        <strong>ServiceAccount</strong>: an identity for pods. Every pod runs as a ServiceAccount (default if unspecified). Its JWT is mounted at <code>/var/run/secrets/kubernetes.io/serviceaccount/token</code> and used to authenticate to the API server.
+<strong>Role / ClusterRole</strong>: a set of allowed verbs on resources. <code>Role</code> is namespace-scoped; <code>ClusterRole</code> is cluster-wide.
+<strong>RoleBinding / ClusterRoleBinding</strong>: binds a Role to a subject (user, group, ServiceAccount).
+<strong>Pod Security Standards</strong>: replace deprecated PodSecurityPolicy. Three levels — <code>privileged</code> (unrestricted), <code>restricted</code> (hardened, drops capabilities, read-only root fs), <code>baseline</code> (middle ground). Enforced via namespace labels.
+<strong>Network Policies</strong>: default is all traffic allowed between pods. A NetworkPolicy selects pods and restricts ingress/egress to specified sources/destinations.
+        
+        
+        <div class="tags">
+          
+          <span class="tag red">deny-by-default with NetworkPolicy</span>
+          
+          <span class="tag green">ServiceAccount = pod identity</span>
+          
+          <span class="tag orange">restricted PSS = hardened</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📈 Autoscaling</div>
+      <div class="concept-body">
+        <strong>HPA (Horizontal Pod Autoscaler)</strong>: scales Deployment/StatefulSet replica count based on metrics — CPU/memory utilization (built-in) or custom metrics (via Metrics API). Checks every 15 s; scale-down has a stabilization window (default 5 min) to prevent flapping.
+<strong>VPA (Vertical Pod Autoscaler)</strong>: adjusts resource requests/limits of existing pods. Requires pod restart to apply (current limitation). Use to right-size requests, not as a runtime scaler.
+<strong>KEDA</strong>: event-driven autoscaler. Scales from 0 to N based on external queue depth (SQS, Kafka, RabbitMQ). Bridging the gap between HPA's metric-based scaling and workloads that should be idle when no work exists.
+<strong>Cluster Autoscaler</strong>: adds/removes nodes when pods are unschedulable (scale-up) or nodes are underutilized (scale-down). Works with cloud provider node groups.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Metric exceeds threshold</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">HPA increases replicas</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Pods unschedulable (no node capacity)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Cluster Autoscaler adds node</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">HPA = replica count</span>
+          
+          <span class="tag purple">KEDA = scale to zero</span>
+          
+          <span class="tag orange">CA = node count</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">CPU limits cause throttling — requests and limits are not the same thing</span>
+      A container with <code>limits.cpu: 500m</code> is throttled by the Linux CFS scheduler when it tries to use more than 500m in a scheduling period — even if the node has idle CPU. This causes latency spikes invisible to CPU utilization metrics (the container appears to use less CPU than the limit, yet is being throttled). Many teams set CPU limits equal to requests and get surprised. For latency-sensitive services, either set limits much higher than requests or omit CPU limits entirely and rely on requests for scheduling.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">OOMKilled vs eviction — two different out-of-memory paths</span>
+      <strong>OOMKilled</strong> (exit code 137): the container exceeded its <code>limits.memory</code> — the Linux OOM killer terminated it. The pod restarts; it's a container-level event. <strong>Eviction</strong>: the node's actual memory is under pressure — the kubelet evicts pods with the lowest <code>requests.memory</code> relative to usage. The pod is moved to another node, not restarted in place. If you don't set memory requests, your pod is the first eviction candidate under node pressure. Always set memory requests.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Liveness probe killing healthy pods under load</span>
+      A liveness probe with an aggressive <code>timeoutSeconds</code> or <code>failureThreshold</code> will restart a pod that is temporarily slow (GC pause, slow DB query) rather than truly dead. The restart makes things worse — the pod loses in-flight requests, the spike repeats. Liveness probes should only detect deadlock or unrecoverable states. Use a <code>failureThreshold</code> of at least 3 and a generous timeout. Don't use liveness probes for dependency health (if the database is down, killing and restarting the pod won't help).
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Missing requests causes scheduling and eviction pathology</span>
+      Pods without resource requests are scheduled onto any node (no bin-packing) and are treated as <code>BestEffort</code> QoS class — the first to be evicted under memory pressure. The scheduler also cannot do meaningful bin-packing, leading to hot nodes. Set requests for both CPU and memory on every container. Use VPA in recommendation mode to right-size requests based on actual usage.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">ImagePullPolicy: Always in production causes slow starts and pull failures</span>
+      <code>ImagePullPolicy: Always</code> contacts the registry on every pod start. If the registry is slow or unavailable (network partition, rate limiting), pods cannot start even when the image is already cached on the node. Use <code>IfNotPresent</code> with immutable image tags (a digest or a version tag, not <code>latest</code>). This also prevents <code>latest</code> from silently running different images on different nodes.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Termination grace period — pods don't always stop cleanly</span>
+      When a pod is deleted, Kubernetes sends <code>SIGTERM</code> and waits <code>terminationGracePeriodSeconds</code> (default 30 s) before sending <code>SIGKILL</code>. But traffic may still be routed to the pod for a few seconds after <code>SIGTERM</code> because endpoint removal propagates asynchronously. Add a <code>preStop</code> hook with a short sleep (5 s) before the application begins shutdown so the load balancer has time to drain. Without this, every rolling deploy or scale-down drops a small percentage of in-flight requests.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use Kubernetes When</div>
+      <ul>
+        
+        <li>Orchestrating microservices at scale with automated rollout, rollback, and self-healing</li>
+        
+        <li>Running mixed workloads (stateless services, stateful databases, batch jobs) on shared infrastructure</li>
+        
+        <li>Platform teams providing a self-service deployment layer to multiple engineering teams</li>
+        
+        <li>Workloads that need fine-grained autoscaling — per-service HPA with custom or external metrics</li>
+        
+        <li>When portability across cloud providers or on-prem matters — Kubernetes runs everywhere</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use Kubernetes When</div>
+      <ul>
+        
+        <li>A single simple service — Docker + a managed container service (Cloud Run, ECS) is far simpler</li>
+        
+        <li>Very small teams without dedicated platform/ops capacity — Kubernetes has a steep operational floor</li>
+        
+        <li>Batch-only workloads — managed services (AWS Batch, Dataflow) avoid cluster management overhead</li>
+        
+        <li>When time-to-market is critical and team lacks Kubernetes experience — complexity slows early velocity</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">📦 Workload Controller Comparison</div>
+      <table>
+        
+        <tr><td>Deployment</td><td>Stateless replicas. Rolling updates with configurable maxSurge/maxUnavailable. Rollback via revision history. Pods are interchangeable.</td></tr>
+        
+        <tr><td>StatefulSet</td><td>Stable pod identity (pod-0..N), stable DNS (pod-0.svc), ordered start/stop, stable PVCs. Required for databases, Kafka, Zookeeper, Elasticsearch.</td></tr>
+        
+        <tr><td>DaemonSet</td><td>One pod per node (or matching nodes). Used for node agents: Fluentd, Prometheus node-exporter, Calico, Cilium. Respects node taints and affinity.</td></tr>
+        
+        <tr><td>Job</td><td>Runs pods to completion. completions + parallelism control concurrency. backoffLimit caps retries. Use for one-off data migrations, report generation.</td></tr>
+        
+        <tr><td>CronJob</td><td>Creates Jobs on a cron schedule. concurrencyPolicy controls overlapping runs (Allow/Forbid/Replace). successfulJobsHistoryLimit prevents history accumulation.</td></tr>
+        
+        <tr><td>ReplicaSet</td><td>Maintains N pod replicas. Rarely used directly — owned by Deployments. Only manage ReplicaSets directly if you need custom rollout logic.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">🌐 Service Types</div>
+      <table>
+        
+        <tr><td>ClusterIP</td><td>Default. Virtual IP reachable only within the cluster. All inter-service communication should use ClusterIP. kube-proxy programs iptables/ipvs rules on every node.</td></tr>
+        
+        <tr><td>NodePort</td><td>Exposes the service on every node's IP at a static port (30000–32767). Reachable externally via <NodeIP>:<NodePort>. Avoid in production — port management is painful and bypasses Ingress.</td></tr>
+        
+        <tr><td>LoadBalancer</td><td>Provisions a cloud load balancer (ALB, NLB, GCP LB) pointing to the NodePort. One LB per Service = expensive at scale. Use Ingress with a single LB instead for HTTP workloads.</td></tr>
+        
+        <tr><td>ExternalName</td><td>DNS CNAME alias to an external hostname. No proxying. Use to abstract external services (RDS endpoint, third-party API) behind a Kubernetes service name.</td></tr>
+        
+        <tr><td>Headless (clusterIP: None)</td><td>No virtual IP. DNS returns individual pod IPs directly. Used by StatefulSets so clients (databases, Kafka clients) can address specific pods.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">🔍 Probe Types</div>
+      <table>
+        
+        <tr><td>livenessProbe</td><td>Is the container alive? Failure → restart. Use for deadlock/frozen process detection only. Aggressive thresholds cause cascading restarts under load.</td></tr>
+        
+        <tr><td>readinessProbe</td><td>Is the container ready to serve traffic? Failure → removed from Service endpoints (no traffic routed). Use for startup completion and dependency health.</td></tr>
+        
+        <tr><td>startupProbe</td><td>Runs once at startup. Disables liveness/readiness until it succeeds. Use for slow-starting applications (JVM warmup, large model loading) to prevent premature liveness failures.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">⚙️ Key Resource Fields</div>
+      <table>
+        
+        <tr><td>requests.cpu / memory</td><td>Used by scheduler for bin-packing. Sets QoS class. Always set on every container.</td></tr>
+        
+        <tr><td>limits.cpu</td><td>Hard ceiling enforced by CFS throttling. Can cause latency spikes. Set significantly above requests or omit for latency-sensitive services.</td></tr>
+        
+        <tr><td>limits.memory</td><td>Exceeding this → OOMKilled (exit 137). Set equal to or slightly above requests for predictable behavior.</td></tr>
+        
+        <tr><td>terminationGracePeriodSeconds</td><td>Time between SIGTERM and SIGKILL. Default 30 s. Set to cover your app's shutdown time + preStop hook duration.</td></tr>
+        
+        <tr><td>preStop hook</td><td>Runs before SIGTERM. Use for sleep to allow endpoint propagation, or to drain connections gracefully.</td></tr>
+        
+        <tr><td>topologySpreadConstraints</td><td>Spread pods across zones/nodes. maxSkew=1 ensures at most 1 more pod in any zone than others. Preferred over podAntiAffinity for spreading.</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">💻 CLI Commands</div>
+      <div class="cmd-block">
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Pod & Workload Inspection</div>
+          
+          <span class="cmd">kubectl get pods -n <ns> -o wide                        # list pods with node assignment</span>
+          
+          <span class="cmd">kubectl describe pod <pod> -n <ns>                      # events, conditions, resource usage</span>
+          
+          <span class="cmd">kubectl logs <pod> -n <ns> --previous                   # logs from previous (crashed) container</span>
+          
+          <span class="cmd">kubectl logs <pod> -n <ns> -c <container> -f            # follow logs from specific container</span>
+          
+          <span class="cmd">kubectl exec -it <pod> -n <ns> -- /bin/sh               # shell into pod</span>
+          
+          <span class="cmd">kubectl top pods -n <ns> --sort-by=memory               # actual resource usage</span>
+          
+          <span class="cmd">kubectl get events -n <ns> --sort-by=.lastTimestamp     # recent events (scheduling failures, OOM)</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Deployments & Rollouts</div>
+          
+          <span class="cmd">kubectl rollout status deployment/<name> -n <ns>        # watch rollout progress</span>
+          
+          <span class="cmd">kubectl rollout history deployment/<name> -n <ns>       # list revision history</span>
+          
+          <span class="cmd">kubectl rollout undo deployment/<name> -n <ns>          # rollback to previous revision</span>
+          
+          <span class="cmd">kubectl rollout undo deployment/<name> --to-revision=3  # rollback to specific revision</span>
+          
+          <span class="cmd">kubectl set image deployment/<name> app=image:v2 -n <ns> # trigger rolling update</span>
+          
+          <span class="cmd">kubectl scale deployment/<name> --replicas=5 -n <ns>   # manual scale</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Debugging</div>
+          
+          <span class="cmd">kubectl get pod <pod> -o yaml | grep -A5 'conditions:'  # pod conditions (PodScheduled, Ready)</span>
+          
+          <span class="cmd">kubectl debug -it <pod> --image=busybox --copy-to=debug-pod # ephemeral debug container</span>
+          
+          <span class="cmd">kubectl port-forward svc/<svc> 8080:80 -n <ns>         # local access to a service</span>
+          
+          <span class="cmd">kubectl run tmp --image=curlimages/curl -it --rm -- sh  # throwaway pod for network testing</span>
+          
+          <span class="cmd">kubectl get endpoints <svc> -n <ns>                     # verify pod IPs behind a service</span>
+          
+          <span class="cmd">kubectl auth can-i create pods --as=system:serviceaccount:<ns>:<sa> # test RBAC</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Nodes & Cluster</div>
+          
+          <span class="cmd">kubectl get nodes -o wide                               # nodes with IPs and roles</span>
+          
+          <span class="cmd">kubectl describe node <node>                            # allocatable resources, taints, conditions</span>
+          
+          <span class="cmd">kubectl top nodes                                        # node-level CPU and memory usage</span>
+          
+          <span class="cmd">kubectl cordon <node>                                   # mark node unschedulable</span>
+          
+          <span class="cmd">kubectl drain <node> --ignore-daemonsets --delete-emptydir-data # safely evict pods</span>
+          
+          <span class="cmd">kubectl taint nodes <node> key=value:NoSchedule        # add taint</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">RBAC</div>
+          
+          <span class="cmd">kubectl get rolebindings,clusterrolebindings -A | grep <sa>  # find bindings for a service account</span>
+          
+          <span class="cmd">kubectl auth can-i list pods -n <ns> --as=system:serviceaccount:<ns>:<sa></span>
+          
+          <span class="cmd">kubectl create role pod-reader --verb=get,list,watch --resource=pods -n <ns></span>
+          
+          <span class="cmd">kubectl create rolebinding bind-pod-reader --role=pod-reader --serviceaccount=<ns>:<sa> -n <ns></span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Kubernetes vs Docker Swarm vs HashiCorp Nomad vs Amazon ECS</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+            <th>Dimension</th>
+            
+            <th>Kubernetes</th>
+            
+            <th>Docker Swarm</th>
+            
+            <th>HashiCorp Nomad</th>
+            
+            <th>Amazon ECS</th>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Complexity</td>
+            
+            <td>High — steep learning curve, many concepts</td>
+            
+            <td>Low — simple Compose-like model</td>
+            
+            <td>Medium — simpler than K8s, richer than Swarm</td>
+            
+            <td>Low-medium — managed control plane</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Workload types</td>
+            
+            <td>Containers, pods, jobs, CronJobs</td>
+            
+            <td>Containers only</td>
+            
+            <td>Containers, binaries, VMs (with Nomad driver)</td>
+            
+            <td>Containers (EC2 and Fargate)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Networking model</td>
+            
+            <td>Flat pod network via CNI; Services; Ingress</td>
+            
+            <td>Overlay network; routing mesh</td>
+            
+            <td>CNI plugins; Consul service mesh integration</td>
+            
+            <td>VPC networking; ALB/NLB integration</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Storage</td>
+            
+            <td>PV/PVC/StorageClass; CSI plugins</td>
+            
+            <td>Named volumes; limited cloud integration</td>
+            
+            <td>Host volumes; CSI support</td>
+            
+            <td>EBS, EFS via task definitions</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Autoscaling</td>
+            
+            <td>HPA, VPA, KEDA, Cluster Autoscaler</td>
+            
+            <td>Manual; limited built-in scaling</td>
+            
+            <td>Horizontal scaling; Nomad Autoscaler</td>
+            
+            <td>ECS Service Autoscaling; Fargate auto-provision</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Multi-tenancy</td>
+            
+            <td>Namespaces, RBAC, NetworkPolicy, resource quotas</td>
+            
+            <td>Limited namespace isolation</td>
+            
+            <td>Namespaces + ACL policies</td>
+            
+            <td>Accounts/IAM for isolation; no native namespacing</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Ecosystem</td>
+            
+            <td>Vast — Helm, operators, service meshes, GitOps</td>
+            
+            <td>Limited; largely superseded</td>
+            
+            <td>Growing; strong with Consul/Vault integration</td>
+            
+            <td>AWS ecosystem only</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Managed offerings</td>
+            
+            <td>GKE, EKS, AKS, DOKS (fully managed control plane)</td>
+            
+            <td>None actively maintained</td>
+            
+            <td>HCP Nomad</td>
+            
+            <td>ECS is fully managed; EKS for Kubernetes on AWS</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best for</td>
+            
+            <td>Large-scale, multi-team, cloud-native platforms</td>
+            
+            <td>Simple deployments, small teams</td>
+            
+            <td>Mixed workloads (containers + VMs), HashiCorp stack</td>
+            
+            <td>AWS-native, teams avoiding K8s complexity</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">What happens step-by-step when you run `kubectl apply -f deployment.yaml`?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><ol>
+<li>
+<p><strong>kubectl</strong> serializes the manifest and sends a <code>PATCH</code> (or <code>PUT</code>) request to the
+   API server over HTTPS.</p>
+</li>
+<li>
+<p><strong>API server</strong> authenticates the request (client cert or token), then runs
+   <strong>admission controllers</strong> — mutating webhooks (inject sidecars, set defaults) run
+   first, then validating webhooks (enforce policy). If any admission controller
+   rejects the request, it fails here.</p>
+</li>
+<li>
+<p>The API server writes the desired state to <strong>etcd</strong> and returns 200 OK to kubectl.</p>
+</li>
+<li>
+<p>The <strong>Deployment controller</strong> (part of kube-controller-manager) watches etcd for
+   Deployment changes. It computes the desired ReplicaSet and creates/updates it.</p>
+</li>
+<li>
+<p>The <strong>ReplicaSet controller</strong> notices the desired replica count isn't met and creates
+   Pod objects in etcd (spec only, no node assigned).</p>
+</li>
+<li>
+<p>The <strong>scheduler</strong> watches for pods with no <code>nodeName</code>. It filters nodes (enough CPU/memory,
+   tolerations match, affinity satisfied) then scores them and binds the pod to the
+   winning node by writing <code>nodeName</code> to the Pod object in etcd.</p>
+</li>
+<li>
+<p>The <strong>kubelet</strong> on the assigned node watches for pods bound to its node. It calls the
+   container runtime (containerd) via CRI to pull the image and start the container.</p>
+</li>
+<li>
+<p>The kubelet reports back pod status. Once containers pass readiness probes, the
+   <strong>endpoints controller</strong> adds the pod's IP to the Service's Endpoints object.</p>
+</li>
+<li>
+<p><strong>kube-proxy</strong> (or Cilium) on every node watches Endpoints and updates iptables/eBPF
+   rules so traffic to the ClusterIP is forwarded to the new pod.</p>
+</li>
+</ol></div>
+        
+        <div class="staff-add">The entire flow is <strong>level-triggered</strong>, not event-triggered. Every controller continuously reconciles observed state against desired state — if a controller crashes and restarts, it simply re-reads the current state from etcd and reconciles. This makes Kubernetes extremely resilient to controller failures. Understanding this reconciliation loop is foundational to understanding why Kubernetes is eventually consistent and why your <code>kubectl apply</code> may take seconds to fully propagate — each step has its own watch-react cycle.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">When do you use a Deployment vs StatefulSet vs DaemonSet? What does StatefulSet actually guarantee?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Deployment</strong> for stateless workloads where all replicas are identical and interchangeable. Pod names are random hashes. Pods can be killed and rescheduled in any order. Use for APIs, web frontends, stateless workers.
+<strong>StatefulSet</strong> for workloads that require: - <strong>Stable network identity</strong>: pod-0, pod-1, pod-2 — DNS names like <code>pod-0.svc.ns.svc.cluster.local</code>
+  persist across restarts
+- <strong>Stable persistent storage</strong>: each pod gets its own PVC (<code>data-pod-0</code>, <code>data-pod-1</code>)
+  that is not deleted when the pod is rescheduled
+- <strong>Ordered startup/shutdown</strong>: pod-0 must be Running before pod-1 is created; shutdown
+  proceeds in reverse order. Critical for leader-election-based systems (Kafka, etcd).</p>
+<p>Use StatefulSets for: databases, Kafka, Zookeeper, Elasticsearch, Redis Cluster.
+<strong>DaemonSet</strong> when you need exactly one pod on every node (or a subset of nodes via node selector). Pods are created as nodes join the cluster and removed when nodes leave. Use for log shippers, metrics collectors, CNI plugins, storage drivers.</p></div>
+        
+        <div class="staff-add">The most common StatefulSet mistake is treating it as a "Deployment with persistent storage." The ordered startup guarantee exists because many distributed systems require replicas to join one at a time (Kafka ISR, etcd quorum, MySQL Group Replication). If you deploy a StatefulSet without understanding the ordering requirement of your software, you may get race conditions at startup that are hard to reproduce. Read your software's operator/Helm chart documentation to understand what updateStrategy (<code>RollingUpdate</code> with <code>partition</code> for canary, or <code>OnDelete</code> for manual control) is appropriate for your workload.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">Explain how a request gets from outside the cluster to a pod — from DNS lookup to response.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>1. DNS resolution</strong>: the client resolves the domain (e.g., <code>api.example.com</code>). An external DNS record points to the cloud Load Balancer IP provisioned for the Ingress.
+<strong>2. Load balancer → Ingress Controller</strong>: the cloud LB forwards the request to the Ingress Controller pods (nginx, Traefik, AWS ALB Ingress Controller). The Ingress Controller watches Ingress resources and routes based on host/path rules.
+<strong>3. Ingress → Service</strong>: the Ingress Controller forwards to the matching Service's ClusterIP.
+<strong>4. Service → Pod (kube-proxy)</strong>: kube-proxy has programmed iptables/ipvs rules on every node that DNAT the ClusterIP:port to one of the pod IPs in the Endpoints list. Selection is random (iptables) or round-robin (ipvs).
+<strong>5. Pod processes the request and returns a response</strong> through the same path in reverse.
+<strong>Key detail — Endpoints</strong>: the Service only routes to pods whose readiness probe is passing. The endpoints controller removes pods failing readiness from the Endpoints list, so the Service's load balancing naturally excludes unhealthy pods.</div>
+        
+        <div class="staff-add">Cilium replaces kube-proxy with eBPF programs attached to the network interface. Instead of traversing iptables chains (which grow O(n) with the number of Services), eBPF lookups are O(1) regardless of cluster size. At 1000+ services, iptables update latency and traversal cost become measurable. If you're running large clusters, evaluate Cilium — it also enables network policy enforcement at the kernel level (more efficient than iptables-based NetworkPolicy) and observability via Hubble (service-to-service traffic visibility without a service mesh).</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">What is the difference between resource requests and limits? What happens when each is exceeded?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Requests</strong>: the amount of CPU/memory the scheduler reserves for the pod on a node. A node is considered full when the sum of all pod requests reaches its allocatable capacity — regardless of actual usage. Requests determine <strong>pod QoS class</strong>: - <code>Guaranteed</code>: requests == limits for all containers. Highest priority — last to be evicted. - <code>Burstable</code>: requests set but less than limits (or limits not set for some containers). - <code>BestEffort</code>: no requests or limits. First to be evicted under node pressure.
+<strong>CPU limit exceeded</strong>: the container is <strong>throttled</strong> by the Linux CFS scheduler — it's rate-limited to the specified millicores per scheduling period. The process keeps running but gets less CPU time. This causes latency spikes, not crashes.
+<strong>Memory limit exceeded</strong>: the container is <strong>OOMKilled</strong> (exit code 137) by the Linux OOM killer. The pod restarts according to <code>restartPolicy</code>. Repeated OOMKills trigger <code>CrashLoopBackOff</code> with exponential backoff.
+<strong>Node memory pressure (eviction)</strong>: kubelet evicts pods starting with <code>BestEffort</code>, then <code>Burstable</code> with the highest memory usage relative to requests, then <code>Guaranteed</code> only as a last resort. The pod is terminated and rescheduled on another node.</div>
+        
+        <div class="staff-add">The CPU throttling problem is subtle and dangerous: a service with <code>limits.cpu: 200m</code> and actual usage of 180m can still be heavily throttled if it has bursts within a 100ms CFS scheduling period. The metric to watch is not CPU utilization but <code>container_cpu_cfs_throttled_periods_total / container_cpu_cfs_periods_total</code> — a throttled ratio above 25% indicates the limit is too low for the workload's burst pattern. Many teams discover their service is constantly throttled only after adding this metric to dashboards. For latency-sensitive services, consider setting CPU limits to 2–4× requests, or removing CPU limits entirely and relying on requests for scheduling.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">Explain liveness, readiness, and startup probes. What is the failure mode of a misconfigured liveness probe?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Startup probe</strong>: runs at pod start. Disables liveness and readiness until it succeeds. Use for slow-starting applications (JVM warmup, model loading) to give them time to initialize without being prematurely killed by liveness. Once it succeeds, liveness takes over.
+<strong>Readiness probe</strong>: determines if the pod should receive traffic. Failure removes the pod from the Service Endpoints — traffic stops routing to it, but the pod keeps running. Use for: app startup completion, dependency availability (cache warm-up), graceful degradation.
+<strong>Liveness probe</strong>: determines if the container is alive. Failure → <strong>container restart</strong>. Use sparingly — only for deadlock or truly unrecoverable states.
+<strong>Liveness misconfiguration failure mode</strong>: - Probe checks an external dependency (database, upstream API). Database goes down →
+  liveness fails → pod restarts → pod is still unhealthy → restart loop. Now you have
+  a CrashLoopBackOff AND a database outage. Restarting the pod cannot fix the database.
+- Probe timeout too short (e.g., 1s) → a GC pause or slow request causes a timeout →
+  pod restarted unnecessarily → in-flight requests dropped → under load, many pods restart
+  simultaneously → cascading failure.</p>
+<p><strong>Rule</strong>: liveness probes should only check internal state that restart can actually fix. A simple <code>/healthz</code> endpoint returning 200 when the main loop is running is sufficient.</p></div>
+        
+        <div class="staff-add">The distinction between liveness and readiness is architectural: readiness is about traffic routing (don't send me requests I can't handle), liveness is about process health (I am stuck and need to be restarted). Many engineers conflate them and point both at the same endpoint, which loses the ability to gracefully shed load (readiness fails, traffic stops, pod recovers) vs. crash-loop (liveness fails, pod restarts and loses in-flight state). Designing probe endpoints is a product decision: what conditions should cause traffic to stop? What conditions should trigger a restart? Answer those questions, then write the probes.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">How does Kubernetes RBAC work? Walk through the chain from a pod making an API request to authorization.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><ol>
+<li>
+<p><strong>ServiceAccount</strong>: the pod's identity. Every pod runs as a ServiceAccount (default
+   ServiceAccount in the namespace if not specified). Its JWT token is mounted into the
+   pod and sent with API server requests.</p>
+</li>
+<li>
+<p><strong>Authentication</strong>: the API server validates the JWT against the Kubernetes OIDC
+   endpoint. The token contains <code>sub: system:serviceaccount:&lt;namespace&gt;:&lt;name&gt;</code>.</p>
+</li>
+<li>
+<p><strong>Authorization (RBAC)</strong>:</p>
+</li>
+<li>The API server looks up all RoleBindings in the namespace and ClusterRoleBindings
+     in the cluster that reference the ServiceAccount.</li>
+<li>Each binding references a Role or ClusterRole — a list of <code>(apiGroups, resources, verbs)</code> rules.</li>
+<li>The request is allowed if <strong>any</strong> rule in any bound role permits the requested
+     <code>verb</code> on the requested <code>resource</code> in the requested <code>namespace</code>.</li>
+<li>
+<p>RBAC is <strong>deny by default</strong> — no matching rule means the request is denied (403).</p>
+</li>
+<li>
+<p><strong>Admission control</strong> runs after authorization (mutating then validating webhooks).
+Example: a pod running as <code>ServiceAccount: my-app</code> in namespace <code>prod</code> calls <code>GET /api/v1/namespaces/prod/configmaps</code>. The API server checks: does any RoleBinding in <code>prod</code> (or ClusterRoleBinding) bind <code>my-app</code> to a Role that allows <code>get</code> on <code>configmaps</code>?</p>
+</li>
+</ol></div>
+        
+        <div class="staff-add">The principle of least privilege for ServiceAccounts is often ignored in practice. Teams use the default ServiceAccount (which accumulates bindings over time) or create one role with broad permissions. The correct pattern: one ServiceAccount per workload, bound to roles granting only what that workload needs. Audit with <code>kubectl auth can-i --list --as=system:serviceaccount:&lt;ns&gt;:&lt;sa&gt;</code> to see what a ServiceAccount can do. For platform teams, audit all ClusterRoleBindings for <code>cluster-admin</code> grants — this is the first thing to check after a security incident. Automate this check in CI with tools like <code>rbac-police</code> or <code>audit2rbac</code>.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">What is a PodDisruptionBudget and when is it critical?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>A <strong>PodDisruptionBudget (PDB)</strong> limits the number of pods of a workload that can be simultaneously unavailable during <strong>voluntary disruptions</strong> — node drains, cluster upgrades, node autoscaler scale-down events.
+<code>yaml apiVersion: policy/v1 kind: PodDisruptionBudget spec:
+  minAvailable: 2       # or maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: payment-api</code>
+With this PDB, <code>kubectl drain</code> will wait before evicting a payment-api pod if doing so would leave fewer than 2 pods available. The drain will block until a replacement pod is running and ready.
+<strong>Critical for</strong>: - Services where N &lt; minReplicas causes user-facing impact (quota errors, degraded SLA) - StatefulSets where losing too many replicas causes quorum loss (etcd, Kafka, Zookeeper) - Any service with an SLO — PDBs are how you tell Kubernetes "this service has an SLO,
+  respect it during maintenance"</p>
+<p><strong>Without a PDB</strong>: a node drain can evict all pods of a Deployment simultaneously (especially if they're all on one node), causing a complete outage during routine maintenance.</p></div>
+        
+        <div class="staff-add">PDBs only protect against voluntary disruptions — they do not prevent a node from crashing (involuntary). Also, a PDB with <code>minAvailable: 2</code> on a Deployment with <code>replicas: 2</code> will block all node drains indefinitely — there's no slack for eviction. Always set <code>minAvailable</code> &lt; <code>replicas</code> (or <code>maxUnavailable</code> &gt;= 1) so drains can proceed. The right pattern is <code>replicas: 3, minAvailable: 2</code> — allows one pod to be evicted at a time. PDBs pair with <code>topologySpreadConstraints</code> to ensure pods are spread across nodes/zones so a single node drain doesn't breach the PDB in the first place.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">How does the Kubernetes scheduler work? Walk through filtering, scoring, and the tools you have to influence scheduling decisions.</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The scheduler runs a two-phase algorithm for each unscheduled pod:
+<strong>Phase 1 — Filtering</strong> (eliminate nodes that cannot run the pod): - Sufficient CPU and memory (<code>requests</code> fit within <code>Allocatable</code>) - <code>nodeSelector</code> labels present on the node - <code>nodeAffinity</code> <code>requiredDuringScheduling</code> rules satisfied - Pod tolerates all <code>NoSchedule</code> and <code>NoExecute</code> taints on the node - Volume zone constraints (volume must be in the same AZ as the node) - Pod's <code>hostPort</code> not already used on the node
+<strong>Phase 2 — Scoring</strong> (rank remaining nodes 0–100): - <code>LeastAllocated</code>: prefer nodes with the most remaining capacity - <code>NodeAffinity</code>: weight <code>preferredDuringScheduling</code> rules - <code>InterPodAffinity</code>: prefer nodes near (or away from) specified pods - <code>TopologySpread</code>: balance pods across zones/nodes per <code>topologySpreadConstraints</code>
+<strong>Scheduling tools</strong>: - <code>nodeSelector</code>: simple key-value label match — hard constraint - <code>nodeAffinity</code>: richer expressions (<code>In</code>, <code>NotIn</code>, <code>Exists</code>); required or preferred - <code>podAffinity</code> / <code>podAntiAffinity</code>: schedule near/away from pods with matching labels - <code>topologySpreadConstraints</code>: spread pods evenly across topology domains (zone, node) - <code>taints + tolerations</code>: reserve nodes for specific workloads (GPU nodes, spot nodes) - <code>priorityClass</code>: high-priority pods can preempt lower-priority pods when cluster is full</div>
+        
+        <div class="staff-add">The most impactful scheduling configuration for production reliability is <code>topologySpreadConstraints</code> with <code>maxSkew=1</code> across zones. Without it, a Deployment of 6 replicas may land all 6 on nodes in the same AZ — one AZ outage takes down the service. <code>podAntiAffinity</code> with <code>requiredDuringScheduling</code> achieves strict spreading but prevents scheduling when a zone has no capacity (scheduling fails instead of allowing imbalance). <code>topologySpreadConstraints</code> with <code>whenUnsatisfiable: ScheduleAnyway</code> is more resilient — it spreads best-effort but doesn't block scheduling. Pair it with PDBs to ensure that during a zone failure, the remaining pods across other zones satisfy the PDB.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">How do HPA and Cluster Autoscaler interact, and what can go wrong when they're misconfigured?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>HPA</strong> scales pod replicas based on metrics. <strong>Cluster Autoscaler (CA)</strong> adds nodes when pods are unschedulable due to resource constraints. They form a two-level scaling loop:
+<strong>Happy path</strong>: 1. Load increases → HPA increases replica count → new pods created 2. New pods can't schedule (insufficient node capacity) → pods stuck in <code>Pending</code> 3. CA detects <code>Pending</code> pods → provisions a new node 4. New pods schedule and become <code>Ready</code> → HPA stabilizes
+<strong>Common failure modes</strong>:
+<strong>HPA targeting too-high CPU utilization (e.g., 90%)</strong>: pods are consistently near limit, HPA triggers scale-out only when already overloaded. By the time new pods are ready (node provisioning takes 2–5 min on cloud providers), users have experienced degradation. Target 50–70% CPU so there's headroom before scale-out.
+<strong>HPA and CA fighting</strong>: HPA scales down pods → CA sees underutilized nodes → CA scales down nodes → HPA scales up pods → CA scales up nodes. The stabilization window on HPA (default 5 min for scale-down) must be longer than CA's node drain time to avoid this.
+<strong>Pod requests too low</strong>: HPA sees CPU at 80% of request and scales out, but the actual CPU is low — the request was wrong. CA adds a node unnecessarily. Fix by right-sizing requests with VPA in recommendation mode.
+<strong>CA can't scale down</strong>: pods lack PDBs (safe eviction can't proceed), pods have local storage (<code>emptyDir</code>, <code>hostPath</code>), or pods have <code>cluster-autoscaler.kubernetes.io/safe-to-evict: "false"</code>. The node sits idle but CA can't remove it.</div>
+        
+        <div class="staff-add">For latency-sensitive services, the 2–5 minute node provisioning lag of CA is often unacceptable. The mitigation is <strong>overprovisioning</strong>: run low-priority placeholder pods that hold capacity on spare nodes. When real pods need to scale out, they preempt the placeholders (using PriorityClass), scheduling instantly on already-warm nodes. CA then refills the overprovisioned capacity on new nodes in the background. The Cluster Overprovisioner (a community tool using a low-priority Deployment of pause containers) implements this pattern. Size the overprovisioning to cover your typical scale-out event — if HPA typically adds 3 pods at a time, overprovision 3 nodes' worth of capacity.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">How do you design multi-tenancy on a shared Kubernetes cluster for multiple engineering teams?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Namespace per team/environment</strong> is the primary isolation unit. Each team gets one or more namespaces (e.g., <code>team-payments-prod</code>, <code>team-payments-staging</code>).
+<strong>Resource isolation</strong>: - <code>ResourceQuota</code>: cap total CPU, memory, PVC storage, and object counts per namespace.
+  Prevents one team from consuming cluster resources and starving others.
+- <code>LimitRange</code>: set default requests/limits for pods that don't specify them, and enforce
+  min/max bounds. Ensures <code>BestEffort</code> pods don't exist in the namespace.</p>
+<p><strong>Access isolation (RBAC)</strong>: - Bind each team's users/service accounts to namespace-scoped roles only. - Use <code>ClusterRole</code> + <code>RoleBinding</code> (not <code>ClusterRoleBinding</code>) to grant namespace-scoped
+  permissions without cluster-wide access.
+- Restrict <code>ClusterRoleBinding</code> to the platform team only.
+<strong>Network isolation</strong>: - Default NetworkPolicy: deny all ingress and egress within the namespace. - Allow egress to CoreDNS (<code>kube-dns</code> namespace), cluster-internal services, and the
+  internet as needed.
+- Allow ingress from the Ingress Controller namespace only.
+<strong>Admission control for policy</strong>: - Enforce Pod Security Standards (<code>restricted</code> profile) per namespace via namespace labels. - Use OPA/Gatekeeper or Kyverno for custom policies: require image from approved
+  registries, require labels, require non-root containers.</p></div>
+        
+        <div class="staff-add">Namespace-per-team provides soft isolation but not hard security boundaries. A compromised pod can still reach the Kubernetes API server and, with sufficient RBAC permissions, read secrets from other namespaces. For strong isolation (regulated workloads, untrusted code), consider separate clusters or virtual clusters (vcluster). The platform design question is always: what is the blast radius of a compromised pod in namespace A? Can it reach the database in namespace B? Can it read secrets from namespace C? Draw the network and RBAC boundaries explicitly and test them. The common finding in security audits is that NetworkPolicies exist on paper but were never validated — use <code>netassert</code> or similar tools to assert connectivity rules in CI.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-04</span>
+        <span class="acc-question">What is a Kubernetes Operator? When do you build one vs use Helm?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">An <strong>Operator</strong> extends Kubernetes with a custom controller that manages a CustomResourceDefinition (CRD). You define a new resource type (e.g., <code>PostgresCluster</code>) and write a controller that watches for it and reconciles the desired state — creating Deployments, Services, Secrets, and PVCs, and responding to failures.
+<strong>Operators encode operational knowledge</strong>: backup procedures, failover logic, schema migrations, scaling policies. The controller loop runs continuously — if a pod fails, the operator restores it according to the domain-specific rules, not generic Kubernetes logic.
+<strong>Helm</strong> is a templating and release management tool. It renders YAML manifests with values and tracks releases. It doesn't reconcile state after install — if a resource is deleted outside Helm, Helm doesn't notice until the next <code>helm upgrade</code>. Helm is for packaging and distributing applications, not for complex lifecycle management.
+<strong>When to use Helm</strong>: installing off-the-shelf applications (Prometheus, Cert-manager, Vault), managing configuration across environments, packaging your own services for deployment.
+<strong>When to build an Operator</strong>: your application has complex operational logic that Helm can't encode (automatic failover, backup/restore, rolling upgrades with data migrations). Or you're a software vendor shipping a Kubernetes-native product. Use the Operator SDK or Kubebuilder framework.</div>
+        
+        <div class="staff-add">The decision to build an Operator is often made too eagerly. Operators are significant engineering investments: you're building a distributed system controller with its own bugs, upgrade path, and operational burden. Before writing an Operator, exhaust simpler options: Helm + init containers for migrations, CronJobs for backups, StatefulSet lifecycle hooks for failover. Build an Operator when the operational logic is complex enough that a human would need a runbook to handle it correctly — and that runbook is mature enough to be automated. Well-maintained community Operators (CloudNativePG for PostgreSQL, Strimzi for Kafka) are almost always better than building your own for common stateful workloads.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How do you design a Kubernetes platform for 50+ engineering teams? What does the platform team own vs application teams?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Platform team owns</strong>: - Cluster lifecycle: provisioning, upgrades, node pool management, multi-region topology - Core infrastructure: CNI, CSI, DNS (CoreDNS), Ingress controllers, cert-manager - Security baseline: OPA/Gatekeeper/Kyverno policies, Pod Security Standards enforcement,
+  image scanning pipeline, RBAC governance
+- Observability stack: Prometheus/Thanos, Grafana, Loki/OpenSearch, distributed tracing - GitOps tooling: ArgoCD or Flux managing application deployments - Namespace onboarding automation: self-service (Terraform module, operator) that
+  provisions namespace, ResourceQuota, LimitRange, default NetworkPolicies, RBAC</p>
+<p><strong>Application teams own</strong>: - Deployment manifests (Helm charts, Kustomize overlays) in their own Git repos - HPA/KEDA configuration and tuning - Readiness/liveness probes and resource requests (guided by VPA recommendations) - Service-level SLOs and alerting rules in their namespaces
+<strong>Key design decisions</strong>: - <strong>Single large cluster vs many small clusters</strong>: large clusters are more efficient
+  (bin-packing, shared infra overhead) but harder to isolate and upgrade. Small clusters
+  reduce blast radius but multiply operational burden. Common pattern: one cluster per
+  environment tier (prod, staging, dev) per region, with namespace-level team isolation.
+- <strong>GitOps for all changes</strong>: no <code>kubectl apply</code> in production. ArgoCD/Flux enforces
+  that the cluster state matches Git. Drift detection alerts on out-of-band changes.
+- <strong>Self-service with guardrails</strong>: platform team provides a Terraform module or a
+  <code>Namespace</code> CRD that teams fill in. The platform operator provisions everything.
+  Teams don't need Kubernetes expertise to onboard.</p></div>
+        
+        <div class="staff-add">The hardest part of running a platform for 50 teams is not the technology — it's the organizational contract. What does the platform team guarantee? What is the SLA for cluster availability, control plane responsiveness, and node provisioning time? What is the escalation path when a team's pods won't schedule? Without a clear contract, the platform team becomes a bottleneck for every team's deployment problems. Define a tiered support model: a self-service runbook for common issues (pod stuck in Pending, OOMKilled), a Slack channel with SLA for questions, and an on-call rotation for cluster-level incidents. The platform is a product — treat it with product management rigor: a roadmap, SLOs, and user research with application teams.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-02</span>
+        <span class="acc-question">How do you execute a Kubernetes cluster upgrade (e.g., 1.28 → 1.29) with zero downtime for running workloads?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Kubernetes skew policy: you can upgrade one minor version at a time (1.28 → 1.29, not 1.28 → 1.30). Control plane must be upgraded before data plane nodes.
+<strong>Pre-upgrade checklist</strong>: - Review the release notes and deprecation guide for removed/changed APIs.
+  Run <code>kubectl convert</code> or use <code>pluto</code> to find deprecated API versions in your manifests.
+- Validate PDBs exist for all critical workloads — the upgrade will drain nodes one at a time. - Ensure the cluster has enough spare capacity for one node's worth of pods to reschedule. - Test the upgrade in a staging cluster with the same workload profile first. - Verify all addons (CNI, CSI, cert-manager, CoreDNS) have versions compatible with the target K8s version.
+<strong>Control plane upgrade</strong> (managed clusters like GKE/EKS handle this): API server, scheduler, controller-manager upgrade in a rolling fashion. A brief period of control plane unavailability is possible (seconds) but <code>kubectl get pods</code> may time out. Running workloads are unaffected — kubelet and pods continue running without the API server.
+<strong>Node upgrade</strong> (the risky part): 1. Add a new node pool/group with the new version. 2. Cordon old nodes (mark unschedulable). 3. Drain old nodes one at a time: <code>kubectl drain --ignore-daemonsets --delete-emptydir-data</code>.
+   Kubernetes evicts pods respecting PDBs — if a PDB blocks eviction, drain waits.
+4. New pods schedule on new nodes. 5. Verify workloads are healthy on new nodes. 6. Delete old nodes.
+<strong>Zero downtime requires</strong>: PDBs on all critical workloads, <code>topologySpreadConstraints</code> so pods aren't all on the nodes being drained, graceful shutdown (<code>preStop</code> hook + adequate <code>terminationGracePeriodSeconds</code>), and readiness probes so traffic doesn't route to not-yet-ready pods on new nodes.</div>
+        
+        <div class="staff-add">The most common upgrade failure is deprecated API versions in Helm chart values or GitOps manifests. A chart using <code>networking.k8s.io/v1beta1</code> Ingress (removed in 1.22) will fail to apply after the upgrade even if the running workload is unaffected. Run <code>pluto detect-all-in-cluster</code> before every upgrade to enumerate all objects using deprecated APIs — this is the single highest-ROI pre-upgrade check. The second failure mode is insufficient spare capacity. If the cluster runs at 90% utilization, draining one node creates 10 pods that can't schedule. Build spare capacity into your cluster sizing (target 70–75% utilization) or use overprovisioning to keep buffer nodes warm.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">Diagnosing a CrashLoopBackOff in Production</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A payment API deployment that was running fine starts crash-looping after a routine deployment. Pods reach <code>CrashLoopBackOff</code>. The on-call engineer is paged. The service handles live payment traffic. Walk through your diagnostic and recovery process.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Service is live — minimize time to recovery above all else</li><li>No staging environment matches production exactly (different secrets)</li><li>Logs are available but the container starts and dies in under 2 seconds</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Immediate rollback first</strong>: <code>kubectl rollout undo deployment/payment-api</code>. If the previous version was healthy, this is the fastest path to recovery. Don't spend time diagnosing while users are impacted — restore, then investigate.</li><li><strong>Get logs from the crashed container</strong>: <code>kubectl logs &lt;pod&gt; --previous -n prod</code>. The <code>--previous</code> flag returns logs from the last terminated container. If the container dies in 2 s, look for startup errors, missing env vars, connection refused, or panic stack traces.</li><li><strong>Check events</strong>: <code>kubectl describe pod &lt;pod&gt; -n prod</code>. Events section shows: OOMKilled (exit 137 = memory limit), image pull error, volume mount failure, liveness probe failure. The exit code tells you a lot — 1 = app error, 137 = OOM, 143 = SIGTERM.</li><li><strong>Compare the diff</strong>: <code>kubectl diff -f deployment.yaml</code> or check the GitOps PR/commit that triggered the deploy. What changed? New image, changed env var, modified resource limits, a new secret reference?</li><li><strong>Simulate locally</strong>: pull the new image and run it with the same env vars (<code>kubectl exec</code> into another pod in the same namespace to verify secrets are accessible, or run locally with <code>docker run</code> and exported env vars).</li><li><strong>If it's a config/secret issue</strong>: the new image may expect a new environment variable that doesn't exist yet. Check <code>kubectl get events</code> for <code>Error: secret not found</code> or similar. Add the missing secret and redeploy rather than rolling back if the old version can't use the new secret either.</li><li><strong>Post-incident</strong>: add a startup probe with generous <code>failureThreshold</code> so the next slow start doesn't look like a crash-loop. Add structured logging at startup that logs all required env vars (values masked) so future startups are diagnosable in 2 seconds of logs.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Spending time diagnosing before rolling back — every minute of diagnosis is a minute of outage</li><li>Checking logs from the current (running-and-crashing) container instead of <code>--previous</code></li><li>Increasing resource limits as a first response without confirming OOMKilled was the cause</li><li>No rollback possible because the Deployment revision history was set to 0</li><li>The crashed container produces no logs — startup failure before the logger initializes, requiring a startup probe or init container to surface the error</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Stateful Service HA on Kubernetes</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Design a highly available PostgreSQL deployment on Kubernetes. The service backs an order management system. Requirements: RPO of 0 (no committed data loss), RTO of 60 seconds (service restored within 1 minute of primary failure), and 99.9% uptime.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Runs on a managed Kubernetes cluster (EKS/GKE) across 3 availability zones</li><li>Must survive a complete AZ failure without data loss</li><li>Schema migrations must be applied without downtime</li><li>Team has 4 engineers — operational burden must be manageable</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Use an Operator, not a raw StatefulSet</strong>: CloudNativePG (CNPG) is the recommended production-grade PostgreSQL Operator. It handles primary election, failover, replica management, backup to S3, and connection pooling (PgBouncer). Raw StatefulSets for PostgreSQL require writing all this logic yourself — never do this for production.</li><li><strong>3-replica cluster with synchronous replication</strong>: CNPG's <code>PostgresCluster</code> with 3 instances, one instance per AZ (using <code>topologySpreadConstraints</code>). Synchronous replication to at least one standby ensures RPO=0 — the primary waits for WAL acknowledgment before confirming commits.</li><li><strong>PodDisruptionBudget</strong>: <code>minAvailable: 2</code> ensures at most 1 pod is evicted during node drains. Combined with AZ spread, AZ failure leaves 2 pods in the remaining AZs — above the quorum threshold.</li><li><strong>Storage</strong>: <code>volumeClaimTemplates</code> with <code>WaitForFirstConsumer</code> binding ensures the PVC is provisioned in the same AZ as the pod. Use a <code>StorageClass</code> with <code>allowVolumeExpansion: true</code> so you can grow PVCs without downtime.</li><li><strong>Connection pooling</strong>: PgBouncer sidecar (or CNPG's built-in pooler) keeps PostgreSQL connection count manageable. Application connects to PgBouncer, which multiplexes to PostgreSQL. On failover, PgBouncer reconnects to the new primary automatically.</li><li><strong>Schema migrations</strong>: use Flyway or Liquibase in a Kubernetes Job as a <code>initContainer</code> or pre-deployment step. Use backward-compatible migrations (add column before removing old one, never rename columns directly). With CNPG, the primary is always available during migrations — never run migrations against a replica.</li><li><strong>Backup and PITR</strong>: CNPG's <code>scheduledBackups</code> to S3 with WAL archiving. Test restore monthly. RTO of 60s is achievable with failover (not restore-from-backup); restore-from-backup is the disaster recovery path with a different (higher) RTO.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Using a raw StatefulSet for PostgreSQL — no automatic failover, all operational logic is manual</li><li>Single replica PostgreSQL on Kubernetes — no HA, pod restart = downtime</li><li>Storing PostgreSQL data on emptyDir or hostPath — data lost on pod eviction</li><li>No PDB — AZ failure or node drain takes down all replicas if they were on the evicted node</li><li>Connection pool not configured — application connecting directly to PostgreSQL with 200 connections causes max_connections exhaustion</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Migrating a Monolith to Kubernetes</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A 5-year-old Java monolith (Spring Boot, 2 GB heap, 30-second startup, stateful in-memory session cache) needs to be moved to Kubernetes. The team has no Kubernetes experience. The app serves 10K users concurrently. Design the migration approach and target architecture.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Zero downtime during migration</li><li>Team of 6 engineers, 2 of whom are learning Kubernetes</li><li>App currently runs on 3 VMs behind a load balancer</li><li>Sessions are stored in-memory — users get logged out on restart</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Fix the session problem first, before Kubernetes</strong>: in-memory sessions are incompatible with multiple pods and rolling restarts. Migrate sessions to Redis (Spring Session + Redis) before containerizing. This is a prerequisite for horizontal scaling and zero-downtime deploys — not a Kubernetes concern.</li><li><strong>Startup probe for the 30-second JVM warmup</strong>: <code>startupProbe</code> with <code>failureThreshold: 15</code> and <code>periodSeconds: 5</code> gives 75 seconds before liveness kicks in. Without this, liveness kills the pod during JVM warmup on every start.</li><li><strong>Resource sizing for JVM</strong>: set <code>requests.memory</code> = 2.5 GB (heap + metaspace + off-heap overhead). Set <code>limits.memory</code> = 3 GB. Set <code>-Xmx</code> to 2 GB explicitly — if JVM autodetects the limit, it may use 75% of the container limit, conflicting with off-heap memory. Set <code>GOMAXPROCS</code> equivalent for JVM: <code>-XX:ActiveProcessorCount</code> if limiting CPU.</li><li><strong>GOMAXPROCS / JVM container awareness</strong>: Spring Boot on JDK 17+ detects cgroup CPU limits correctly. Verify with <code>-XX:+PrintFlagsFinal</code> that <code>ActiveProcessorCount</code> matches your <code>limits.cpu</code> (in cores, not millicores). A JVM on a 2-CPU limit that thinks it has 64 CPUs creates too many threads.</li><li><strong>Rolling deployment strategy</strong>: <code>maxSurge: 1, maxUnavailable: 0</code> for zero-downtime. This creates a new pod before removing an old one. With 30-second startup, the rolling update is slower — budget for it in deployment pipelines.</li><li><strong>Incremental migration path</strong>: run the monolith on Kubernetes alongside the VMs. Use a weighted load balancer (10% to K8s, 90% to VMs) initially. Monitor error rates and latency. Shift traffic gradually. Decommission VMs only after weeks of stable K8s operation. This gives the team time to learn while maintaining a rollback path.</li><li><strong>Observability before go-live</strong>: JVM metrics (JMX exporter → Prometheus), GC pause duration, heap usage, thread counts. The Spring Boot Actuator <code>/actuator/prometheus</code> endpoint provides most of what's needed. A spike in GC pause time is often the first signal of a misconfigured heap.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Containerizing before fixing in-memory sessions — every pod restart or rolling update logs out all users</li><li>Setting JVM heap (<code>-Xmx</code>) equal to the container memory limit — OOMKilled before the app can respond to a single request</li><li>No startup probe — liveness kills the pod during JVM warmup, causing a crash-loop before the app is ever healthy</li><li>Running a single replica — no HA and rolling updates cause downtime</li><li>Migrating all traffic immediately — no gradual cutover means a production incident is your first learning experience with Kubernetes</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>function toggleTheme(){
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  h.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+function switchTab(name, el){
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+}
+
+function toggleAcc(header){
+  const item = header.parentElement;
+  item.classList.toggle('open', !item.classList.contains('open'));
+}
+</script>
+</body>
+</html>

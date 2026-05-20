@@ -1,0 +1,889 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Kubernetes — Interview Field Guide Content
+# Edit this file to update the guide. Run: python generate.py kubernetes
+# ══════════════════════════════════════════════════════════════════════════════
+
+meta:
+  id: kubernetes
+  title: Kubernetes
+  title_short: Kubernetes
+  subtitle: "// pods · scheduling · networking · storage · RBAC · autoscaling · operators · senior → principal"
+  category: Infrastructure
+  icon: "⎈"
+
+colors:
+  toggle_light: "#326CE5"
+  toggle_dark:  "#5b8dee"
+  light_vars: >-
+    --accent:#326CE5;--accent2:#c0392b;--accent3:#1a4db5;
+    --highlight-bg:#eaeffc;--highlight-text:#326CE5;--highlight-border:#326CE5;
+    --your-exp-bg:rgba(26,77,181,.06);--your-exp-border:rgba(26,77,181,.2);--your-exp-text:#1a4db5;
+    --acc-hover:rgba(50,108,229,.04);--acc-open-border:#326CE5;--acc-open-bg:rgba(50,108,229,.04);
+    --num-color:#326CE5;--num-bg:rgba(50,108,229,.1);
+    --tag-color:#326CE5;--tag-bg:rgba(50,108,229,.08);--tag-border:rgba(50,108,229,.2);
+    --flow-arrow:#326CE5;--h1-from:#1a4db5;--h1-to:#326CE5;
+    --badge-color:#1a4db5;--stat-num:#1a4db5;
+    --tab-active-color:#326CE5;--tab-active-bg:rgba(50,108,229,.08);--tab-active-border:#326CE5;
+    --section-title:#326CE5;--concept-title:#1a4db5;
+    --cheat-head-bg:#1a4db5;--cheat-head-text:#ffffff;--cheat-key:#1a4db5;
+    --cmd-bg:#eaeffc;--cmd-text:#1a4db5;
+  dark_vars: >-
+    --accent:#5b8dee;--accent2:#e74c3c;--accent3:#7aa3f0;
+    --highlight-bg:#080f1f;--highlight-text:#5b8dee;--highlight-border:#5b8dee;
+    --your-exp-bg:rgba(91,141,238,.08);--your-exp-border:rgba(91,141,238,.25);--your-exp-text:#7aa3f0;
+    --acc-hover:rgba(91,141,238,.04);--acc-open-border:#5b8dee;--acc-open-bg:rgba(91,141,238,.03);
+    --num-color:#5b8dee;--num-bg:rgba(91,141,238,.08);
+    --tag-color:#5b8dee;--tag-bg:rgba(91,141,238,.08);--tag-border:rgba(91,141,238,.2);
+    --flow-arrow:#5b8dee;--h1-from:#7aa3f0;--h1-to:#5b8dee;
+    --badge-color:#5b8dee;--stat-num:#5b8dee;
+    --tab-active-color:#5b8dee;--tab-active-bg:rgba(91,141,238,.08);--tab-active-border:#5b8dee;
+    --section-title:#5b8dee;--concept-title:#5b8dee;
+    --cheat-head-bg:#080f1f;--cheat-head-text:#5b8dee;--cheat-key:#5b8dee;
+    --cmd-bg:#080f1f;--cmd-text:#5b8dee;
+
+# ── OVERVIEW ──────────────────────────────────────────────────────────────────
+overview:
+  concepts:
+    - title: "📦 Core Workload Primitives"
+      body: >
+        **Pod**: the smallest deployable unit — one or more co-located containers sharing
+        network and storage. Pods are ephemeral; never address them directly in production.
+
+        **Deployment**: manages a ReplicaSet to maintain N identical pod replicas. Handles
+        rolling updates and rollbacks. Use for stateless workloads.
+
+        **StatefulSet**: like a Deployment but pods get stable network identities
+        (`pod-0`, `pod-1`) and stable persistent storage. Pods are created/deleted in order.
+        Use for databases, Kafka, Zookeeper — anything with per-instance state.
+
+        **DaemonSet**: runs exactly one pod per (matching) node. Use for node-level agents:
+        log collectors, monitoring daemons, CNI plugins.
+
+        **Job / CronJob**: runs pods to completion. Job for one-off tasks; CronJob for
+        scheduled work.
+      tags:
+        - {text: "Deployment = stateless", color: green}
+        - {text: "StatefulSet = per-instance state", color: orange}
+        - {text: "DaemonSet = per-node agent", color: purple}
+
+    - title: "🌐 Networking"
+      body: >
+        Every pod gets its own IP. All pods can reach each other directly — no NAT.
+        The **CNI plugin** (Calico, Cilium, Flannel) implements this flat network model.
+
+        **Service**: a stable virtual IP (ClusterIP) that load-balances to matching pods
+        via label selectors. `kube-proxy` (or eBPF with Cilium) programs iptables/ipvs rules
+        on every node to forward traffic to pod IPs.
+
+        **Ingress**: HTTP/HTTPS routing from outside the cluster to Services, handled by an
+        Ingress Controller (nginx, Traefik, ALB). Supports path-based and host-based routing,
+        TLS termination.
+
+        **DNS**: CoreDNS resolves `service.namespace.svc.cluster.local` to the Service ClusterIP.
+        Pods resolve short names within the same namespace automatically.
+      flows:
+        - ["External traffic", "Ingress Controller", "Service (ClusterIP)", "Pod endpoints"]
+      tags:
+        - {text: "flat pod network (no NAT)", color: green}
+        - {text: "Service = stable VIP", color: orange}
+        - {text: "CoreDNS = cluster DNS", color: purple}
+
+    - title: "📅 Scheduling"
+      body: >
+        The **scheduler** watches for unscheduled pods and assigns each to a node through
+        two phases: **Filtering** (eliminate nodes that can't run the pod — insufficient CPU/memory,
+        taint not tolerated, affinity not matched) then **Scoring** (rank remaining nodes by
+        resource balance, affinity weight, spread constraints).
+
+        **Resource requests**: what the scheduler uses to bin-pack pods onto nodes.
+        A node is considered "full" when sum of requests exceeds allocatable capacity —
+        regardless of actual usage.
+
+        **Affinity / anti-affinity**: prefer or require pods to land on nodes or near/away from
+        other pods. `requiredDuringScheduling` is hard — scheduling fails if unmet. `preferredDuringScheduling`
+        is soft.
+
+        **Taints & tolerations**: nodes repel pods unless the pod explicitly tolerates the taint.
+        Used to reserve nodes (GPU nodes, spot nodes, infra nodes).
+      tags:
+        - {text: "requests = scheduler currency", color: green}
+        - {text: "required = hard constraint", color: red}
+        - {text: "taint/toleration = node reservation", color: orange}
+
+    - title: "💾 Storage"
+      body: >
+        **PersistentVolume (PV)**: a piece of storage provisioned in the cluster (NFS mount,
+        EBS volume, etc.). Has an access mode and reclaim policy.
+
+        **PersistentVolumeClaim (PVC)**: a request for storage by a pod. Kubernetes binds it
+        to a matching PV. The pod mounts the PVC as a volume.
+
+        **StorageClass**: defines a provisioner (AWS EBS, GCP PD, Ceph) and parameters.
+        Dynamic provisioning creates a PV automatically when a PVC is created.
+        `volumeBindingMode: WaitForFirstConsumer` delays provisioning until the pod is
+        scheduled — ensures the volume is in the same AZ as the node.
+
+        **Access modes**: `ReadWriteOnce` (one node), `ReadOnlyMany` (many nodes read),
+        `ReadWriteMany` (many nodes read/write — requires NFS or shared storage like EFS).
+      tags:
+        - {text: "PVC = storage request", color: green}
+        - {text: "StorageClass = dynamic provisioning", color: orange}
+        - {text: "RWX requires shared storage", color: red}
+
+    - title: "🔒 RBAC & Security"
+      body: >
+        **ServiceAccount**: an identity for pods. Every pod runs as a ServiceAccount (default
+        if unspecified). Its JWT is mounted at `/var/run/secrets/kubernetes.io/serviceaccount/token`
+        and used to authenticate to the API server.
+
+        **Role / ClusterRole**: a set of allowed verbs on resources. `Role` is namespace-scoped;
+        `ClusterRole` is cluster-wide.
+
+        **RoleBinding / ClusterRoleBinding**: binds a Role to a subject (user, group, ServiceAccount).
+
+        **Pod Security Standards**: replace deprecated PodSecurityPolicy. Three levels —
+        `privileged` (unrestricted), `restricted` (hardened, drops capabilities, read-only root fs),
+        `baseline` (middle ground). Enforced via namespace labels.
+
+        **Network Policies**: default is all traffic allowed between pods. A NetworkPolicy
+        selects pods and restricts ingress/egress to specified sources/destinations.
+      tags:
+        - {text: "deny-by-default with NetworkPolicy", color: red}
+        - {text: "ServiceAccount = pod identity", color: green}
+        - {text: "restricted PSS = hardened", color: orange}
+
+    - title: "📈 Autoscaling"
+      body: >
+        **HPA (Horizontal Pod Autoscaler)**: scales Deployment/StatefulSet replica count based
+        on metrics — CPU/memory utilization (built-in) or custom metrics (via Metrics API).
+        Checks every 15 s; scale-down has a stabilization window (default 5 min) to prevent flapping.
+
+        **VPA (Vertical Pod Autoscaler)**: adjusts resource requests/limits of existing pods.
+        Requires pod restart to apply (current limitation). Use to right-size requests, not as
+        a runtime scaler.
+
+        **KEDA**: event-driven autoscaler. Scales from 0 to N based on external queue depth
+        (SQS, Kafka, RabbitMQ). Bridging the gap between HPA's metric-based scaling and
+        workloads that should be idle when no work exists.
+
+        **Cluster Autoscaler**: adds/removes nodes when pods are unschedulable (scale-up) or
+        nodes are underutilized (scale-down). Works with cloud provider node groups.
+      flows:
+        - ["Metric exceeds threshold", "HPA increases replicas", "Pods unschedulable (no node capacity)", "Cluster Autoscaler adds node"]
+      tags:
+        - {text: "HPA = replica count", color: green}
+        - {text: "KEDA = scale to zero", color: purple}
+        - {text: "CA = node count", color: orange}
+
+  gotchas:
+    - title: "CPU limits cause throttling — requests and limits are not the same thing"
+      body: >
+        A container with `limits.cpu: 500m` is throttled by the Linux CFS scheduler when it
+        tries to use more than 500m in a scheduling period — even if the node has idle CPU.
+        This causes latency spikes invisible to CPU utilization metrics (the container appears
+        to use less CPU than the limit, yet is being throttled). Many teams set CPU limits equal
+        to requests and get surprised. For latency-sensitive services, either set limits much
+        higher than requests or omit CPU limits entirely and rely on requests for scheduling.
+
+    - title: "OOMKilled vs eviction — two different out-of-memory paths"
+      body: >
+        **OOMKilled** (exit code 137): the container exceeded its `limits.memory` — the Linux
+        OOM killer terminated it. The pod restarts; it's a container-level event.
+        **Eviction**: the node's actual memory is under pressure — the kubelet evicts pods
+        with the lowest `requests.memory` relative to usage. The pod is moved to another node,
+        not restarted in place. If you don't set memory requests, your pod is the first eviction
+        candidate under node pressure. Always set memory requests.
+
+    - title: "Liveness probe killing healthy pods under load"
+      body: >
+        A liveness probe with an aggressive `timeoutSeconds` or `failureThreshold` will restart
+        a pod that is temporarily slow (GC pause, slow DB query) rather than truly dead. The
+        restart makes things worse — the pod loses in-flight requests, the spike repeats.
+        Liveness probes should only detect deadlock or unrecoverable states. Use a
+        `failureThreshold` of at least 3 and a generous timeout. Don't use liveness probes
+        for dependency health (if the database is down, killing and restarting the pod won't help).
+
+    - title: "Missing requests causes scheduling and eviction pathology"
+      body: >
+        Pods without resource requests are scheduled onto any node (no bin-packing) and are
+        treated as `BestEffort` QoS class — the first to be evicted under memory pressure.
+        The scheduler also cannot do meaningful bin-packing, leading to hot nodes.
+        Set requests for both CPU and memory on every container. Use VPA in recommendation
+        mode to right-size requests based on actual usage.
+
+    - title: "ImagePullPolicy: Always in production causes slow starts and pull failures"
+      body: >
+        `ImagePullPolicy: Always` contacts the registry on every pod start. If the registry
+        is slow or unavailable (network partition, rate limiting), pods cannot start even when
+        the image is already cached on the node. Use `IfNotPresent` with immutable image tags
+        (a digest or a version tag, not `latest`). This also prevents `latest` from silently
+        running different images on different nodes.
+
+    - title: "Termination grace period — pods don't always stop cleanly"
+      body: >
+        When a pod is deleted, Kubernetes sends `SIGTERM` and waits `terminationGracePeriodSeconds`
+        (default 30 s) before sending `SIGKILL`. But traffic may still be routed to the pod for
+        a few seconds after `SIGTERM` because endpoint removal propagates asynchronously. Add a
+        `preStop` hook with a short sleep (5 s) before the application begins shutdown so the
+        load balancer has time to drain. Without this, every rolling deploy or scale-down drops
+        a small percentage of in-flight requests.
+
+  when_to_use:
+    - "Orchestrating microservices at scale with automated rollout, rollback, and self-healing"
+    - "Running mixed workloads (stateless services, stateful databases, batch jobs) on shared infrastructure"
+    - "Platform teams providing a self-service deployment layer to multiple engineering teams"
+    - "Workloads that need fine-grained autoscaling — per-service HPA with custom or external metrics"
+    - "When portability across cloud providers or on-prem matters — Kubernetes runs everywhere"
+
+  when_not_to_use:
+    - "A single simple service — Docker + a managed container service (Cloud Run, ECS) is far simpler"
+    - "Very small teams without dedicated platform/ops capacity — Kubernetes has a steep operational floor"
+    - "Batch-only workloads — managed services (AWS Batch, Dataflow) avoid cluster management overhead"
+    - "When time-to-market is critical and team lacks Kubernetes experience — complexity slows early velocity"
+
+# ── DEEP DIVE ─────────────────────────────────────────────────────────────────
+deep_dive:
+  tables:
+    - title: "📦 Workload Controller Comparison"
+      full_width: true
+      rows:
+        - {key: "Deployment", value: "Stateless replicas. Rolling updates with configurable maxSurge/maxUnavailable. Rollback via revision history. Pods are interchangeable."}
+        - {key: "StatefulSet", value: "Stable pod identity (pod-0..N), stable DNS (pod-0.svc), ordered start/stop, stable PVCs. Required for databases, Kafka, Zookeeper, Elasticsearch."}
+        - {key: "DaemonSet", value: "One pod per node (or matching nodes). Used for node agents: Fluentd, Prometheus node-exporter, Calico, Cilium. Respects node taints and affinity."}
+        - {key: "Job", value: "Runs pods to completion. completions + parallelism control concurrency. backoffLimit caps retries. Use for one-off data migrations, report generation."}
+        - {key: "CronJob", value: "Creates Jobs on a cron schedule. concurrencyPolicy controls overlapping runs (Allow/Forbid/Replace). successfulJobsHistoryLimit prevents history accumulation."}
+        - {key: "ReplicaSet", value: "Maintains N pod replicas. Rarely used directly — owned by Deployments. Only manage ReplicaSets directly if you need custom rollout logic."}
+
+    - title: "🌐 Service Types"
+      full_width: true
+      rows:
+        - {key: "ClusterIP", value: "Default. Virtual IP reachable only within the cluster. All inter-service communication should use ClusterIP. kube-proxy programs iptables/ipvs rules on every node."}
+        - {key: "NodePort", value: "Exposes the service on every node's IP at a static port (30000–32767). Reachable externally via <NodeIP>:<NodePort>. Avoid in production — port management is painful and bypasses Ingress."}
+        - {key: "LoadBalancer", value: "Provisions a cloud load balancer (ALB, NLB, GCP LB) pointing to the NodePort. One LB per Service = expensive at scale. Use Ingress with a single LB instead for HTTP workloads."}
+        - {key: "ExternalName", value: "DNS CNAME alias to an external hostname. No proxying. Use to abstract external services (RDS endpoint, third-party API) behind a Kubernetes service name."}
+        - {key: "Headless (clusterIP: None)", value: "No virtual IP. DNS returns individual pod IPs directly. Used by StatefulSets so clients (databases, Kafka clients) can address specific pods."}
+
+    - title: "🔍 Probe Types"
+      rows:
+        - {key: "livenessProbe", value: "Is the container alive? Failure → restart. Use for deadlock/frozen process detection only. Aggressive thresholds cause cascading restarts under load."}
+        - {key: "readinessProbe", value: "Is the container ready to serve traffic? Failure → removed from Service endpoints (no traffic routed). Use for startup completion and dependency health."}
+        - {key: "startupProbe", value: "Runs once at startup. Disables liveness/readiness until it succeeds. Use for slow-starting applications (JVM warmup, large model loading) to prevent premature liveness failures."}
+
+    - title: "⚙️ Key Resource Fields"
+      rows:
+        - {key: "requests.cpu / memory", value: "Used by scheduler for bin-packing. Sets QoS class. Always set on every container."}
+        - {key: "limits.cpu", value: "Hard ceiling enforced by CFS throttling. Can cause latency spikes. Set significantly above requests or omit for latency-sensitive services."}
+        - {key: "limits.memory", value: "Exceeding this → OOMKilled (exit 137). Set equal to or slightly above requests for predictable behavior."}
+        - {key: "terminationGracePeriodSeconds", value: "Time between SIGTERM and SIGKILL. Default 30 s. Set to cover your app's shutdown time + preStop hook duration."}
+        - {key: "preStop hook", value: "Runs before SIGTERM. Use for sleep to allow endpoint propagation, or to drain connections gracefully."}
+        - {key: "topologySpreadConstraints", value: "Spread pods across zones/nodes. maxSkew=1 ensures at most 1 more pod in any zone than others. Preferred over podAntiAffinity for spreading."}
+
+  cli:
+    - label: "Pod & Workload Inspection"
+      commands:
+        - "kubectl get pods -n <ns> -o wide                        # list pods with node assignment"
+        - "kubectl describe pod <pod> -n <ns>                      # events, conditions, resource usage"
+        - "kubectl logs <pod> -n <ns> --previous                   # logs from previous (crashed) container"
+        - "kubectl logs <pod> -n <ns> -c <container> -f            # follow logs from specific container"
+        - "kubectl exec -it <pod> -n <ns> -- /bin/sh               # shell into pod"
+        - "kubectl top pods -n <ns> --sort-by=memory               # actual resource usage"
+        - "kubectl get events -n <ns> --sort-by=.lastTimestamp     # recent events (scheduling failures, OOM)"
+
+    - label: "Deployments & Rollouts"
+      commands:
+        - "kubectl rollout status deployment/<name> -n <ns>        # watch rollout progress"
+        - "kubectl rollout history deployment/<name> -n <ns>       # list revision history"
+        - "kubectl rollout undo deployment/<name> -n <ns>          # rollback to previous revision"
+        - "kubectl rollout undo deployment/<name> --to-revision=3  # rollback to specific revision"
+        - "kubectl set image deployment/<name> app=image:v2 -n <ns> # trigger rolling update"
+        - "kubectl scale deployment/<name> --replicas=5 -n <ns>   # manual scale"
+
+    - label: "Debugging"
+      commands:
+        - "kubectl get pod <pod> -o yaml | grep -A5 'conditions:'  # pod conditions (PodScheduled, Ready)"
+        - "kubectl debug -it <pod> --image=busybox --copy-to=debug-pod # ephemeral debug container"
+        - "kubectl port-forward svc/<svc> 8080:80 -n <ns>         # local access to a service"
+        - "kubectl run tmp --image=curlimages/curl -it --rm -- sh  # throwaway pod for network testing"
+        - "kubectl get endpoints <svc> -n <ns>                     # verify pod IPs behind a service"
+        - "kubectl auth can-i create pods --as=system:serviceaccount:<ns>:<sa> # test RBAC"
+
+    - label: "Nodes & Cluster"
+      commands:
+        - "kubectl get nodes -o wide                               # nodes with IPs and roles"
+        - "kubectl describe node <node>                            # allocatable resources, taints, conditions"
+        - "kubectl top nodes                                        # node-level CPU and memory usage"
+        - "kubectl cordon <node>                                   # mark node unschedulable"
+        - "kubectl drain <node> --ignore-daemonsets --delete-emptydir-data # safely evict pods"
+        - "kubectl taint nodes <node> key=value:NoSchedule        # add taint"
+
+    - label: "RBAC"
+      commands:
+        - "kubectl get rolebindings,clusterrolebindings -A | grep <sa>  # find bindings for a service account"
+        - "kubectl auth can-i list pods -n <ns> --as=system:serviceaccount:<ns>:<sa>"
+        - "kubectl create role pod-reader --verb=get,list,watch --resource=pods -n <ns>"
+        - "kubectl create rolebinding bind-pod-reader --role=pod-reader --serviceaccount=<ns>:<sa> -n <ns>"
+
+  comparison:
+    title: "Kubernetes vs Docker Swarm vs HashiCorp Nomad vs Amazon ECS"
+    headers: ["Dimension", "Kubernetes", "Docker Swarm", "HashiCorp Nomad", "Amazon ECS"]
+    rows:
+      - ["Complexity", "High — steep learning curve, many concepts", "Low — simple Compose-like model", "Medium — simpler than K8s, richer than Swarm", "Low-medium — managed control plane"]
+      - ["Workload types", "Containers, pods, jobs, CronJobs", "Containers only", "Containers, binaries, VMs (with Nomad driver)", "Containers (EC2 and Fargate)"]
+      - ["Networking model", "Flat pod network via CNI; Services; Ingress", "Overlay network; routing mesh", "CNI plugins; Consul service mesh integration", "VPC networking; ALB/NLB integration"]
+      - ["Storage", "PV/PVC/StorageClass; CSI plugins", "Named volumes; limited cloud integration", "Host volumes; CSI support", "EBS, EFS via task definitions"]
+      - ["Autoscaling", "HPA, VPA, KEDA, Cluster Autoscaler", "Manual; limited built-in scaling", "Horizontal scaling; Nomad Autoscaler", "ECS Service Autoscaling; Fargate auto-provision"]
+      - ["Multi-tenancy", "Namespaces, RBAC, NetworkPolicy, resource quotas", "Limited namespace isolation", "Namespaces + ACL policies", "Accounts/IAM for isolation; no native namespacing"]
+      - ["Ecosystem", "Vast — Helm, operators, service meshes, GitOps", "Limited; largely superseded", "Growing; strong with Consul/Vault integration", "AWS ecosystem only"]
+      - ["Managed offerings", "GKE, EKS, AKS, DOKS (fully managed control plane)", "None actively maintained", "HCP Nomad", "ECS is fully managed; EKS for Kubernetes on AWS"]
+      - ["Best for", "Large-scale, multi-team, cloud-native platforms", "Simple deployments, small teams", "Mixed workloads (containers + VMs), HashiCorp stack", "AWS-native, teams avoiding K8s complexity"]
+
+# ── Q & A ─────────────────────────────────────────────────────────────────────
+qa:
+  senior:
+    - id: S-01
+      question: "What happens step-by-step when you run `kubectl apply -f deployment.yaml`?"
+      answer: >
+        1. **kubectl** serializes the manifest and sends a `PATCH` (or `PUT`) request to the
+           API server over HTTPS.
+
+        2. **API server** authenticates the request (client cert or token), then runs
+           **admission controllers** — mutating webhooks (inject sidecars, set defaults) run
+           first, then validating webhooks (enforce policy). If any admission controller
+           rejects the request, it fails here.
+
+        3. The API server writes the desired state to **etcd** and returns 200 OK to kubectl.
+
+        4. The **Deployment controller** (part of kube-controller-manager) watches etcd for
+           Deployment changes. It computes the desired ReplicaSet and creates/updates it.
+
+        5. The **ReplicaSet controller** notices the desired replica count isn't met and creates
+           Pod objects in etcd (spec only, no node assigned).
+
+        6. The **scheduler** watches for pods with no `nodeName`. It filters nodes (enough CPU/memory,
+           tolerations match, affinity satisfied) then scores them and binds the pod to the
+           winning node by writing `nodeName` to the Pod object in etcd.
+
+        7. The **kubelet** on the assigned node watches for pods bound to its node. It calls the
+           container runtime (containerd) via CRI to pull the image and start the container.
+
+        8. The kubelet reports back pod status. Once containers pass readiness probes, the
+           **endpoints controller** adds the pod's IP to the Service's Endpoints object.
+
+        9. **kube-proxy** (or Cilium) on every node watches Endpoints and updates iptables/eBPF
+           rules so traffic to the ClusterIP is forwarded to the new pod.
+      staff_add: >
+        The entire flow is **level-triggered**, not event-triggered. Every controller continuously
+        reconciles observed state against desired state — if a controller crashes and restarts, it
+        simply re-reads the current state from etcd and reconciles. This makes Kubernetes extremely
+        resilient to controller failures. Understanding this reconciliation loop is foundational to
+        understanding why Kubernetes is eventually consistent and why your `kubectl apply` may take
+        seconds to fully propagate — each step has its own watch-react cycle.
+
+    - id: S-02
+      question: "When do you use a Deployment vs StatefulSet vs DaemonSet? What does StatefulSet actually guarantee?"
+      answer: >
+        **Deployment** for stateless workloads where all replicas are identical and interchangeable.
+        Pod names are random hashes. Pods can be killed and rescheduled in any order. Use for
+        APIs, web frontends, stateless workers.
+
+        **StatefulSet** for workloads that require:
+        - **Stable network identity**: pod-0, pod-1, pod-2 — DNS names like `pod-0.svc.ns.svc.cluster.local`
+          persist across restarts
+        - **Stable persistent storage**: each pod gets its own PVC (`data-pod-0`, `data-pod-1`)
+          that is not deleted when the pod is rescheduled
+        - **Ordered startup/shutdown**: pod-0 must be Running before pod-1 is created; shutdown
+          proceeds in reverse order. Critical for leader-election-based systems (Kafka, etcd).
+
+        Use StatefulSets for: databases, Kafka, Zookeeper, Elasticsearch, Redis Cluster.
+
+        **DaemonSet** when you need exactly one pod on every node (or a subset of nodes via
+        node selector). Pods are created as nodes join the cluster and removed when nodes leave.
+        Use for log shippers, metrics collectors, CNI plugins, storage drivers.
+      staff_add: >
+        The most common StatefulSet mistake is treating it as a "Deployment with persistent storage."
+        The ordered startup guarantee exists because many distributed systems require replicas to
+        join one at a time (Kafka ISR, etcd quorum, MySQL Group Replication). If you deploy a
+        StatefulSet without understanding the ordering requirement of your software, you may get
+        race conditions at startup that are hard to reproduce. Read your software's operator/Helm
+        chart documentation to understand what updateStrategy (`RollingUpdate` with `partition` for
+        canary, or `OnDelete` for manual control) is appropriate for your workload.
+
+    - id: S-03
+      question: "Explain how a request gets from outside the cluster to a pod — from DNS lookup to response."
+      answer: >
+        **1. DNS resolution**: the client resolves the domain (e.g., `api.example.com`). An external
+        DNS record points to the cloud Load Balancer IP provisioned for the Ingress.
+
+        **2. Load balancer → Ingress Controller**: the cloud LB forwards the request to the
+        Ingress Controller pods (nginx, Traefik, AWS ALB Ingress Controller). The Ingress Controller
+        watches Ingress resources and routes based on host/path rules.
+
+        **3. Ingress → Service**: the Ingress Controller forwards to the matching Service's ClusterIP.
+
+        **4. Service → Pod (kube-proxy)**: kube-proxy has programmed iptables/ipvs rules on every
+        node that DNAT the ClusterIP:port to one of the pod IPs in the Endpoints list.
+        Selection is random (iptables) or round-robin (ipvs).
+
+        **5. Pod processes the request and returns a response** through the same path in reverse.
+
+        **Key detail — Endpoints**: the Service only routes to pods whose readiness probe is passing.
+        The endpoints controller removes pods failing readiness from the Endpoints list, so the
+        Service's load balancing naturally excludes unhealthy pods.
+      staff_add: >
+        Cilium replaces kube-proxy with eBPF programs attached to the network interface. Instead of
+        traversing iptables chains (which grow O(n) with the number of Services), eBPF lookups are
+        O(1) regardless of cluster size. At 1000+ services, iptables update latency and traversal
+        cost become measurable. If you're running large clusters, evaluate Cilium — it also enables
+        network policy enforcement at the kernel level (more efficient than iptables-based NetworkPolicy)
+        and observability via Hubble (service-to-service traffic visibility without a service mesh).
+
+    - id: S-04
+      question: "What is the difference between resource requests and limits? What happens when each is exceeded?"
+      answer: >
+        **Requests**: the amount of CPU/memory the scheduler reserves for the pod on a node.
+        A node is considered full when the sum of all pod requests reaches its allocatable capacity —
+        regardless of actual usage. Requests determine **pod QoS class**:
+        - `Guaranteed`: requests == limits for all containers. Highest priority — last to be evicted.
+        - `Burstable`: requests set but less than limits (or limits not set for some containers).
+        - `BestEffort`: no requests or limits. First to be evicted under node pressure.
+
+        **CPU limit exceeded**: the container is **throttled** by the Linux CFS scheduler —
+        it's rate-limited to the specified millicores per scheduling period. The process keeps
+        running but gets less CPU time. This causes latency spikes, not crashes.
+
+        **Memory limit exceeded**: the container is **OOMKilled** (exit code 137) by the Linux
+        OOM killer. The pod restarts according to `restartPolicy`. Repeated OOMKills trigger
+        `CrashLoopBackOff` with exponential backoff.
+
+        **Node memory pressure (eviction)**: kubelet evicts pods starting with `BestEffort`,
+        then `Burstable` with the highest memory usage relative to requests, then `Guaranteed`
+        only as a last resort. The pod is terminated and rescheduled on another node.
+      staff_add: >
+        The CPU throttling problem is subtle and dangerous: a service with `limits.cpu: 200m`
+        and actual usage of 180m can still be heavily throttled if it has bursts within a
+        100ms CFS scheduling period. The metric to watch is not CPU utilization but
+        `container_cpu_cfs_throttled_periods_total / container_cpu_cfs_periods_total` —
+        a throttled ratio above 25% indicates the limit is too low for the workload's burst
+        pattern. Many teams discover their service is constantly throttled only after adding
+        this metric to dashboards. For latency-sensitive services, consider setting CPU limits
+        to 2–4× requests, or removing CPU limits entirely and relying on requests for scheduling.
+
+    - id: S-05
+      question: "Explain liveness, readiness, and startup probes. What is the failure mode of a misconfigured liveness probe?"
+      answer: >
+        **Startup probe**: runs at pod start. Disables liveness and readiness until it succeeds.
+        Use for slow-starting applications (JVM warmup, model loading) to give them time to
+        initialize without being prematurely killed by liveness. Once it succeeds, liveness takes over.
+
+        **Readiness probe**: determines if the pod should receive traffic. Failure removes the pod
+        from the Service Endpoints — traffic stops routing to it, but the pod keeps running.
+        Use for: app startup completion, dependency availability (cache warm-up), graceful degradation.
+
+        **Liveness probe**: determines if the container is alive. Failure → **container restart**.
+        Use sparingly — only for deadlock or truly unrecoverable states.
+
+        **Liveness misconfiguration failure mode**:
+        - Probe checks an external dependency (database, upstream API). Database goes down →
+          liveness fails → pod restarts → pod is still unhealthy → restart loop. Now you have
+          a CrashLoopBackOff AND a database outage. Restarting the pod cannot fix the database.
+        - Probe timeout too short (e.g., 1s) → a GC pause or slow request causes a timeout →
+          pod restarted unnecessarily → in-flight requests dropped → under load, many pods restart
+          simultaneously → cascading failure.
+
+        **Rule**: liveness probes should only check internal state that restart can actually fix.
+        A simple `/healthz` endpoint returning 200 when the main loop is running is sufficient.
+      staff_add: >
+        The distinction between liveness and readiness is architectural: readiness is about
+        traffic routing (don't send me requests I can't handle), liveness is about process
+        health (I am stuck and need to be restarted). Many engineers conflate them and point
+        both at the same endpoint, which loses the ability to gracefully shed load (readiness
+        fails, traffic stops, pod recovers) vs. crash-loop (liveness fails, pod restarts and
+        loses in-flight state). Designing probe endpoints is a product decision: what conditions
+        should cause traffic to stop? What conditions should trigger a restart? Answer those
+        questions, then write the probes.
+
+    - id: S-06
+      question: "How does Kubernetes RBAC work? Walk through the chain from a pod making an API request to authorization."
+      answer: >
+        1. **ServiceAccount**: the pod's identity. Every pod runs as a ServiceAccount (default
+           ServiceAccount in the namespace if not specified). Its JWT token is mounted into the
+           pod and sent with API server requests.
+
+        2. **Authentication**: the API server validates the JWT against the Kubernetes OIDC
+           endpoint. The token contains `sub: system:serviceaccount:<namespace>:<name>`.
+
+        3. **Authorization (RBAC)**:
+           - The API server looks up all RoleBindings in the namespace and ClusterRoleBindings
+             in the cluster that reference the ServiceAccount.
+           - Each binding references a Role or ClusterRole — a list of `(apiGroups, resources, verbs)` rules.
+           - The request is allowed if **any** rule in any bound role permits the requested
+             `verb` on the requested `resource` in the requested `namespace`.
+           - RBAC is **deny by default** — no matching rule means the request is denied (403).
+
+        4. **Admission control** runs after authorization (mutating then validating webhooks).
+
+        Example: a pod running as `ServiceAccount: my-app` in namespace `prod` calls
+        `GET /api/v1/namespaces/prod/configmaps`. The API server checks: does any RoleBinding
+        in `prod` (or ClusterRoleBinding) bind `my-app` to a Role that allows `get` on `configmaps`?
+      staff_add: >
+        The principle of least privilege for ServiceAccounts is often ignored in practice.
+        Teams use the default ServiceAccount (which accumulates bindings over time) or create
+        one role with broad permissions. The correct pattern: one ServiceAccount per workload,
+        bound to roles granting only what that workload needs. Audit with
+        `kubectl auth can-i --list --as=system:serviceaccount:<ns>:<sa>` to see what a
+        ServiceAccount can do. For platform teams, audit all ClusterRoleBindings for
+        `cluster-admin` grants — this is the first thing to check after a security incident.
+        Automate this check in CI with tools like `rbac-police` or `audit2rbac`.
+
+    - id: S-07
+      question: "What is a PodDisruptionBudget and when is it critical?"
+      answer: >
+        A **PodDisruptionBudget (PDB)** limits the number of pods of a workload that can be
+        simultaneously unavailable during **voluntary disruptions** — node drains, cluster
+        upgrades, node autoscaler scale-down events.
+
+        ```yaml
+        apiVersion: policy/v1
+        kind: PodDisruptionBudget
+        spec:
+          minAvailable: 2       # or maxUnavailable: 1
+          selector:
+            matchLabels:
+              app: payment-api
+        ```
+
+        With this PDB, `kubectl drain` will wait before evicting a payment-api pod if doing
+        so would leave fewer than 2 pods available. The drain will block until a replacement
+        pod is running and ready.
+
+        **Critical for**:
+        - Services where N < minReplicas causes user-facing impact (quota errors, degraded SLA)
+        - StatefulSets where losing too many replicas causes quorum loss (etcd, Kafka, Zookeeper)
+        - Any service with an SLO — PDBs are how you tell Kubernetes "this service has an SLO,
+          respect it during maintenance"
+
+        **Without a PDB**: a node drain can evict all pods of a Deployment simultaneously
+        (especially if they're all on one node), causing a complete outage during routine
+        maintenance.
+      staff_add: >
+        PDBs only protect against voluntary disruptions — they do not prevent a node from
+        crashing (involuntary). Also, a PDB with `minAvailable: 2` on a Deployment with
+        `replicas: 2` will block all node drains indefinitely — there's no slack for eviction.
+        Always set `minAvailable` < `replicas` (or `maxUnavailable` >= 1) so drains can
+        proceed. The right pattern is `replicas: 3, minAvailable: 2` — allows one pod to be
+        evicted at a time. PDBs pair with `topologySpreadConstraints` to ensure pods are spread
+        across nodes/zones so a single node drain doesn't breach the PDB in the first place.
+
+  staff:
+    - id: ST-01
+      question: "How does the Kubernetes scheduler work? Walk through filtering, scoring, and the tools you have to influence scheduling decisions."
+      answer: >
+        The scheduler runs a two-phase algorithm for each unscheduled pod:
+
+        **Phase 1 — Filtering** (eliminate nodes that cannot run the pod):
+        - Sufficient CPU and memory (`requests` fit within `Allocatable`)
+        - `nodeSelector` labels present on the node
+        - `nodeAffinity` `requiredDuringScheduling` rules satisfied
+        - Pod tolerates all `NoSchedule` and `NoExecute` taints on the node
+        - Volume zone constraints (volume must be in the same AZ as the node)
+        - Pod's `hostPort` not already used on the node
+
+        **Phase 2 — Scoring** (rank remaining nodes 0–100):
+        - `LeastAllocated`: prefer nodes with the most remaining capacity
+        - `NodeAffinity`: weight `preferredDuringScheduling` rules
+        - `InterPodAffinity`: prefer nodes near (or away from) specified pods
+        - `TopologySpread`: balance pods across zones/nodes per `topologySpreadConstraints`
+
+        **Scheduling tools**:
+        - `nodeSelector`: simple key-value label match — hard constraint
+        - `nodeAffinity`: richer expressions (`In`, `NotIn`, `Exists`); required or preferred
+        - `podAffinity` / `podAntiAffinity`: schedule near/away from pods with matching labels
+        - `topologySpreadConstraints`: spread pods evenly across topology domains (zone, node)
+        - `taints + tolerations`: reserve nodes for specific workloads (GPU nodes, spot nodes)
+        - `priorityClass`: high-priority pods can preempt lower-priority pods when cluster is full
+      staff_add: >
+        The most impactful scheduling configuration for production reliability is
+        `topologySpreadConstraints` with `maxSkew=1` across zones. Without it, a Deployment
+        of 6 replicas may land all 6 on nodes in the same AZ — one AZ outage takes down the
+        service. `podAntiAffinity` with `requiredDuringScheduling` achieves strict spreading but
+        prevents scheduling when a zone has no capacity (scheduling fails instead of allowing
+        imbalance). `topologySpreadConstraints` with `whenUnsatisfiable: ScheduleAnyway` is more
+        resilient — it spreads best-effort but doesn't block scheduling. Pair it with PDBs to
+        ensure that during a zone failure, the remaining pods across other zones satisfy the PDB.
+
+    - id: ST-02
+      question: "How do HPA and Cluster Autoscaler interact, and what can go wrong when they're misconfigured?"
+      answer: >
+        **HPA** scales pod replicas based on metrics. **Cluster Autoscaler (CA)** adds nodes
+        when pods are unschedulable due to resource constraints. They form a two-level scaling loop:
+
+        **Happy path**:
+        1. Load increases → HPA increases replica count → new pods created
+        2. New pods can't schedule (insufficient node capacity) → pods stuck in `Pending`
+        3. CA detects `Pending` pods → provisions a new node
+        4. New pods schedule and become `Ready` → HPA stabilizes
+
+        **Common failure modes**:
+
+        **HPA targeting too-high CPU utilization (e.g., 90%)**: pods are consistently near limit,
+        HPA triggers scale-out only when already overloaded. By the time new pods are ready
+        (node provisioning takes 2–5 min on cloud providers), users have experienced degradation.
+        Target 50–70% CPU so there's headroom before scale-out.
+
+        **HPA and CA fighting**: HPA scales down pods → CA sees underutilized nodes → CA scales
+        down nodes → HPA scales up pods → CA scales up nodes. The stabilization window on HPA
+        (default 5 min for scale-down) must be longer than CA's node drain time to avoid this.
+
+        **Pod requests too low**: HPA sees CPU at 80% of request and scales out, but the actual
+        CPU is low — the request was wrong. CA adds a node unnecessarily. Fix by right-sizing
+        requests with VPA in recommendation mode.
+
+        **CA can't scale down**: pods lack PDBs (safe eviction can't proceed), pods have
+        local storage (`emptyDir`, `hostPath`), or pods have `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"`.
+        The node sits idle but CA can't remove it.
+      staff_add: >
+        For latency-sensitive services, the 2–5 minute node provisioning lag of CA is often
+        unacceptable. The mitigation is **overprovisioning**: run low-priority placeholder pods
+        that hold capacity on spare nodes. When real pods need to scale out, they preempt the
+        placeholders (using PriorityClass), scheduling instantly on already-warm nodes. CA then
+        refills the overprovisioned capacity on new nodes in the background.
+        The Cluster Overprovisioner (a community tool using a low-priority Deployment of pause
+        containers) implements this pattern. Size the overprovisioning to cover your typical
+        scale-out event — if HPA typically adds 3 pods at a time, overprovision 3 nodes' worth
+        of capacity.
+
+    - id: ST-03
+      question: "How do you design multi-tenancy on a shared Kubernetes cluster for multiple engineering teams?"
+      answer: >
+        **Namespace per team/environment** is the primary isolation unit. Each team gets
+        one or more namespaces (e.g., `team-payments-prod`, `team-payments-staging`).
+
+        **Resource isolation**:
+        - `ResourceQuota`: cap total CPU, memory, PVC storage, and object counts per namespace.
+          Prevents one team from consuming cluster resources and starving others.
+        - `LimitRange`: set default requests/limits for pods that don't specify them, and enforce
+          min/max bounds. Ensures `BestEffort` pods don't exist in the namespace.
+
+        **Access isolation (RBAC)**:
+        - Bind each team's users/service accounts to namespace-scoped roles only.
+        - Use `ClusterRole` + `RoleBinding` (not `ClusterRoleBinding`) to grant namespace-scoped
+          permissions without cluster-wide access.
+        - Restrict `ClusterRoleBinding` to the platform team only.
+
+        **Network isolation**:
+        - Default NetworkPolicy: deny all ingress and egress within the namespace.
+        - Allow egress to CoreDNS (`kube-dns` namespace), cluster-internal services, and the
+          internet as needed.
+        - Allow ingress from the Ingress Controller namespace only.
+
+        **Admission control for policy**:
+        - Enforce Pod Security Standards (`restricted` profile) per namespace via namespace labels.
+        - Use OPA/Gatekeeper or Kyverno for custom policies: require image from approved
+          registries, require labels, require non-root containers.
+      staff_add: >
+        Namespace-per-team provides soft isolation but not hard security boundaries.
+        A compromised pod can still reach the Kubernetes API server and, with sufficient RBAC
+        permissions, read secrets from other namespaces. For strong isolation (regulated workloads,
+        untrusted code), consider separate clusters or virtual clusters (vcluster). The platform
+        design question is always: what is the blast radius of a compromised pod in namespace A?
+        Can it reach the database in namespace B? Can it read secrets from namespace C?
+        Draw the network and RBAC boundaries explicitly and test them. The common finding in
+        security audits is that NetworkPolicies exist on paper but were never validated —
+        use `netassert` or similar tools to assert connectivity rules in CI.
+
+    - id: ST-04
+      question: "What is a Kubernetes Operator? When do you build one vs use Helm?"
+      answer: >
+        An **Operator** extends Kubernetes with a custom controller that manages a CustomResourceDefinition
+        (CRD). You define a new resource type (e.g., `PostgresCluster`) and write a controller that
+        watches for it and reconciles the desired state — creating Deployments, Services, Secrets,
+        and PVCs, and responding to failures.
+
+        **Operators encode operational knowledge**: backup procedures, failover logic, schema
+        migrations, scaling policies. The controller loop runs continuously — if a pod fails,
+        the operator restores it according to the domain-specific rules, not generic Kubernetes
+        logic.
+
+        **Helm** is a templating and release management tool. It renders YAML manifests with
+        values and tracks releases. It doesn't reconcile state after install — if a resource is
+        deleted outside Helm, Helm doesn't notice until the next `helm upgrade`. Helm is for
+        packaging and distributing applications, not for complex lifecycle management.
+
+        **When to use Helm**: installing off-the-shelf applications (Prometheus, Cert-manager,
+        Vault), managing configuration across environments, packaging your own services for
+        deployment.
+
+        **When to build an Operator**: your application has complex operational logic that Helm
+        can't encode (automatic failover, backup/restore, rolling upgrades with data migrations).
+        Or you're a software vendor shipping a Kubernetes-native product. Use the Operator SDK
+        or Kubebuilder framework.
+      staff_add: >
+        The decision to build an Operator is often made too eagerly. Operators are significant
+        engineering investments: you're building a distributed system controller with its own
+        bugs, upgrade path, and operational burden. Before writing an Operator, exhaust simpler
+        options: Helm + init containers for migrations, CronJobs for backups, StatefulSet
+        lifecycle hooks for failover. Build an Operator when the operational logic is complex
+        enough that a human would need a runbook to handle it correctly — and that runbook
+        is mature enough to be automated. Well-maintained community Operators (CloudNativePG
+        for PostgreSQL, Strimzi for Kafka) are almost always better than building your own for
+        common stateful workloads.
+
+  principal:
+    - id: P-01
+      question: "How do you design a Kubernetes platform for 50+ engineering teams? What does the platform team own vs application teams?"
+      answer: >
+        **Platform team owns**:
+        - Cluster lifecycle: provisioning, upgrades, node pool management, multi-region topology
+        - Core infrastructure: CNI, CSI, DNS (CoreDNS), Ingress controllers, cert-manager
+        - Security baseline: OPA/Gatekeeper/Kyverno policies, Pod Security Standards enforcement,
+          image scanning pipeline, RBAC governance
+        - Observability stack: Prometheus/Thanos, Grafana, Loki/OpenSearch, distributed tracing
+        - GitOps tooling: ArgoCD or Flux managing application deployments
+        - Namespace onboarding automation: self-service (Terraform module, operator) that
+          provisions namespace, ResourceQuota, LimitRange, default NetworkPolicies, RBAC
+
+        **Application teams own**:
+        - Deployment manifests (Helm charts, Kustomize overlays) in their own Git repos
+        - HPA/KEDA configuration and tuning
+        - Readiness/liveness probes and resource requests (guided by VPA recommendations)
+        - Service-level SLOs and alerting rules in their namespaces
+
+        **Key design decisions**:
+        - **Single large cluster vs many small clusters**: large clusters are more efficient
+          (bin-packing, shared infra overhead) but harder to isolate and upgrade. Small clusters
+          reduce blast radius but multiply operational burden. Common pattern: one cluster per
+          environment tier (prod, staging, dev) per region, with namespace-level team isolation.
+        - **GitOps for all changes**: no `kubectl apply` in production. ArgoCD/Flux enforces
+          that the cluster state matches Git. Drift detection alerts on out-of-band changes.
+        - **Self-service with guardrails**: platform team provides a Terraform module or a
+          `Namespace` CRD that teams fill in. The platform operator provisions everything.
+          Teams don't need Kubernetes expertise to onboard.
+      staff_add: >
+        The hardest part of running a platform for 50 teams is not the technology — it's the
+        organizational contract. What does the platform team guarantee? What is the SLA for
+        cluster availability, control plane responsiveness, and node provisioning time?
+        What is the escalation path when a team's pods won't schedule? Without a clear contract,
+        the platform team becomes a bottleneck for every team's deployment problems.
+        Define a tiered support model: a self-service runbook for common issues (pod stuck in
+        Pending, OOMKilled), a Slack channel with SLA for questions, and an on-call rotation
+        for cluster-level incidents. The platform is a product — treat it with product management
+        rigor: a roadmap, SLOs, and user research with application teams.
+
+    - id: P-02
+      question: "How do you execute a Kubernetes cluster upgrade (e.g., 1.28 → 1.29) with zero downtime for running workloads?"
+      answer: >
+        Kubernetes skew policy: you can upgrade one minor version at a time (1.28 → 1.29, not
+        1.28 → 1.30). Control plane must be upgraded before data plane nodes.
+
+        **Pre-upgrade checklist**:
+        - Review the release notes and deprecation guide for removed/changed APIs.
+          Run `kubectl convert` or use `pluto` to find deprecated API versions in your manifests.
+        - Validate PDBs exist for all critical workloads — the upgrade will drain nodes one at a time.
+        - Ensure the cluster has enough spare capacity for one node's worth of pods to reschedule.
+        - Test the upgrade in a staging cluster with the same workload profile first.
+        - Verify all addons (CNI, CSI, cert-manager, CoreDNS) have versions compatible with the target K8s version.
+
+        **Control plane upgrade** (managed clusters like GKE/EKS handle this):
+        API server, scheduler, controller-manager upgrade in a rolling fashion. A brief period
+        of control plane unavailability is possible (seconds) but `kubectl get pods` may time out.
+        Running workloads are unaffected — kubelet and pods continue running without the API server.
+
+        **Node upgrade** (the risky part):
+        1. Add a new node pool/group with the new version.
+        2. Cordon old nodes (mark unschedulable).
+        3. Drain old nodes one at a time: `kubectl drain --ignore-daemonsets --delete-emptydir-data`.
+           Kubernetes evicts pods respecting PDBs — if a PDB blocks eviction, drain waits.
+        4. New pods schedule on new nodes.
+        5. Verify workloads are healthy on new nodes.
+        6. Delete old nodes.
+
+        **Zero downtime requires**: PDBs on all critical workloads, `topologySpreadConstraints`
+        so pods aren't all on the nodes being drained, graceful shutdown (`preStop` hook + adequate
+        `terminationGracePeriodSeconds`), and readiness probes so traffic doesn't route to
+        not-yet-ready pods on new nodes.
+      staff_add: >
+        The most common upgrade failure is deprecated API versions in Helm chart values or
+        GitOps manifests. A chart using `networking.k8s.io/v1beta1` Ingress (removed in 1.22)
+        will fail to apply after the upgrade even if the running workload is unaffected. Run
+        `pluto detect-all-in-cluster` before every upgrade to enumerate all objects using
+        deprecated APIs — this is the single highest-ROI pre-upgrade check. The second failure
+        mode is insufficient spare capacity. If the cluster runs at 90% utilization, draining
+        one node creates 10 pods that can't schedule. Build spare capacity into your cluster
+        sizing (target 70–75% utilization) or use overprovisioning to keep buffer nodes warm.
+
+# ── SCENARIOS ─────────────────────────────────────────────────────────────────
+scenarios:
+  - title: "Diagnosing a CrashLoopBackOff in Production"
+    problem: >
+      A payment API deployment that was running fine starts crash-looping after a routine
+      deployment. Pods reach `CrashLoopBackOff`. The on-call engineer is paged. The service
+      handles live payment traffic. Walk through your diagnostic and recovery process.
+    constraints:
+      - "Service is live — minimize time to recovery above all else"
+      - "No staging environment matches production exactly (different secrets)"
+      - "Logs are available but the container starts and dies in under 2 seconds"
+    discussion:
+      - "**Immediate rollback first**: `kubectl rollout undo deployment/payment-api`. If the previous version was healthy, this is the fastest path to recovery. Don't spend time diagnosing while users are impacted — restore, then investigate."
+      - "**Get logs from the crashed container**: `kubectl logs <pod> --previous -n prod`. The `--previous` flag returns logs from the last terminated container. If the container dies in 2 s, look for startup errors, missing env vars, connection refused, or panic stack traces."
+      - "**Check events**: `kubectl describe pod <pod> -n prod`. Events section shows: OOMKilled (exit 137 = memory limit), image pull error, volume mount failure, liveness probe failure. The exit code tells you a lot — 1 = app error, 137 = OOM, 143 = SIGTERM."
+      - "**Compare the diff**: `kubectl diff -f deployment.yaml` or check the GitOps PR/commit that triggered the deploy. What changed? New image, changed env var, modified resource limits, a new secret reference?"
+      - "**Simulate locally**: pull the new image and run it with the same env vars (`kubectl exec` into another pod in the same namespace to verify secrets are accessible, or run locally with `docker run` and exported env vars)."
+      - "**If it's a config/secret issue**: the new image may expect a new environment variable that doesn't exist yet. Check `kubectl get events` for `Error: secret not found` or similar. Add the missing secret and redeploy rather than rolling back if the old version can't use the new secret either."
+      - "**Post-incident**: add a startup probe with generous `failureThreshold` so the next slow start doesn't look like a crash-loop. Add structured logging at startup that logs all required env vars (values masked) so future startups are diagnosable in 2 seconds of logs."
+    red_flags:
+      - "Spending time diagnosing before rolling back — every minute of diagnosis is a minute of outage"
+      - "Checking logs from the current (running-and-crashing) container instead of `--previous`"
+      - "Increasing resource limits as a first response without confirming OOMKilled was the cause"
+      - "No rollback possible because the Deployment revision history was set to 0"
+      - "The crashed container produces no logs — startup failure before the logger initializes, requiring a startup probe or init container to surface the error"
+
+  - title: "Stateful Service HA on Kubernetes"
+    problem: >
+      Design a highly available PostgreSQL deployment on Kubernetes. The service backs an
+      order management system. Requirements: RPO of 0 (no committed data loss), RTO of 60
+      seconds (service restored within 1 minute of primary failure), and 99.9% uptime.
+    constraints:
+      - "Runs on a managed Kubernetes cluster (EKS/GKE) across 3 availability zones"
+      - "Must survive a complete AZ failure without data loss"
+      - "Schema migrations must be applied without downtime"
+      - "Team has 4 engineers — operational burden must be manageable"
+    discussion:
+      - "**Use an Operator, not a raw StatefulSet**: CloudNativePG (CNPG) is the recommended production-grade PostgreSQL Operator. It handles primary election, failover, replica management, backup to S3, and connection pooling (PgBouncer). Raw StatefulSets for PostgreSQL require writing all this logic yourself — never do this for production."
+      - "**3-replica cluster with synchronous replication**: CNPG's `PostgresCluster` with 3 instances, one instance per AZ (using `topologySpreadConstraints`). Synchronous replication to at least one standby ensures RPO=0 — the primary waits for WAL acknowledgment before confirming commits."
+      - "**PodDisruptionBudget**: `minAvailable: 2` ensures at most 1 pod is evicted during node drains. Combined with AZ spread, AZ failure leaves 2 pods in the remaining AZs — above the quorum threshold."
+      - "**Storage**: `volumeClaimTemplates` with `WaitForFirstConsumer` binding ensures the PVC is provisioned in the same AZ as the pod. Use a `StorageClass` with `allowVolumeExpansion: true` so you can grow PVCs without downtime."
+      - "**Connection pooling**: PgBouncer sidecar (or CNPG's built-in pooler) keeps PostgreSQL connection count manageable. Application connects to PgBouncer, which multiplexes to PostgreSQL. On failover, PgBouncer reconnects to the new primary automatically."
+      - "**Schema migrations**: use Flyway or Liquibase in a Kubernetes Job as a `initContainer` or pre-deployment step. Use backward-compatible migrations (add column before removing old one, never rename columns directly). With CNPG, the primary is always available during migrations — never run migrations against a replica."
+      - "**Backup and PITR**: CNPG's `scheduledBackups` to S3 with WAL archiving. Test restore monthly. RTO of 60s is achievable with failover (not restore-from-backup); restore-from-backup is the disaster recovery path with a different (higher) RTO."
+    red_flags:
+      - "Using a raw StatefulSet for PostgreSQL — no automatic failover, all operational logic is manual"
+      - "Single replica PostgreSQL on Kubernetes — no HA, pod restart = downtime"
+      - "Storing PostgreSQL data on emptyDir or hostPath — data lost on pod eviction"
+      - "No PDB — AZ failure or node drain takes down all replicas if they were on the evicted node"
+      - "Connection pool not configured — application connecting directly to PostgreSQL with 200 connections causes max_connections exhaustion"
+
+  - title: "Migrating a Monolith to Kubernetes"
+    problem: >
+      A 5-year-old Java monolith (Spring Boot, 2 GB heap, 30-second startup, stateful
+      in-memory session cache) needs to be moved to Kubernetes. The team has no Kubernetes
+      experience. The app serves 10K users concurrently. Design the migration approach and
+      target architecture.
+    constraints:
+      - "Zero downtime during migration"
+      - "Team of 6 engineers, 2 of whom are learning Kubernetes"
+      - "App currently runs on 3 VMs behind a load balancer"
+      - "Sessions are stored in-memory — users get logged out on restart"
+    discussion:
+      - "**Fix the session problem first, before Kubernetes**: in-memory sessions are incompatible with multiple pods and rolling restarts. Migrate sessions to Redis (Spring Session + Redis) before containerizing. This is a prerequisite for horizontal scaling and zero-downtime deploys — not a Kubernetes concern."
+      - "**Startup probe for the 30-second JVM warmup**: `startupProbe` with `failureThreshold: 15` and `periodSeconds: 5` gives 75 seconds before liveness kicks in. Without this, liveness kills the pod during JVM warmup on every start."
+      - "**Resource sizing for JVM**: set `requests.memory` = 2.5 GB (heap + metaspace + off-heap overhead). Set `limits.memory` = 3 GB. Set `-Xmx` to 2 GB explicitly — if JVM autodetects the limit, it may use 75% of the container limit, conflicting with off-heap memory. Set `GOMAXPROCS` equivalent for JVM: `-XX:ActiveProcessorCount` if limiting CPU."
+      - "**GOMAXPROCS / JVM container awareness**: Spring Boot on JDK 17+ detects cgroup CPU limits correctly. Verify with `-XX:+PrintFlagsFinal` that `ActiveProcessorCount` matches your `limits.cpu` (in cores, not millicores). A JVM on a 2-CPU limit that thinks it has 64 CPUs creates too many threads."
+      - "**Rolling deployment strategy**: `maxSurge: 1, maxUnavailable: 0` for zero-downtime. This creates a new pod before removing an old one. With 30-second startup, the rolling update is slower — budget for it in deployment pipelines."
+      - "**Incremental migration path**: run the monolith on Kubernetes alongside the VMs. Use a weighted load balancer (10% to K8s, 90% to VMs) initially. Monitor error rates and latency. Shift traffic gradually. Decommission VMs only after weeks of stable K8s operation. This gives the team time to learn while maintaining a rollback path."
+      - "**Observability before go-live**: JVM metrics (JMX exporter → Prometheus), GC pause duration, heap usage, thread counts. The Spring Boot Actuator `/actuator/prometheus` endpoint provides most of what's needed. A spike in GC pause time is often the first signal of a misconfigured heap."
+    red_flags:
+      - "Containerizing before fixing in-memory sessions — every pod restart or rolling update logs out all users"
+      - "Setting JVM heap (`-Xmx`) equal to the container memory limit — OOMKilled before the app can respond to a single request"
+      - "No startup probe — liveness kills the pod during JVM warmup, causing a crash-loop before the app is ever healthy"
+      - "Running a single replica — no HA and rolling updates cause downtime"
+      - "Migrating all traffic immediately — no gradual cutover means a production incident is your first learning experience with Kubernetes"
