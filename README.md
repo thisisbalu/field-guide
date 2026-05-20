@@ -4,17 +4,6 @@ A self-contained study hub for software engineers targeting Senior, Staff, and P
 
 **Live:** [balasubramanyamlanka.com/projects/field-guide](https://www.balasubramanyamlanka.com/projects/field-guide)
 
-## Topics
-
-| Topic | Category |
-|---|---|
-| Apache Kafka | Backend |
-| Go (Golang) | Backend |
-| PostgreSQL | Data |
-| HashiCorp Vault | Security |
-| OAuth 2.0 | Security |
-| OpenShift Container Platform | Infrastructure |
-
 ## Running locally
 
 ```bash
