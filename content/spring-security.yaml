@@ -1,0 +1,979 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Spring Security — Interview Field Guide Content
+# Edit this file to update the guide. Run: python generate.py spring-security
+# ══════════════════════════════════════════════════════════════════════════════
+
+meta:
+  id: spring-security
+  title: Spring Security
+  title_short: Spring Security
+  subtitle: "// filter chain · authentication · authorization · OAuth2 resource server · JWT · method security · senior → principal"
+  category: Security
+  icon: "🛡️"
+
+colors:
+  toggle_light: "#4338ca"
+  toggle_dark:  "#818cf8"
+  light_vars: >-
+    --accent:#4338ca;--accent2:#0077aa;--accent3:#be185d;
+    --highlight-bg:#eef2ff;--highlight-text:#4338ca;--highlight-border:#6366f1;
+    --your-exp-bg:rgba(190,24,93,.06);--your-exp-border:rgba(190,24,93,.2);--your-exp-text:#be185d;
+    --acc-hover:rgba(67,56,202,.04);--acc-open-border:#4338ca;--acc-open-bg:rgba(67,56,202,.04);
+    --num-color:#4338ca;--num-bg:rgba(67,56,202,.1);
+    --tag-color:#3730a3;--tag-bg:rgba(67,56,202,.08);--tag-border:rgba(67,56,202,.2);
+    --flow-arrow:#4338ca;--h1-from:#312e81;--h1-to:#4338ca;
+    --badge-color:#312e81;--stat-num:#312e81;
+    --tab-active-color:#4338ca;--tab-active-bg:rgba(67,56,202,.08);--tab-active-border:#4338ca;
+    --section-title:#4338ca;--concept-title:#312e81;
+    --cheat-head-bg:#312e81;--cheat-head-text:#ffffff;--cheat-key:#312e81;
+    --cmd-bg:#eef2ff;--cmd-text:#312e81;
+  dark_vars: >-
+    --accent:#818cf8;--accent2:#00d4ff;--accent3:#f472b6;
+    --highlight-bg:#0d0f2a;--highlight-text:#818cf8;--highlight-border:#818cf8;
+    --your-exp-bg:rgba(244,114,182,.08);--your-exp-border:rgba(244,114,182,.25);--your-exp-text:#f9a8d4;
+    --acc-hover:rgba(129,140,248,.04);--acc-open-border:#818cf8;--acc-open-bg:rgba(129,140,248,.03);
+    --num-color:#818cf8;--num-bg:rgba(129,140,248,.08);
+    --tag-color:#818cf8;--tag-bg:rgba(129,140,248,.08);--tag-border:rgba(129,140,248,.2);
+    --flow-arrow:#818cf8;--h1-from:#a5b4fc;--h1-to:#818cf8;
+    --badge-color:#818cf8;--stat-num:#818cf8;
+    --tab-active-color:#818cf8;--tab-active-bg:rgba(129,140,248,.08);--tab-active-border:#818cf8;
+    --section-title:#818cf8;--concept-title:#818cf8;
+    --cheat-head-bg:#0d0f2a;--cheat-head-text:#818cf8;--cheat-key:#818cf8;
+    --cmd-bg:#0d0f2a;--cmd-text:#818cf8;
+
+# ── OVERVIEW ──────────────────────────────────────────────────────────────────
+overview:
+  concepts:
+    - title: "🔗 The Security Filter Chain"
+      body: >
+        Spring Security is implemented as a **servlet filter chain**. The entry point is
+        `DelegatingFilterProxy` (a standard servlet filter registered with the servlet container),
+        which delegates to `FilterChainProxy`. `FilterChainProxy` holds one or more
+        `SecurityFilterChain` beans — each with a request matcher and an ordered list of security
+        filters.
+
+        On every request: the chain is traversed. Each filter handles one concern
+        (CSRF, session management, authentication, authorization). The final filter,
+        `FilterSecurityInterceptor` (or `AuthorizationFilter` in modern config), enforces the
+        access rules configured in `HttpSecurity`.
+
+        You configure the chain via `SecurityFilterChain` bean:
+        ```java
+        @Bean
+        public SecurityFilterChain api(HttpSecurity http) throws Exception {
+          return http
+            .authorizeHttpRequests(a -> a
+              .requestMatchers("/public/**").permitAll()
+              .anyRequest().authenticated())
+            .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()))
+            .build();
+        }
+        ```
+      flows:
+        - ["HTTP Request", "DelegatingFilterProxy", "FilterChainProxy", "SecurityFilterChain (matched)", "Filters 1..N", "Controller"]
+      tags:
+        - {text: "filter chain = ordered pipeline", color: green}
+        - {text: "SecurityFilterChain = your config", color: orange}
+        - {text: "FilterChainProxy = orchestrator", color: purple}
+
+    - title: "🔐 Authentication Architecture"
+      body: >
+        When a request carries credentials, an authentication filter (e.g.,
+        `UsernamePasswordAuthenticationFilter`, `BearerTokenAuthenticationFilter`) extracts them
+        and calls `AuthenticationManager.authenticate(Authentication token)`.
+
+        `ProviderManager` (the default `AuthenticationManager`) delegates to a list of
+        `AuthenticationProvider` implementations until one succeeds or all fail.
+
+        - `DaoAuthenticationProvider` + `UserDetailsService`: loads the user by username,
+          verifies the password with `PasswordEncoder`, returns a populated `Authentication`.
+        - `JwtAuthenticationProvider`: validates a JWT signature and expiry, maps claims to
+          `GrantedAuthority` objects.
+
+        On success, the populated `Authentication` object is stored in `SecurityContextHolder`.
+      flows:
+        - ["Request", "Auth Filter", "AuthenticationManager", "AuthenticationProvider", "UserDetailsService / JWT validator", "Authentication stored in SecurityContext"]
+      tags:
+        - {text: "ProviderManager chains providers", color: green}
+        - {text: "UserDetailsService = load by username", color: orange}
+
+    - title: "🗂️ SecurityContext & SecurityContextHolder"
+      body: >
+        `SecurityContextHolder` is the central store for the current principal. By default it uses
+        a `ThreadLocal`, so the context is available anywhere in the same thread without explicit
+        passing.
+
+        The lifecycle per request:
+        1. `SecurityContextPersistenceFilter` (or `SecurityContextHolderFilter`) loads the context
+           from the session (or starts a new empty one for stateless APIs).
+        2. Authentication filters populate it on successful authentication.
+        3. The context is available throughout the request thread.
+        4. After the response is sent, the filter clears the `ThreadLocal` to prevent leaks
+           across thread pool reuse.
+
+        Access the principal: `SecurityContextHolder.getContext().getAuthentication()`.
+        In Spring MVC controllers: `@AuthenticationPrincipal` injects the current user directly.
+      tags:
+        - {text: "ThreadLocal = per-request", color: green}
+        - {text: "@AuthenticationPrincipal in controllers", color: orange}
+        - {text: "cleared after each request", color: purple}
+
+    - title: "🔒 Password Encoding"
+      body: >
+        Spring Security enforces password hashing through the `PasswordEncoder` interface.
+        The standard implementation is `BCryptPasswordEncoder` — bcrypt is adaptive (the work
+        factor can be increased as hardware gets faster) and includes a random salt per hash,
+        so two users with the same password produce different hashes.
+
+        **Never store plaintext passwords.** Never use MD5 or SHA-1 (unsalted, fast — trivially
+        cracked by rainbow tables or GPU brute force).
+
+        The `DelegatingPasswordEncoder` (returned by `PasswordEncoderFactories.createDelegatingPasswordEncoder()`)
+        prefixes hashes with the algorithm ID (`{bcrypt}`, `{argon2}`, etc.), enabling
+        hash migration without invalidating existing passwords — add the new encoder, old hashes
+        continue to work, users re-hash on next login.
+      tags:
+        - {text: "BCrypt = adaptive, salted", color: green}
+        - {text: "DelegatingPasswordEncoder = algorithm migration", color: orange}
+        - {text: "never MD5/SHA-1", color: red}
+
+    - title: "🚦 Authorization: HTTP and Method Security"
+      body: >
+        **HTTP-level authorization**: configured in `SecurityFilterChain` via
+        `authorizeHttpRequests()`. Rules are evaluated in order — first match wins.
+
+        ```java
+        .authorizeHttpRequests(a -> a
+          .requestMatchers("/admin/**").hasRole("ADMIN")
+          .requestMatchers(HttpMethod.GET, "/api/**").hasAuthority("read:data")
+          .anyRequest().authenticated())
+        ```
+
+        **Method-level authorization**: enabled with `@EnableMethodSecurity`. Annotations on
+        service methods:
+        - `@PreAuthorize("hasRole('ADMIN')")` — checked before the method runs (Spring SpEL).
+        - `@PostAuthorize("returnObject.owner == authentication.name")` — checked after, on the return value.
+        - `@PreFilter` / `@PostFilter` — filter collections before/after method execution.
+
+        Method security also uses AOP proxies — self-calls bypass the proxy and skip the check.
+      tags:
+        - {text: "@PreAuthorize = most flexible", color: green}
+        - {text: "first match wins in HTTP rules", color: orange}
+        - {text: "method security = AOP proxy", color: purple}
+
+    - title: "🌐 OAuth2 Resource Server (JWT)"
+      body: >
+        A Resource Server validates Bearer tokens on incoming requests. Add
+        `spring-boot-starter-oauth2-resource-server` and configure:
+
+        ```yaml
+        spring:
+          security:
+            oauth2:
+              resourceserver:
+                jwt:
+                  issuer-uri: https://auth.example.com
+        ```
+
+        Spring Security auto-configures `BearerTokenAuthenticationFilter` which extracts the
+        `Authorization: Bearer <token>` header, validates the JWT signature against the JWKS
+        endpoint (fetched from `issuer-uri/.well-known/openid-configuration`), verifies expiry
+        and issuer, and populates `SecurityContext` with a `JwtAuthenticationToken`.
+
+        **Custom claims → authorities**: implement `JwtAuthenticationConverter` to map
+        JWT claims (e.g., `roles`, `scope`) to `GrantedAuthority` objects.
+      flows:
+        - ["Request + Bearer token", "BearerTokenAuthenticationFilter", "JwtDecoder (validate sig + expiry)", "JwtAuthenticationConverter (claims → authorities)", "SecurityContext populated"]
+      tags:
+        - {text: "issuer-uri = JWKS auto-discovery", color: green}
+        - {text: "JwtAuthenticationConverter = custom claims", color: orange}
+
+    - title: "🛡️ CSRF, CORS & Session Management"
+      body: >
+        **CSRF**: Cross-Site Request Forgery protection is enabled by default. It requires a
+        CSRF token on state-changing requests (POST, PUT, DELETE). For **stateless JWT APIs**,
+        disable it — CSRF attacks require a browser session cookie, which JWTs don't use:
+        `http.csrf(csrf -> csrf.disable())`.
+
+        **CORS**: browsers block cross-origin requests unless the server sends correct
+        `Access-Control-Allow-*` headers. Configure in Spring Security (not just `@CrossOrigin`)
+        so CORS pre-flight (OPTIONS) requests are handled **before** the security filter chain
+        rejects them as unauthenticated: `http.cors(Customizer.withDefaults())` + a
+        `CorsConfigurationSource` bean.
+
+        **Session management**: for stateless APIs, use
+        `http.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))`.
+        This prevents Spring Security from creating or using HTTP sessions — every request
+        must carry its own token.
+      tags:
+        - {text: "CSRF — disable for stateless JWT APIs", color: orange}
+        - {text: "CORS before auth filter", color: green}
+        - {text: "STATELESS = no server-side session", color: purple}
+
+  gotchas:
+    - title: "CORS pre-flight fails with 401 before reaching your CORS config"
+      body: >
+        Browser CORS pre-flight sends an OPTIONS request with no credentials. If Spring Security's
+        authentication filter runs before CORS headers are applied, the OPTIONS request is
+        rejected with 401 — the browser never sees the CORS headers and blocks the real request.
+        Fix: configure CORS via `http.cors(Customizer.withDefaults())` in `HttpSecurity`, not
+        just via `@CrossOrigin` on controllers. Spring Security's CORS filter runs before
+        authentication filters when configured this way.
+
+    - title: "hasRole('ADMIN') vs hasAuthority('ROLE_ADMIN') — the ROLE_ prefix"
+      body: >
+        `hasRole("ADMIN")` automatically prepends `ROLE_` and checks for authority `ROLE_ADMIN`.
+        `hasAuthority("ROLE_ADMIN")` checks the exact string. Both work if your authorities follow
+        the `ROLE_` convention. If you control the authority strings (e.g., OAuth2 scopes like
+        `read:orders`), use `hasAuthority("read:orders")` — `hasRole` would check for `ROLE_read:orders`.
+        Mixing the two on the same app creates confusing bugs where access is denied despite the
+        authority appearing in the token.
+
+    - title: "SecurityContext is not propagated to @Async threads"
+      body: >
+        `SecurityContextHolder` uses a `ThreadLocal` by default. When `@Async` dispatches to
+        another thread, the security context is **not copied** — the async thread sees an empty
+        context. Any code calling `SecurityContextHolder.getContext().getAuthentication()` in
+        an async method returns null. Fix: configure `DelegatingSecurityContextAsyncTaskExecutor`
+        as the `@Async` executor, or set strategy to `MODE_INHERITABLETHREADLOCAL`.
+        Same issue applies to `CompletableFuture.supplyAsync()` — always propagate explicitly.
+
+    - title: "@PreAuthorize on self-calls is silently bypassed"
+      body: >
+        Method security uses AOP proxies — the same proxy mechanism as `@Transactional`.
+        Calling a `@PreAuthorize`-annotated method from within the same bean bypasses the
+        proxy and skips the authorization check. This is a silent security hole — no exception,
+        no log, the method runs as if the annotation wasn't there. Fix: move the annotated
+        method to a separate Spring bean so the call goes through the proxy.
+
+    - title: "permitAll() does not short-circuit the filter chain"
+      body: >
+        `permitAll()` means the access decision allows unauthenticated requests — it does not
+        skip authentication filters. If your JWT filter throws an exception for a malformed or
+        expired token, that exception propagates even for `permitAll()` paths. A public endpoint
+        that receives an invalid JWT still returns 401. Fix: configure your JWT filter to
+        **ignore** missing or malformed tokens on public paths (don't throw, just don't set
+        the context), or check `Authentication` in the filter and only reject actually invalid
+        tokens that are present.
+
+    - title: "JWT JWKS key rotation causes 401 until the cache refreshes"
+      body: >
+        Spring Security's `NimbusJwtDecoder` caches the JWKS (public keys) from the
+        `issuer-uri`. When the authorization server rotates keys, the cached key set is stale
+        — new tokens signed with the new key fail validation with 401. The decoder refreshes
+        the cache periodically (default: when a key ID in the token doesn't match any cached
+        key, it triggers a fetch). Configure `jwkSetUri` directly and set
+        `NimbusJwtDecoder.withJwkSetUri(uri).cache(...)` to tune the cache policy if your
+        authorization server rotates keys frequently.
+
+  when_to_use:
+    - "Any Spring Boot application that needs authentication and authorization"
+    - "REST APIs that validate OAuth2/JWT Bearer tokens (resource server pattern)"
+    - "Method-level security with @PreAuthorize for fine-grained access control on service methods"
+    - "Applications requiring form-based login, LDAP, or SAML authentication"
+    - "When you need a security framework deeply integrated with the Spring context (bean-level visibility, SpEL expressions, test support)"
+
+  when_not_to_use:
+    - "Non-JVM stacks — use language-native security libraries or API gateway auth"
+    - "When authentication is fully handled by an API gateway (Kong, AWS ALB, Envoy) that strips tokens before reaching the service — adding Spring Security adds complexity with no benefit"
+    - "Very simple internal services where a shared API key header is sufficient and team-managed in infrastructure"
+
+# ── DEEP DIVE ─────────────────────────────────────────────────────────────────
+deep_dive:
+  tables:
+    - title: "🔗 Security Filter Chain — Key Filters in Order"
+      full_width: true
+      rows:
+        - {key: "SecurityContextHolderFilter", value: "Loads SecurityContext from the repository (session or no-op for stateless). Clears it after the response is sent."}
+        - {key: "CorsFilter", value: "Handles CORS pre-flight (OPTIONS) and adds Access-Control-* headers. Must run before authentication filters to allow unauthenticated OPTIONS."}
+        - {key: "CsrfFilter", value: "Validates the CSRF token on state-changing requests (POST/PUT/DELETE). Disabled for stateless JWT APIs."}
+        - {key: "LogoutFilter", value: "Handles logout requests. Clears SecurityContext, invalidates session, triggers LogoutHandler chain."}
+        - {key: "UsernamePasswordAuthenticationFilter", value: "For form-based login. Extracts username/password, calls AuthenticationManager, stores Authentication on success."}
+        - {key: "BearerTokenAuthenticationFilter", value: "For OAuth2 Resource Server. Extracts Bearer token from Authorization header, validates JWT, populates SecurityContext."}
+        - {key: "BasicAuthenticationFilter", value: "For HTTP Basic auth. Extracts Base64-encoded credentials, calls AuthenticationManager."}
+        - {key: "AnonymousAuthenticationFilter", value: "If no Authentication has been set by earlier filters, sets an AnonymousAuthenticationToken. Ensures SecurityContext is never null."}
+        - {key: "ExceptionTranslationFilter", value: "Catches AuthenticationException (→ 401) and AccessDeniedException (→ 403) and converts them to HTTP error responses."}
+        - {key: "AuthorizationFilter", value: "Final access decision. Evaluates the authorizeHttpRequests() rules against the current Authentication and request."}
+
+    - title: "🏷️ Security Annotation Reference"
+      full_width: true
+      rows:
+        - {key: "@EnableMethodSecurity", value: "Required on a @Configuration class to activate @PreAuthorize, @PostAuthorize, @PreFilter, @PostFilter. Replaces @EnableGlobalMethodSecurity (deprecated in Spring Security 5.6)."}
+        - {key: "@PreAuthorize(\"expr\")", value: "Evaluates SpEL before method execution. Access authentication, method arguments, beans. Most flexible annotation. Fails with AccessDeniedException."}
+        - {key: "@PostAuthorize(\"returnObject...\")", value: "Evaluates SpEL after method execution against the return value. Use for ownership checks: @PostAuthorize(\"returnObject.ownerId == authentication.name\")."}
+        - {key: "@PreFilter(\"filterObject...\")", value: "Filters a collection argument before the method runs. Removes elements the caller is not allowed to access."}
+        - {key: "@PostFilter(\"filterObject...\")", value: "Filters the returned collection. Caller only sees elements they have access to."}
+        - {key: "@Secured({\"ROLE_ADMIN\"})", value: "Simple role check. Less flexible than @PreAuthorize — no SpEL. Use @PreAuthorize unless you need @Secured for backward compatibility."}
+        - {key: "@AuthenticationPrincipal", value: "In MVC controller method parameters: injects the current principal (UserDetails, Jwt, or custom type) directly. Avoids SecurityContextHolder.getContext() boilerplate."}
+
+    - title: "⚙️ HttpSecurity Configuration Reference"
+      full_width: true
+      rows:
+        - {key: "authorizeHttpRequests()", value: "Define URL-based access rules. First matching rule wins. Use requestMatchers(pattern) not antMatchers (deprecated in Boot 3)."}
+        - {key: "csrf(csrf -> csrf.disable())", value: "Disable CSRF protection. Required for stateless JWT REST APIs. Never disable for session-based form apps."}
+        - {key: "cors(Customizer.withDefaults())", value: "Enable CORS handling via a CorsConfigurationSource bean. CORS filter runs before auth filters — handles pre-flight OPTIONS correctly."}
+        - {key: "sessionManagement(s -> s.sessionCreationPolicy(STATELESS))", value: "Prevent Spring Security from creating or using HTTP sessions. Each request must be independently authenticated."}
+        - {key: "oauth2ResourceServer(o -> o.jwt(...))", value: "Configure JWT Bearer token validation. Auto-discovers JWKS from issuer-uri. Customize with JwtAuthenticationConverter for claims-to-authorities mapping."}
+        - {key: "formLogin(Customizer.withDefaults())", value: "Enable form-based login. Not for REST APIs. Configures UsernamePasswordAuthenticationFilter."}
+        - {key: "httpBasic(Customizer.withDefaults())", value: "Enable HTTP Basic auth. Appropriate for service-to-service or test environments. Not for production user-facing APIs."}
+        - {key: "exceptionHandling(e -> e.authenticationEntryPoint(...))", value: "Customize the 401 response for unauthenticated requests. Default sends WWW-Authenticate header. For REST APIs, return JSON."}
+        - {key: "addFilterBefore(filter, Class)", value: "Insert a custom filter before a specific filter in the chain. Use for custom token extraction or pre-processing."}
+
+  comparison:
+    title: "⚖️ Spring Security vs Custom JWT Filter vs API Gateway Auth vs Keycloak"
+    headers: ["Dimension", "Spring Security", "Custom JWT Filter", "API Gateway (Kong / AWS ALB)", "Keycloak / Auth0"]
+    rows:
+      - ["Who validates tokens", "Application (per-service, Spring Security filter)", "Application (per-service, custom code)", "Gateway (once, before routing)", "External auth server (authorization server role only)"]
+      - ["Granularity", "Method-level (@PreAuthorize), URL-level, Spring context-aware", "URL-level or method-level via custom code", "URL-level, route-level only; no method security", "Manages users/roles; Spring Security or gateway enforces them"]
+      - ["Spring integration", "Deep — works with @AuthenticationPrincipal, SpEL, test support", "Manual — no framework integration, manual context population", "None — strips auth before service sees it", "Spring Security acts as the OAuth2 client/resource server consuming Keycloak tokens"]
+      - ["Ops burden", "Low — library, no infra", "Low — library, but you own all logic", "High — gateway cluster to operate and scale", "High — Keycloak cluster to run, update, backup"]
+      - ["Test support", "First-class — @WithMockUser, @WithUserDetails, SecurityMockMvcRequestPostProcessors", "Manual — inject mock context", "Hard to test security rules without a running gateway", "Testcontainers Keycloak for integration tests"]
+      - ["Multi-service consistency", "Per-service config — can diverge", "Per-service code — can diverge", "Centralized — consistent across all routed services", "Centralized at auth server; each service still needs its own enforcement"]
+      - ["Best for", "Spring Boot services needing fine-grained, context-aware access control", "Simple services with minimal auth needs and no desire for framework magic", "Enforcing network-level policies (rate limiting, auth) before traffic reaches services", "User management, SSO, federated identity; paired with Spring Security for enforcement"]
+
+# ── Q & A ─────────────────────────────────────────────────────────────────────
+qa:
+  senior:
+    - id: S-01
+      question: "How does the Spring Security filter chain process a request? Walk through from HTTP request to controller."
+      answer: >
+        Every HTTP request passes through `DelegatingFilterProxy` (a standard servlet filter),
+        which delegates to `FilterChainProxy`. `FilterChainProxy` matches the request against
+        configured `SecurityFilterChain` beans (by URL pattern or other matchers) and passes
+        the request through that chain's ordered filters.
+
+        For a JWT-secured API, the key filters in order:
+        1. `SecurityContextHolderFilter` — loads or creates an empty `SecurityContext`.
+        2. `CorsFilter` — adds `Access-Control-*` headers (handles OPTIONS pre-flight).
+        3. `CsrfFilter` — validates CSRF token (disabled for stateless APIs).
+        4. `BearerTokenAuthenticationFilter` — extracts `Authorization: Bearer <token>`,
+           calls `AuthenticationManager`, which calls `JwtAuthenticationProvider`, which
+           validates the JWT and populates `SecurityContext`.
+        5. `AnonymousAuthenticationFilter` — sets an anonymous token if still unauthenticated.
+        6. `ExceptionTranslationFilter` — catches `AuthenticationException` (→ 401) and
+           `AccessDeniedException` (→ 403).
+        7. `AuthorizationFilter` — evaluates `authorizeHttpRequests()` rules against the
+           current `Authentication`. If denied, throws `AccessDeniedException`.
+
+        If all filters pass, the request reaches the `DispatcherServlet` and your controller.
+      staff_add: >
+        The filter chain is ordered by integer priority. When you add a custom filter, its position
+        in the chain relative to the authentication and authorization filters determines what
+        context it can access. A filter before `BearerTokenAuthenticationFilter` sees no
+        authentication. A filter after `AuthorizationFilter` only runs on authorized requests.
+        Multiple `SecurityFilterChain` beans can match different URL patterns with different
+        configurations — e.g., one chain for `/api/**` (stateless JWT) and another for `/admin/**`
+        (form login with sessions). `FilterChainProxy` uses the first matching chain per request.
+
+    - id: S-02
+      question: "How do you configure Spring Security as an OAuth2 Resource Server to validate JWT tokens?"
+      answer: >
+        Add `spring-boot-starter-oauth2-resource-server`. Configure the issuer:
+
+        ```yaml
+        spring:
+          security:
+            oauth2:
+              resourceserver:
+                jwt:
+                  issuer-uri: https://auth.example.com
+        ```
+
+        Spring Security auto-discovers the JWKS endpoint from `issuer-uri/.well-known/openid-configuration`,
+        configures a `NimbusJwtDecoder`, and wires `BearerTokenAuthenticationFilter`.
+
+        `SecurityFilterChain` configuration:
+        ```java
+        @Bean
+        public SecurityFilterChain api(HttpSecurity http) throws Exception {
+          return http
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(a -> a
+              .requestMatchers("/public/**").permitAll()
+              .anyRequest().authenticated())
+            .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()))
+            .build();
+        }
+        ```
+
+        To map JWT claims to authorities (e.g., a `roles` claim):
+        ```java
+        @Bean
+        public JwtAuthenticationConverter jwtAuthConverter() {
+          JwtGrantedAuthoritiesConverter conv = new JwtGrantedAuthoritiesConverter();
+          conv.setAuthoritiesClaimName("roles");
+          conv.setAuthorityPrefix("ROLE_");
+          JwtAuthenticationConverter jac = new JwtAuthenticationConverter();
+          jac.setJwtGrantedAuthoritiesConverter(conv);
+          return jac;
+        }
+        ```
+      staff_add: >
+        The `issuer-uri` auto-discovery approach is clean for production but requires network access
+        at startup. For environments where the auth server isn't reachable during service startup
+        (cold environments, CI), configure `jwk-set-uri` directly:
+        `spring.security.oauth2.resourceserver.jwt.jwk-set-uri: https://auth.example.com/.well-known/jwks.json`.
+        This skips the discovery call.
+
+        For multi-issuer setups (tokens from multiple auth servers), implement a custom
+        `AuthenticationManagerResolver<HttpServletRequest>` that selects the appropriate
+        `JwtDecoder` based on the token's `iss` claim or a request header.
+
+    - id: S-03
+      question: "What is CSRF, when should you disable it, and what is the correct CORS configuration for a REST API?"
+      answer: >
+        **CSRF (Cross-Site Request Forgery)**: a browser automatically includes cookies with
+        cross-origin requests. An attacker on `evil.com` can make a user's browser send a
+        POST to `bank.com` — if `bank.com` uses session cookies for auth, the request is
+        authenticated. The CSRF token (a random value in a form field or header, not a cookie)
+        prevents this — the attacker can't read the CSRF token from a different origin.
+
+        **When to disable**: for stateless APIs using JWT Bearer tokens in `Authorization` headers.
+        Bearer tokens are not automatically sent by browsers — the attacker can't forge an
+        authenticated request. Disable: `http.csrf(csrf -> csrf.disable())`.
+
+        **Never disable** for session-based apps that use cookies for authentication.
+
+        **CORS**: configure via `http.cors(Customizer.withDefaults())` + a `CorsConfigurationSource`
+        bean. This ensures the `CorsFilter` runs **before** authentication filters, so OPTIONS
+        pre-flight requests (which carry no credentials) are handled correctly:
+
+        ```java
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+          CorsConfiguration config = new CorsConfiguration();
+          config.setAllowedOrigins(List.of("https://app.example.com"));
+          config.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
+          config.setAllowedHeaders(List.of("Authorization","Content-Type"));
+          config.setAllowCredentials(true);
+          UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+          source.registerCorsConfiguration("/**", config);
+          return source;
+        }
+        ```
+      staff_add: >
+        CORS is a browser security feature — it does not protect server-to-server communication.
+        A permissive CORS configuration (`allowedOrigins("*")`) doesn't expose you to CSRF
+        because CSRF requires a browser. But it does allow any browser-based JavaScript on any
+        site to make authenticated requests to your API — which is a different risk if your
+        API uses cookies. For JWT Bearer APIs with no cookies, `allowedOrigins("*")` is
+        acceptable for truly public APIs. For anything that should only be called from your
+        own frontend, restrict to your domain explicitly.
+
+    - id: S-04
+      question: "How does @PreAuthorize work, and what are its limitations?"
+      answer: >
+        `@PreAuthorize` is a method security annotation that evaluates a Spring Expression
+        Language (SpEL) expression before the method runs. If the expression returns false,
+        `AccessDeniedException` is thrown (→ 403).
+
+        Enable with `@EnableMethodSecurity` on a `@Configuration` class.
+
+        Available in the SpEL context:
+        - `authentication` — the current `Authentication` object
+        - `principal` — `authentication.getPrincipal()`
+        - `hasRole('ADMIN')` — checks for `ROLE_ADMIN` authority
+        - `hasAuthority('read:orders')` — checks exact authority string
+        - `#variableName` — references method parameter by name
+
+        ```java
+        @PreAuthorize("hasRole('ADMIN') or #userId == authentication.name")
+        public UserProfile getProfile(String userId) { ... }
+        ```
+
+        **Limitations**:
+        - Works via AOP proxy — self-calls within the same bean bypass the check silently.
+        - Requires Spring context — testing the method directly without Spring bypasses security.
+        - SpEL evaluation adds overhead on every call — for hot paths, consider HTTP-level rules.
+      staff_add: >
+        `@PostAuthorize` is underused but valuable for ownership checks where you can't determine
+        access without loading the resource:
+
+        ```java
+        @PostAuthorize("returnObject.ownerId == authentication.name")
+        public Order getOrder(Long orderId) { ... }
+        ```
+
+        The method loads the order from DB, then the expression checks if the current user owns
+        it — avoids a separate ownership query. The cost: the DB query runs even if access is
+        denied. For high-frequency endpoints, pre-check ownership with a specialized query in
+        the service layer instead. `@PostFilter` filters returned collections — but loading 10,000
+        records to filter down to 10 is wasteful; use `@PreAuthorize` with a query that
+        incorporates the ownership clause.
+
+    - id: S-05
+      question: "How do you test Spring Security configurations? What tools does Spring provide?"
+      answer: >
+        **`@WebMvcTest` with security enabled** (default): the security filter chain runs
+        during MockMvc tests. Without credentials, secured endpoints return 401/403.
+
+        **`@WithMockUser`**: creates a mock authenticated user with specified roles:
+        ```java
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        void adminEndpointReturns200() throws Exception {
+          mockMvc.perform(get("/admin/dashboard"))
+            .andExpect(status().isOk());
+        }
+        ```
+
+        **`@WithUserDetails("username")`**: loads an actual `UserDetails` from
+        `UserDetailsService` — tests with real user data.
+
+        **`SecurityMockMvcRequestPostProcessors`**: for JWT resource servers where
+        `@WithMockUser` doesn't work (no session):
+        ```java
+        mockMvc.perform(get("/api/orders")
+          .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))
+                     .jwt(j -> j.claim("sub", "user123"))))
+          .andExpect(status().isOk());
+        ```
+      staff_add: >
+        Test the security configuration itself, not just the happy path. For each secured
+        endpoint, write: (1) authenticated with correct role → 200, (2) authenticated with wrong
+        role → 403, (3) unauthenticated → 401. This is a security regression test that catches
+        accidentally permissive changes. Use a parameterized test for coverage without
+        boilerplate. For `@PreAuthorize` method security, the same principle applies — test
+        that the check fires, not just that the method works when authorized.
+
+    - id: S-06
+      question: "How do you implement a stateless JWT-based API with Spring Security? Walk through the full configuration."
+      answer: >
+        Full configuration for a stateless JWT resource server:
+
+        ```java
+        @Configuration
+        @EnableMethodSecurity
+        public class SecurityConfig {
+
+          @Bean
+          public SecurityFilterChain api(HttpSecurity http) throws Exception {
+            return http
+              .csrf(csrf -> csrf.disable())
+              .cors(Customizer.withDefaults())
+              .sessionManagement(s ->
+                s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+              .authorizeHttpRequests(a -> a
+                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/api/public/**").permitAll()
+                .anyRequest().authenticated())
+              .oauth2ResourceServer(o -> o
+                .jwt(j -> j.jwtAuthenticationConverter(jwtAuthConverter()))
+                .authenticationEntryPoint((req, res, ex) -> {
+                  res.setContentType("application/json");
+                  res.setStatus(401);
+                  res.getWriter().write("{\"error\":\"Unauthorized\"}");
+                }))
+              .build();
+          }
+
+          @Bean
+          public JwtAuthenticationConverter jwtAuthConverter() {
+            JwtGrantedAuthoritiesConverter conv = new JwtGrantedAuthoritiesConverter();
+            conv.setAuthoritiesClaimName("roles");
+            conv.setAuthorityPrefix("ROLE_");
+            JwtAuthenticationConverter jac = new JwtAuthenticationConverter();
+            jac.setJwtGrantedAuthoritiesConverter(conv);
+            return jac;
+          }
+        }
+        ```
+      staff_add: >
+        Two production concerns this configuration doesn't show: **token expiry granularity** and
+        **structured error responses**. The custom `authenticationEntryPoint` above returns a raw
+        JSON string — better to return a proper `ProblemDetail` object serialized via Jackson.
+        For token expiry: `JwtDecoder` rejects expired tokens with a `JwtValidationException`.
+        Distinguish between "token expired" (the client should refresh) and "token invalid"
+        (the client must re-authenticate) in your 401 response body so clients can react
+        differently. Add `error_code: TOKEN_EXPIRED` vs `error_code: INVALID_TOKEN` to the
+        response.
+
+    - id: S-07
+      question: "What is the difference between hasRole and hasAuthority in Spring Security?"
+      answer: >
+        `hasRole("ADMIN")` checks if the current user has an authority named `ROLE_ADMIN`.
+        Spring Security automatically prepends `ROLE_` to the argument.
+
+        `hasAuthority("ROLE_ADMIN")` checks for the exact authority string `ROLE_ADMIN`.
+        No prefix is added.
+
+        Functionally, `hasRole("ADMIN")` == `hasAuthority("ROLE_ADMIN")` when your authorities
+        follow the `ROLE_` convention.
+
+        When to use which:
+        - Use `hasRole("ADMIN")` for role-based access following the `ROLE_` convention.
+        - Use `hasAuthority("read:orders")` for permission-based scopes (e.g., OAuth2 scopes)
+          where the string is not a role and does not start with `ROLE_`.
+
+        Mixing them creates subtle bugs — `hasRole("read:orders")` checks for
+        `ROLE_read:orders`, which never matches a scope authority.
+      staff_add: >
+        At the Staff level, the question is really about your authority model design.
+        Role-based (`ROLE_ADMIN`) vs permission-based (`orders:write`) vs scope-based
+        (`read:orders` from OAuth2) are three different models. Permission-based is more
+        granular but more complex to manage. For a mature authorization model, consider:
+        roles aggregate permissions, permissions map to specific operations. Spring Security's
+        `GrantedAuthority` is just a string — the semantics are entirely yours to define.
+        Make the convention explicit and documented so every service interprets authorities
+        consistently.
+
+    - id: S-08
+      question: "A service returns 401 for all requests after deploying a security config change. How do you diagnose it?"
+      answer: >
+        Work through the filter chain systematically:
+
+        1. **Enable security debug logging**: `logging.level.org.springframework.security=DEBUG`.
+           Security logs show every filter decision, the current `Authentication`, and the
+           access decision for each request.
+
+        2. **Check the access rule order**: `authorizeHttpRequests()` rules match first-fit.
+           A catch-all `anyRequest().authenticated()` before your `permitAll()` rules means
+           everything is secured. Rules must go from most specific to most general.
+
+        3. **Verify JWT decoder config**: if using OAuth2 resource server, confirm the `issuer-uri`
+           or `jwk-set-uri` is reachable from the service. A network issue at startup may
+           have caused the `JwtDecoder` bean to fail silently.
+
+        4. **Check `@EnableMethodSecurity`**: if method security was added, a missing role
+           on an endpoint that used to have none causes 403 (not 401).
+
+        5. **Multiple `SecurityFilterChain` beans**: if you have more than one, verify which
+           chain matches the URL in question. Add a `securityMatcher()` to each to make
+           matching explicit.
+      staff_add: >
+        Security debug logging is verbose but indispensable for diagnosing access issues.
+        In production, keep it off (it logs every request including headers). Use structured
+        logging with a correlation ID that you can filter on: enable `DEBUG` temporarily
+        for a specific session or IP via the `/actuator/loggers` endpoint, reproduce the
+        issue, then restore. Add a security audit log (via `ApplicationEventPublisher` +
+        `AuthenticationSuccessEvent`, `AbstractAuthorizationEvent`) that logs authentication
+        events to your SIEM — this is separate from the debug filter chain output and always on.
+
+    - id: S-09
+      question: "How do you configure CORS correctly in Spring Security for a REST API called by a browser frontend?"
+      answer: >
+        Correct CORS configuration requires two things: a `CorsConfigurationSource` bean and
+        wiring it into Spring Security via `http.cors()`.
+
+        ```java
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+          CorsConfiguration config = new CorsConfiguration();
+          config.setAllowedOrigins(List.of("https://app.example.com"));
+          config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+          config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+          config.setExposedHeaders(List.of("X-Total-Count", "Link"));
+          config.setAllowCredentials(true);
+          config.setMaxAge(3600L);
+          UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+          source.registerCorsConfiguration("/**", config);
+          return source;
+        }
+        ```
+
+        In `SecurityFilterChain`: `http.cors(Customizer.withDefaults())` — picks up the
+        `CorsConfigurationSource` bean automatically.
+
+        Why Spring Security must handle CORS (not just `@CrossOrigin`): OPTIONS pre-flight
+        requests carry no credentials. If the `CsrfFilter` or authentication filter runs first,
+        the OPTIONS request is rejected before the CORS headers are written. `http.cors()`
+        inserts the `CorsFilter` before the auth filters.
+      staff_add: >
+        `allowedOrigins("*")` and `allowCredentials(true)` cannot be combined — browsers reject
+        responses that send both. If you need `allowCredentials(true)` (for session cookies or
+        `Authorization` header via fetch `credentials: 'include'`), you must explicitly list
+        allowed origins. For development, use a profile-specific CORS config that allows
+        `localhost:3000` in `dev` profile only — never merge a wildcard CORS config into production.
+
+  staff:
+    - id: ST-01
+      question: "How do you design a multi-tenant authorization model with Spring Security where tenants have different role hierarchies?"
+      answer: >
+        Multi-tenancy in Spring Security requires making the tenant context part of the
+        authentication and authorization decision.
+
+        **Step 1 — encode tenant in the token**: include `tenant_id` (or similar) as a JWT claim.
+        The `JwtAuthenticationConverter` maps it onto the `Authentication` object:
+
+        ```java
+        jac.setJwtGrantedAuthoritiesConverter(jwt -> {
+          String tenantId = jwt.getClaimAsString("tenant_id");
+          List<GrantedAuthority> authorities = extractRoles(jwt, tenantId);
+          return authorities;
+        });
+        ```
+
+        **Step 2 — tenant-aware `@PreAuthorize`**: inject the tenant from the JWT into SpEL:
+        ```java
+        @PreAuthorize("authentication.token.claims['tenant_id'] == #tenantId and hasRole('ADMIN')")
+        public void adminAction(String tenantId) { ... }
+        ```
+
+        **Step 3 — data isolation**: use a `TenantContextHolder` (populated from the JWT in a filter)
+        that Hibernate's `CurrentTenantIdentifierResolver` reads to apply row-level security or
+        switch database schemas per tenant.
+
+        **Step 4 — role hierarchy per tenant**: `RoleHierarchy` bean defines which roles imply
+        others. For per-tenant hierarchies, resolve the hierarchy dynamically based on the current
+        tenant context.
+      staff_add: >
+        The hardest part of multi-tenant authorization is preventing tenant A from accessing
+        tenant B's data through a path that looks authorized. HTTP-level rules check roles but
+        not data ownership. Method-level `@PreAuthorize` checks must always include tenant
+        context. A missing tenant check is a tenant isolation failure — not just a permissions
+        bug. Consider a custom `AccessDeniedHandler` that logs cross-tenant access attempts
+        explicitly as a security event to your SIEM. Test tenant isolation explicitly: create
+        two tenants with the same role, confirm tenant A cannot access tenant B's resources
+        even with a valid token.
+
+    - id: ST-02
+      question: "How does Spring Security handle SecurityContext propagation in reactive (WebFlux) and async contexts?"
+      answer: >
+        **Spring MVC + @Async**: `SecurityContextHolder` uses `ThreadLocal` by default. Async
+        threads don't inherit it. Fix: configure `DelegatingSecurityContextAsyncTaskExecutor`:
+
+        ```java
+        @Bean
+        public Executor taskExecutor() {
+          return new DelegatingSecurityContextAsyncTaskExecutor(
+            new ThreadPoolTaskExecutor() {{ initialize(); }});
+        }
+        ```
+
+        **Spring WebFlux**: `ThreadLocal` doesn't work in reactive pipelines (each operator
+        may run on a different thread). Spring Security uses **Reactor Context** instead —
+        `ReactiveSecurityContextHolder`. The `SecurityContext` is stored in the subscriber
+        context and flows through the reactive chain automatically.
+
+        Access in WebFlux:
+        ```java
+        ReactiveSecurityContextHolder.getContext()
+          .map(SecurityContext::getAuthentication)
+          .flatMap(auth -> process(auth));
+        ```
+
+        `@PreAuthorize` works in WebFlux via `ReactiveMethodSecurityExpressionHandler` —
+        enabled automatically with `@EnableReactiveMethodSecurity`.
+      staff_add: >
+        The common mistake when migrating from MVC to WebFlux: any code that calls
+        `SecurityContextHolder.getContext()` directly (utility classes, legacy helpers,
+        Hibernate interceptors) fails silently in WebFlux — it returns an empty context.
+        Audit all security context access patterns before migrating. Replace
+        `SecurityContextHolder` calls with `ReactiveSecurityContextHolder` and propagate
+        via the reactive chain. This is a larger refactor than it appears — security context
+        access tends to be scattered through service and utility code.
+
+    - id: ST-03
+      question: "How do you implement rate limiting and brute-force protection in Spring Security?"
+      answer: >
+        Spring Security does not include rate limiting out of the box. Implementation options:
+
+        **Option 1 — Spring Security filter + Bucket4j** (token bucket algorithm):
+        ```java
+        @Component
+        public class RateLimitFilter extends OncePerRequestFilter {
+          private final Bucket4jRateLimiter rateLimiter; // per-IP or per-user buckets
+
+          @Override
+          protected void doFilterInternal(HttpServletRequest req, ...) {
+            String key = extractKey(req); // IP or authenticated userId
+            if (!rateLimiter.tryConsume(key)) {
+              response.setStatus(429);
+              return;
+            }
+            filterChain.doFilter(req, response);
+          }
+        }
+        ```
+        Register: `http.addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)`.
+
+        **Option 2 — Brute-force on login**: override `AuthenticationEventPublisher` to
+        listen for `AuthenticationFailureBadCredentialsEvent`. Track failures per username/IP
+        in Redis. After N failures in a window, lock the account
+        (`UserDetails.isAccountNonLocked()`) or add a delay.
+
+        **Option 3 — API gateway**: implement rate limiting in Kong, AWS WAF, or Envoy before
+        traffic reaches the service. Preferred for rate limits that apply across multiple services.
+      staff_add: >
+        Brute-force protection has a subtle failure mode: locking accounts on authentication failure
+        enables a denial-of-service attack. An attacker can lock any user's account by failing
+        their login N times intentionally. Mitigate: add an exponential backoff delay per
+        username rather than full lockout; rate limit the login endpoint by IP (attacker's
+        IP); alert on lockout events. For APIs, prefer per-client-token or per-IP rate limiting
+        over per-account — the attack surface is different from user-facing login forms.
+
+    - id: ST-04
+      question: "A legacy Spring Boot service uses form login with sessions. You need to migrate it to OAuth2/JWT without downtime. How do you design the migration?"
+      answer: >
+        Migration goal: support both session-based (old) and JWT (new) clients simultaneously
+        during the transition, then cut over.
+
+        **Phase 1 — dual auth chains**:
+        Configure two `SecurityFilterChain` beans. Chain 1 matches `/api/v2/**` (new clients,
+        stateless JWT). Chain 2 matches everything else (existing clients, form login + sessions).
+        Both chains coexist. New clients use JWT; old clients continue using sessions.
+
+        **Phase 2 — issue JWT alongside sessions** (optional transition aid):
+        After successful form login, generate a JWT and return it in the response body.
+        Clients can start storing and using it.
+
+        **Phase 3 — migrate clients**:
+        Update each client (frontend, mobile, service) to use JWT Bearer tokens. Monitor
+        session creation rate in Actuator metrics — when it drops to zero, all clients have migrated.
+
+        **Phase 4 — remove session chain**:
+        Remove Chain 2. Disable session creation globally. Clean up `HttpSession` infrastructure.
+      staff_add: >
+        The risk in dual-chain migration is authorization divergence — the two chains may have
+        different access rules that get out of sync as features are added. Minimize divergence
+        by sharing access rule definitions: extract rules into a shared method called by both
+        chain configurations. Monitor for access rule differences in security tests that run
+        the same request against both chains. Plan the transition timeline in weeks, not months
+        — dual auth chains are temporary infrastructure with a maintenance cost.
+
+  principal:
+    - id: P-01
+      question: "At scale with 50+ microservices, where should authentication and authorization logic live — in each service or centralized?"
+      answer: >
+        **Centralized at the API gateway** (authentication only):
+        The gateway validates the token once (JWT signature, expiry, issuer), strips and
+        re-emits claims in a trusted header (e.g., `X-User-Id`, `X-User-Roles`). Services
+        trust the headers — no JWT validation overhead per service. Clean separation: one
+        place to update token validation logic.
+
+        Risk: services must trust that the gateway enforces authentication. A path that bypasses
+        the gateway reaches services with no auth. Every internal service-to-service call must
+        go through the gateway or a trusted mesh — or re-validate a service account token.
+
+        **Distributed in each service** (authentication + authorization):
+        Each service validates JWT and enforces its own access rules. More resilient — no gateway
+        SPOF for auth. Fine-grained control: method-level `@PreAuthorize` with business logic.
+        Consistent JWT validation via a shared library (internal Spring Security starter).
+
+        **Hybrid (recommended at scale)**: gateway handles rate limiting, mTLS termination, and
+        coarse-grained auth (is the token valid?). Each service enforces fine-grained authorization
+        with Spring Security. Service-to-service calls use short-lived service tokens (OAuth2
+        client credentials) validated by each service independently.
+      staff_add: >
+        The real question is blast radius and complexity tradeoff. A centralized gateway is
+        a shared component — a config bug in auth rules affects all 50 services simultaneously.
+        Distributed validation isolates failures — a misconfigured service affects only that
+        service. At 50+ services, a shared Spring Security starter that encodes the JWT validation
+        configuration and authority mapping is the platform team's responsibility. Services
+        consume the starter without configuring auth mechanics themselves. This gives centralized
+        consistency with distributed execution. The starter version becomes a security artifact
+        that must be bumped when the JWT validation logic changes — treat it with the same
+        rigor as a database schema migration.
+
+    - id: P-02
+      question: "How do you design a zero-trust service-to-service authentication model in a Spring Boot microservices architecture?"
+      answer: >
+        Zero-trust: every service-to-service call is authenticated, regardless of network location.
+        No implicit trust because a call is on the internal network.
+
+        **OAuth2 Client Credentials** (recommended):
+        Each service is registered as an OAuth2 client. To call another service, it requests a
+        token from the authorization server using its client ID and secret (or mTLS certificate).
+        The called service validates the token as a resource server — same mechanism as user tokens.
+
+        Spring Security 6 + Spring WebClient:
+        ```java
+        @Bean
+        public WebClient serviceClient(OAuth2AuthorizedClientManager manager) {
+          ServletOAuth2AuthorizedClientExchangeFilterFunction oauth2 =
+            new ServletOAuth2AuthorizedClientExchangeFilterFunction(manager);
+          oauth2.setDefaultClientRegistrationId("order-service");
+          return WebClient.builder().apply(oauth2.oauth2Configuration()).build();
+        }
+        ```
+
+        **mTLS** (stronger):
+        Each service has a client certificate issued by an internal CA (Vault PKI). The called
+        service validates the client cert. Spring Boot + Tomcat: configure `clientAuth=want` or
+        `need`. Extract the client subject from `X509Certificate` in a custom filter.
+        Combined mTLS + JWT: mTLS proves service identity at the transport layer; JWT carries
+        claims at the application layer.
+      staff_add: >
+        The operational cost of zero-trust service auth is certificate or token lifecycle
+        management. Client credentials secrets rotate on a schedule — coordinate rotation without
+        downtime (dual-secret validity window). mTLS certificates expire — automate renewal via
+        cert-manager + Vault PKI before human intervention is needed. The failure mode that
+        kills zero-trust programs is the secret that couldn't be rotated because the rotation
+        process was manual and the team was mid-sprint — so it stays unchanged for 2 years.
+        Build rotation automation before you mandate zero-trust, not after. The policy is only
+        as strong as the automation that enforces it.
+
+scenarios:
+  - title: "🔐 Scenario 1 — Securing a REST API with JWT and Role-Based Access"
+    problem: >
+      A new Spring Boot REST API serves multiple client types: a web frontend (user-facing,
+      OAuth2 PKCE flow), internal backend services (OAuth2 client credentials), and a
+      mobile app (OAuth2 PKCE on mobile). The authorization server is external (e.g., Auth0).
+      The API has endpoints that require different roles: public read, authenticated read,
+      user write, and admin-only operations.
+    constraints:
+      - "No sessions — all clients use Bearer tokens"
+      - "Roles come from the JWT's 'roles' claim as a list of strings"
+      - "Public health endpoints must be accessible without a token"
+      - "Invalid tokens must return JSON 401, not HTML or a redirect to login"
+    discussion:
+      - "**Resource server configuration**: `issuer-uri` points to Auth0. Spring Security auto-discovers JWKS. `SessionCreationPolicy.STATELESS` and `csrf.disable()` for all routes."
+      - "**Custom authority mapping**: `JwtGrantedAuthoritiesConverter` reads the `roles` claim, prefixes each with `ROLE_`. A `roles: [\"admin\", \"user\"]` claim becomes `ROLE_ADMIN`, `ROLE_USER` as `GrantedAuthority` objects."
+      - "**URL-level rules**: `/actuator/health` and `/api/v1/public/**` → `permitAll()`. `anyRequest()` → `authenticated()`. Specific admin routes protected via `@PreAuthorize(\"hasRole('ADMIN')\")` on service methods."
+      - "**Custom error responses**: implement `AuthenticationEntryPoint` returning `ProblemDetail` JSON for 401. Implement `AccessDeniedHandler` returning `ProblemDetail` JSON for 403. Neither should redirect — clients are not browsers expecting a login page."
+      - "**CORS**: `http.cors(Customizer.withDefaults())` + `CorsConfigurationSource` bean allowing `https://app.example.com`. `allowCredentials(false)` since auth is via Bearer header, not cookies."
+      - "**Service-to-service**: internal services send `Authorization: Bearer <client_credentials_token>`. The same resource server validates them. Service tokens carry a `service` role, not `user` or `admin`."
+    red_flags:
+      - "Using `antMatchers` in Spring Boot 3 — deprecated, replaced by `requestMatchers`"
+      - "`authorizeHttpRequests` rules in wrong order — `anyRequest().authenticated()` before `permitAll()` rules means permitAll() is never reached"
+      - "Disabling CSRF without `SessionCreationPolicy.STATELESS` — sessions + no CSRF = CSRF vulnerability"
+      - "CORS configured only via @CrossOrigin on controllers — OPTIONS pre-flight is rejected as unauthenticated before reaching the controller"
+      - "401 response body is Spring Security's default HTML error page — clients (especially mobile) can't parse it"
+
+  - title: "🔍 Scenario 2 — Production Security Audit: Service Returns 200 for Unauthorized Requests"
+    problem: >
+      A security review finds that a Spring Boot service's admin endpoints are returning 200
+      to requests without any Authorization header in a staging environment. The service
+      was recently upgraded from Spring Boot 2 to Spring Boot 3. In production (different
+      environment), the same endpoints correctly return 401.
+    constraints:
+      - "The staging environment uses a different application-staging.yml profile"
+      - "No change to the SecurityFilterChain @Bean was made during the upgrade"
+      - "The security configuration class was moved to a new package during a refactoring"
+    discussion:
+      - "**Root cause — package move broke @ComponentScan**: moving the `SecurityConfig` class to a new package outside the base `@SpringBootApplication` package means `@ComponentScan` no longer finds it. The `SecurityFilterChain` bean is never registered. Spring Security's default configuration applies — which in Spring Boot 3 is `httpBasic + formLogin + all endpoints secured`... but without the custom bean, the `oauth2ResourceServer` configuration is gone."
+      - "**Why staging differs from production**: the `application-staging.yml` may disable security (`spring.security.enabled=false` or a custom flag) for integration testing convenience. Production does not have this flag."
+      - "**Verify with /actuator/beans**: check if `SecurityFilterChain` bean appears in the context. If not, the config class isn't loaded."
+      - "**Fix 1 — move the class back or extend @ComponentScan**: `@SpringBootApplication(scanBasePackages = {\"com.example.app\", \"com.example.security\"})`."
+      - "**Fix 2 — add a security integration test to CI**: `@WebMvcTest + mockMvc.perform(get(\"/admin/dashboard\")).andExpect(status().isUnauthorized())`. This test must run in CI against the staging profile — it would have caught this."
+      - "**Fix 3 — remove `spring.security.enabled=false` from staging**: security should be enabled in all environments. Use a test user with limited permissions instead of disabling security."
+    red_flags:
+      - "`spring.security.enabled=false` in any non-local environment — a misconfigured flag disabling security in staging is one env-var away from production"
+      - "No security regression tests in CI — access control changes must be tested, not assumed"
+      - "Testing only the happy path (authorized requests return 200) without testing the rejection path (unauthorized returns 401)"
+      - "Relying on 'security works in production' without automated verification — manual spot-checks miss regressions"
+
+  - title: "🔄 Scenario 3 — Migrating from Session-Based Auth to OAuth2 JWT Without Downtime"
+    problem: >
+      A Spring Boot service with 50,000 daily active users uses form login with HTTP sessions
+      stored in Redis. A platform initiative mandates all services migrate to OAuth2/JWT within
+      6 months. The frontend (React SPA) will migrate to PKCE. Mobile apps have a 6-month
+      forced upgrade cycle — old versions will keep using sessions until they're gone.
+    constraints:
+      - "Zero downtime — active user sessions must not be invalidated during migration"
+      - "Old mobile app versions (session-based) and new versions (JWT) must coexist for 6 months"
+      - "New web frontend deploys first, then mobile follows over 6 months"
+    discussion:
+      - "**Dual SecurityFilterChain strategy**: Chain 1 — `securityMatcher(\"/api/v2/**\")` → stateless JWT resource server for new clients. Chain 2 — matches everything else → form login + session. Both chains coexist for 6 months."
+      - "**Frontend migration (week 1)**: update React SPA to use PKCE flow with the OAuth2 authorization server. Calls move to `/api/v2/**`. Sessions are no longer created for web traffic."
+      - "**Mobile migration (months 1–6)**: old app versions continue using session-based `/api/v1/**`. New app versions use JWT + `/api/v2/**`. Monitor session creation rate in Actuator metrics — `http.sessions.active` declining indicates migration progress."
+      - "**Shared access rules**: extract `authorizeHttpRequests()` rules into a shared lambda method called by both chains. This prevents rules diverging over the 6-month period as features are added."
+      - "**Session drain**: after all mobile versions are sunset (6 months), session creation rate drops to zero. At this point, remove Chain 2, disable `spring-session-data-redis`, and remove Redis session storage."
+      - "**Rollback plan**: Chain 2 can be re-enabled without a code change (feature flag → Spring profile). Keep Chain 2 code in the codebase for 2 months after sunset before deleting."
+    red_flags:
+      - "Migrating all clients at once — mobile apps cannot be force-updated; there's always a tail of old versions"
+      - "Different access rules in Chain 1 vs Chain 2 — a feature added to one and not the other creates an inconsistency that persists for 6 months"
+      - "Invalidating existing Redis sessions on cutover — users are logged out mid-session"
+      - "No monitoring of session creation rate — no signal to know when migration is complete and Chain 2 can be removed"
+      - "Removing Chain 2 before all old mobile versions are sunset — old app users lose access with no recourse"

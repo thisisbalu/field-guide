@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spring Boot — Field Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#5a9e2f;--accent2:#0077aa;--accent3:#5b21b6; --highlight-bg:#f2fae9;--highlight-text:#5a9e2f;--highlight-border:#6DB33F; --your-exp-bg:rgba(91,33,182,.06);--your-exp-border:rgba(91,33,182,.2);--your-exp-text:#5b21b6; --acc-hover:rgba(90,158,47,.04);--acc-open-border:#5a9e2f;--acc-open-bg:rgba(90,158,47,.04); --num-color:#5a9e2f;--num-bg:rgba(90,158,47,.12); --tag-color:#3d7020;--tag-bg:rgba(90,158,47,.08);--tag-border:rgba(90,158,47,.2); --flow-arrow:#5a9e2f;--h1-from:#3d7020;--h1-to:#5a9e2f; --badge-color:#3d7020;--stat-num:#3d7020; --tab-active-color:#5a9e2f;--tab-active-bg:rgba(90,158,47,.08);--tab-active-border:#5a9e2f; --section-title:#5a9e2f;--concept-title:#3d7020; --cheat-head-bg:#3d7020;--cheat-head-text:#ffffff;--cheat-key:#3d7020; --cmd-bg:#f2fae9;--cmd-text:#3d7020; }
+  [data-theme="dark"]{ --accent:#86C943;--accent2:#00d4ff;--accent3:#a78bfa; --highlight-bg:#0c1a04;--highlight-text:#86C943;--highlight-border:#86C943; --your-exp-bg:rgba(167,139,250,.08);--your-exp-border:rgba(167,139,250,.25);--your-exp-text:#c4b5fd; --acc-hover:rgba(134,201,67,.04);--acc-open-border:#86C943;--acc-open-bg:rgba(134,201,67,.03); --num-color:#86C943;--num-bg:rgba(134,201,67,.08); --tag-color:#86C943;--tag-bg:rgba(134,201,67,.08);--tag-border:rgba(134,201,67,.2); --flow-arrow:#86C943;--h1-from:#86C943;--h1-to:#00d4ff; --badge-color:#86C943;--stat-num:#86C943; --tab-active-color:#86C943;--tab-active-bg:rgba(134,201,67,.08);--tab-active-border:#86C943; --section-title:#86C943;--concept-title:#86C943; --cheat-head-bg:#0c1a04;--cheat-head-text:#86C943;--cheat-key:#86C943; --cmd-bg:#0c1a04;--cmd-text:#86C943; }
+  [data-theme="light"] .toggle-knob{background:#5a9e2f;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#86C943;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Stats row ───────────────────────────────────────────────────────────── */
+.stats{display:flex;gap:.75rem;margin-bottom:2rem;flex-wrap:wrap;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.65rem 1rem;text-align:center;flex:1;min-width:90px;}
+.stat-num{font-size:1.6rem;font-weight:800;color:var(--stat-num);font-family:'IBM Plex Mono',monospace;line-height:1;}
+.stat-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:'IBM Plex Mono',monospace;margin-top:.25rem;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .4s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{max-height:3000px;padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+}
+
+</style>
+</head>
+<body>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>Spring Boot</h1>
+  <p class="subtitle">// auto-configuration · starters · actuator · JPA · embedded server · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
+  <div class="tab" onclick="switchTab('deepdive',this)">Deep Dive</div>
+  <div class="tab" onclick="switchTab('qa',this)">Q &amp; A</div>
+  <div class="tab" onclick="switchTab('scenarios',this)">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">⚡ Auto-configuration</div>
+      <div class="concept-body">
+        The core of Spring Boot's opinionation. <code>@SpringBootApplication</code> combines <code>@Configuration + @EnableAutoConfiguration + @ComponentScan</code>. On startup, <code>@EnableAutoConfiguration</code> triggers <code>AutoConfigurationImportSelector</code>, which reads <code>META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code> from every jar on the classpath. Each candidate configuration is evaluated against its <code>@Conditional*</code> annotations:
+- <code>@ConditionalOnClass(DataSource.class)</code> — only applies if a JPA jar is on the classpath - <code>@ConditionalOnMissingBean(DataSource.class)</code> — backs off if you defined your own bean - <code>@ConditionalOnProperty("spring.datasource.url")</code> — only applies if the property is set
+Adding <code>spring-boot-starter-data-jpa</code> to your pom automatically creates a DataSource, EntityManagerFactory, and TransactionManager — unless you override them. Debug with <code>--debug</code> flag or <code>/actuator/conditions</code> endpoint.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">@SpringBootApplication</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">@EnableAutoConfiguration</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Read AutoConfiguration candidates</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Evaluate @Conditional*</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Create matching beans</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">@ConditionalOnMissingBean = override</span>
+          
+          <span class="tag orange">@ConditionalOnClass</span>
+          
+          <span class="tag purple">--debug = conditions report</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📦 Starters</div>
+      <div class="concept-body">
+        Starters are <strong>dependency aggregators</strong> — they pull in classpath dependencies but add no beans themselves. Beans come from auto-configuration triggered by the new classpath.
+Common starters and what they bring: - <code>spring-boot-starter-web</code> → Spring MVC + embedded Tomcat + Jackson - <code>spring-boot-starter-data-jpa</code> → Hibernate + Spring Data + HikariCP - <code>spring-boot-starter-security</code> → Spring Security filter chain - <code>spring-boot-starter-actuator</code> → Actuator endpoints + Micrometer - <code>spring-boot-starter-test</code> → JUnit 5 + Mockito + AssertJ + MockMvc
+To swap an embedded server (Tomcat → Undertow): exclude <code>spring-boot-starter-tomcat</code> from <code>spring-boot-starter-web</code> and add <code>spring-boot-starter-undertow</code>.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">starters = dependencies only</span>
+          
+          <span class="tag orange">auto-config creates the beans</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🖥️ Embedded Server & Thread Model</div>
+      <div class="concept-body">
+        Spring Boot embeds Tomcat (default), Jetty, or Undertow in the fat JAR. No external application server. <code>java -jar app.jar</code> starts a production-capable HTTP server.
+<strong>Thread-per-request (Spring MVC / servlet)</strong>: each request occupies one thread from a bounded pool (<code>server.tomcat.threads.max</code>, default 200). Blocking I/O — DB queries, HTTP calls — holds the thread for its full duration. Throughput ceiling: <code>thread_count / mean_response_time_seconds</code>.
+<strong>Event-loop (Spring WebFlux / Netty)</strong>: a small number of threads (≈ CPU count) handle thousands of concurrent connections via non-blocking I/O. Higher concurrency under I/O-heavy workloads. Requires the reactive programming model end-to-end — a single blocking call in the pipeline blocks an event-loop thread.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">MVC = thread-per-request</span>
+          
+          <span class="tag green">WebFlux = event-loop</span>
+          
+          <span class="tag purple">default 200 threads</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📊 Spring Boot Actuator</div>
+      <div class="concept-body">
+        Actuator adds production-readiness endpoints with no code:
+- <code>/actuator/health</code> — UP/DOWN status + component health (DB, Kafka, disk).
+  Maps to Kubernetes liveness/readiness probes.
+- <code>/actuator/metrics</code> — Micrometer metrics. Add <code>micrometer-registry-prometheus</code>
+  for a Prometheus-compatible <code>/actuator/prometheus</code> scrape endpoint.
+- <code>/actuator/loggers</code> — view and change log levels at runtime without restart. - <code>/actuator/env</code> — all active properties and sources (values sanitized by default). - <code>/actuator/threaddump</code> — full JVM thread dump for diagnosing deadlocks and saturation.
+Default: only <code>/health</code> and <code>/info</code> exposed. Expose others explicitly: <code>management.endpoints.web.exposure.include=health,metrics,loggers</code> and protect them with Spring Security.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">/health for K8s probes</span>
+          
+          <span class="tag orange">/loggers = runtime log level</span>
+          
+          <span class="tag red">protect non-health endpoints</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">⚙️ Properties, Profiles & Configuration</div>
+      <div class="concept-body">
+        <strong>Property source precedence</strong> (highest wins): 1. Command-line args (<code>--server.port=9090</code>) 2. Environment variables (<code>SPRING_DATASOURCE_URL</code>) 3. <code>application-{profile}.yml</code> 4. <code>application.yml</code>
+<strong>Profiles</strong> (<code>spring.profiles.active=prod</code>): activate profile-specific config files and <code>@Profile("prod")</code>-gated beans.
+<strong><code>@ConfigurationProperties("prefix")</code></strong> binds an entire config prefix to a typed POJO — type-safe, IDE-completable, JSR-303 validated with <code>@Validated</code>. Prefer it over <code>@Value</code> for any structured config block with two or more related properties.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">CLI args</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Env vars</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">application-{profile}.yml</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">application.yml</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">defaults</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">env vars beat yml</span>
+          
+          <span class="tag green">@ConfigurationProperties = type-safe</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🗃️ Spring Data JPA</div>
+      <div class="concept-body">
+        Spring Data eliminates boilerplate DAO code via <strong>repository interfaces</strong>. Extend <code>JpaRepository&lt;Entity, ID&gt;</code> to get CRUD, paging, and sorting for free.
+<strong>Query derivation</strong>: method names derive queries automatically — <code>findByEmailAndStatus(String email, Status s)</code> generates the JPQL at startup.
+<strong><code>@Query</code></strong>: explicit JPQL or native SQL for complex queries.
+<strong>Fetch strategies</strong>: <code>FetchType.LAZY</code> (default for collections) defers loading until the field is accessed. Accessing a lazy association after the transaction closes throws <code>LazyInitializationException</code>. Fix with <code>@EntityGraph</code>, <code>JOIN FETCH</code>, or DTOs via projections.
+<strong>N+1 problem</strong>: loading 100 orders then calling <code>order.getItems()</code> on each triggers 100 additional queries. Enable <code>logging.level.org.hibernate.SQL=DEBUG</code> in development to catch this early.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">LAZY = load on access</span>
+          
+          <span class="tag green">@EntityGraph = explicit fetch</span>
+          
+          <span class="tag red">N+1 = silent performance killer</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🌐 Spring MVC REST</div>
+      <div class="concept-body">
+        <code>@RestController</code> = <code>@Controller</code> + <code>@ResponseBody</code>. Spring MVC maps requests to methods via <code>@GetMapping</code>, <code>@PostMapping</code>, etc.
+<strong>Input validation</strong>: annotate DTOs with Bean Validation constraints (<code>@NotNull</code>, <code>@Size</code>, <code>@Email</code>) and add <code>@Valid</code> on the <code>@RequestBody</code> parameter. Spring throws <code>MethodArgumentNotValidException</code> on failure.
+<strong>Global error handling</strong>: <code>@ControllerAdvice</code> + <code>@ExceptionHandler</code> centralizes exception-to-response mapping across all controllers. Use <code>ProblemDetail</code> (RFC 7807, native in Spring Boot 3) for a standards-compliant error format.
+<strong><code>ResponseEntity&lt;T&gt;</code></strong>: full control over status code, headers, and body — use when the HTTP response must vary (201 with Location header, 204 No Content).
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">@Valid for input validation</span>
+          
+          <span class="tag orange">@ControllerAdvice = global handler</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🧪 Testing Spring Boot</div>
+      <div class="concept-body">
+        <p>Spring Boot provides <strong>test slices</strong> — lightweight contexts that load only one layer, making tests faster and more focused.
+- <strong><code>@SpringBootTest</code></strong>: full application context. Use for integration tests that span
+  multiple layers. Add <code>webEnvironment=RANDOM_PORT</code> for a real HTTP server. Slow.
+- <strong><code>@WebMvcTest(Controller.class)</code></strong>: web layer only — controllers, filters, security.
+  Inject <code>MockMvc</code>. Mock service dependencies with <code>@MockBean</code>.
+- <strong><code>@DataJpaTest</code></strong>: JPA infrastructure + H2 (default). Tests repository queries in
+  isolation. Rolls back after each test.
+- <strong><code>@MockBean</code></strong>: replaces a Spring bean with a Mockito mock in the context. Unlike
+  <code>@Mock</code>, it integrates with Spring DI — other beans get the mock autowired.</p>
+<p><strong>Testcontainers</strong> + <code>@DataJpaTest</code> with a real Postgres image catches database-specific behavior that H2 silently ignores (window functions, constraints, custom types).</p>
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">@WebMvcTest = controller layer</span>
+          
+          <span class="tag orange">@DataJpaTest = JPA layer</span>
+          
+          <span class="tag purple">Testcontainers for real DB</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">@Transactional on self-calls is silently ignored</span>
+      Spring's <code>@Transactional</code> works via AOP proxy. When method <code>A</code> in the same class calls <code>@Transactional</code> method <code>B</code>, the call goes directly to <code>this</code>, bypassing the proxy — no transaction is created or joined. This is the most common Spring gotcha. Fix: inject <code>self</code> via <code>@Autowired</code>, move <code>B</code> to another Spring bean, or use AspectJ weaving (load-time or compile-time) which instruments <code>this</code> calls directly.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">LazyInitializationException — JPA relations accessed outside a transaction</span>
+      <code>@OneToMany(fetch = LAZY)</code> proxies load from the DB only when accessed. Accessing them after the <code>@Transactional</code> method returns (in a controller, in <code>toString()</code>, or during Jackson serialization) throws <code>LazyInitializationException</code>. Fix: use DTOs/projections, <code>@EntityGraph</code>, or <code>JOIN FETCH</code>. Avoid <code>spring.jpa.open-in-view=true</code> (the "Open Session In View" anti-pattern) — it masks the root cause and causes silent N+1 queries.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">@Async does not propagate the SecurityContext</span>
+      <code>SecurityContextHolder</code> uses a <code>ThreadLocal</code> by default. When <code>@Async</code> dispatches work to another thread, the security context is not copied — the async thread sees an empty <code>SecurityContextHolder</code>. Any code calling <code>SecurityContextHolder.getContext()</code> in an async method (e.g., to get the current user for auditing) gets null. Fix: configure <code>DelegatingSecurityContextAsyncTaskExecutor</code> as the <code>@Async</code> executor, or set the holder strategy to <code>MODE_INHERITABLETHREADLOCAL</code>.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Auto-configuration conflicts produce cryptic startup failures</span>
+      Two auto-configurations producing the same bean type, or your bean conflicting with an auto-configured one, causes <code>NoSuchBeanDefinitionException</code> or duplicate bean errors. Run with <code>--debug</code> to see the <strong>Conditions Evaluation Report</strong>: which configurations matched, which were excluded, and why. The fix is usually: add <code>@ConditionalOnMissingBean</code> to your bean definition, or explicitly exclude an auto-configuration class via <code>@SpringBootApplication(exclude = ...)</code>.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Spring Boot 2 → Boot 3: javax → jakarta namespace break</span>
+      Spring Boot 3 (Spring Framework 6) moved to Jakarta EE 9+, renaming <code>javax.*</code> packages to <code>jakarta.*</code>. Any import of <code>javax.persistence.*</code>, <code>javax.servlet.*</code>, or <code>javax.validation.*</code> fails to compile. Transitive dependencies on pre-Jakarta libraries also break. Run OpenRewrite's <code>UpgradeSpringBoot_3_0</code> recipe to automate most renames. Verify each transitive dependency (Hibernate 6+, Flyway 9+, MapStruct 1.5+) supports Jakarta EE before upgrading.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Lazy initialization hides startup failures</span>
+      <code>spring.main.lazy-initialization=true</code> defers bean creation to first use, reducing startup time by 5–15s. The cost: a misconfigured datasource, missing property, or broken bean definition only surfaces on the first request that touches it — not at startup. In production, this means a deployment can succeed and the pod can become "Ready" while harboring a fatal configuration error. Use lazy init only if startup time is a hard requirement, and compensate with a smoke test that exercises every major flow on deploy.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use Spring Boot When</div>
+      <ul>
+        
+        <li>Building Java/Kotlin microservices where Spring ecosystem (JPA, Security, Kafka, Redis) is needed</li>
+        
+        <li>Teams with existing Spring expertise — Boot reduces boilerplate without changing idioms</li>
+        
+        <li>When production-readiness (Actuator, Micrometer, health checks, structured logging) is needed out of the box</li>
+        
+        <li>CRUD-heavy services with relational data — Spring Data JPA is unmatched for productivity</li>
+        
+        <li>When a rich testing ecosystem (@WebMvcTest, @DataJpaTest, Testcontainers) matters</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use Spring Boot When</div>
+      <ul>
+        
+        <li>Cold-start latency or sub-100ms startup is required (serverless, scale-to-zero) — prefer Quarkus or Micronaut</li>
+        
+        <li>Memory is heavily constrained — Spring Boot JVM overhead starts at 200–400 MB baseline</li>
+        
+        <li>Non-JVM teams — the framework's value is tied to the Java/Kotlin ecosystem</li>
+        
+        <li>Simple scripts or CLIs where a 3–15s JVM startup is not justified</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">🏷️ Core Annotation Reference</div>
+      <table>
+        
+        <tr><td>@SpringBootApplication</td><td>Entry point. Combines @Configuration + @EnableAutoConfiguration + @ComponentScan(basePackage of annotated class).</td></tr>
+        
+        <tr><td>@RestController</td><td>@Controller + @ResponseBody. All return values serialized to the HTTP response body (JSON by default via Jackson).</td></tr>
+        
+        <tr><td>@Service / @Repository</td><td>@Component specializations. @Repository additionally translates JPA/JDBC exceptions to Spring's DataAccessException hierarchy.</td></tr>
+        
+        <tr><td>@Autowired</td><td>Dependency injection. Prefer constructor injection — Spring injects implicitly if there is only one constructor. Avoid field injection (untestable without Spring context).</td></tr>
+        
+        <tr><td>@ConfigurationProperties("prefix")</td><td>Binds a config prefix to a typed POJO. Type-safe, IDE-completable, validated with @Validated. Preferred over @Value for structured config.</td></tr>
+        
+        <tr><td>@Value("${prop}")</td><td>Inject a single property. Supports SpEL and defaults: @Value("${timeout:5000}"). Use only for one-off single properties.</td></tr>
+        
+        <tr><td>@Transactional</td><td>Proxy-based AOP transaction. propagation controls join/create/suspend; isolation controls concurrency. readOnly=true hints optimizer. Self-calls bypass proxy.</td></tr>
+        
+        <tr><td>@Query</td><td>Explicit JPQL or SQL on a Spring Data repository method. nativeQuery=true for raw SQL. Overrides derived query name parsing.</td></tr>
+        
+        <tr><td>@EntityGraph(attributePaths)</td><td>Declares which LAZY associations to eagerly fetch for a specific repository method. Prevents N+1 without changing the entity mapping.</td></tr>
+        
+        <tr><td>@ControllerAdvice + @ExceptionHandler</td><td>@ControllerAdvice applies globally to all controllers. @ExceptionHandler maps an exception type to an HTTP response. Most-specific handler wins.</td></tr>
+        
+        <tr><td>@Valid / @Validated</td><td>@Valid triggers Bean Validation on @RequestBody or method parameters. Failure throws MethodArgumentNotValidException (400).</td></tr>
+        
+        <tr><td>@Async</td><td>Run a method on a separate executor thread pool. Requires @EnableAsync on a @Configuration class. Return void or Future/CompletableFuture.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">📊 Actuator Endpoints Reference</div>
+      <table>
+        
+        <tr><td>/actuator/health</td><td>Liveness + readiness. K8s probe paths: /actuator/health/liveness and /actuator/health/readiness. Component health (DB, Kafka, disk) shown when management.endpoint.health.show-details=always.</td></tr>
+        
+        <tr><td>/actuator/metrics</td><td>Micrometer metrics as JSON. Add micrometer-registry-prometheus for /actuator/prometheus scrape endpoint. Query: /actuator/metrics/http.server.requests?tag=status:500</td></tr>
+        
+        <tr><td>/actuator/loggers</td><td>GET: current log levels. POST {configuredLevel:'DEBUG'}: change log level at runtime — invaluable for debugging production without restart.</td></tr>
+        
+        <tr><td>/actuator/threaddump</td><td>Full JVM thread dump. Diagnose deadlocks and thread pool saturation without a connected profiler.</td></tr>
+        
+        <tr><td>/actuator/env</td><td>All active properties, sources, and precedence order. Sensitive values masked. Restrict to internal network — exposes config secrets otherwise.</td></tr>
+        
+        <tr><td>/actuator/conditions</td><td>Conditions evaluation report at runtime — same output as --debug flag. Shows which auto-configurations applied and why others were skipped.</td></tr>
+        
+        <tr><td>/actuator/mappings</td><td>All @RequestMapping routes registered. Useful for verifying route configuration and discovering endpoints.</td></tr>
+        
+        <tr><td>/actuator/heapdump</td><td>Downloads a .hprof heap dump. Large response; restrict access tightly. Use only for diagnosing memory leaks.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">🔌 HikariCP Connection Pool Key Settings</div>
+      <table>
+        
+        <tr><td>maximum-pool-size</td><td>Default 10. Max connections per pool. Set based on DB max_connections ÷ number of instances. More is not better — over-provisioning starves other services.</td></tr>
+        
+        <tr><td>minimum-idle</td><td>Default = maximumPoolSize (pool never shrinks). Lower for bursty workloads to release idle connections.</td></tr>
+        
+        <tr><td>connection-timeout</td><td>Default 30000ms. Time to wait for a connection from pool before throwing. Lower to 5000ms to fail fast under saturation.</td></tr>
+        
+        <tr><td>max-lifetime</td><td>Default 1800000ms (30 min). Replace connections before DB/firewall kills them. Set below DB wait_timeout.</td></tr>
+        
+        <tr><td>keepalive-time</td><td>Default 0 (disabled). Periodic test query on idle connections to prevent silent firewall drops. Enable if connections go stale mid-flight.</td></tr>
+        
+        <tr><td>spring.datasource.hikari.*</td><td>All HikariCP settings via Boot properties: spring.datasource.hikari.maximum-pool-size=20, spring.datasource.hikari.connection-timeout=5000</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">💻 CLI Commands</div>
+      <div class="cmd-block">
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Build & Run</div>
+          
+          <span class="cmd">./mvnw spring-boot:run                                   # run via Maven wrapper</span>
+          
+          <span class="cmd">./mvnw spring-boot:run -Dspring-boot.run.profiles=dev    # with profile</span>
+          
+          <span class="cmd">./gradlew bootRun                                        # run via Gradle</span>
+          
+          <span class="cmd">./mvnw package && java -jar target/app.jar               # build fat JAR and run</span>
+          
+          <span class="cmd">java -jar app.jar --server.port=9090 --spring.profiles.active=prod</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Build & Test</div>
+          
+          <span class="cmd">./mvnw test                                              # all tests</span>
+          
+          <span class="cmd">./mvnw test -Dtest=OrderServiceTest                      # one test class</span>
+          
+          <span class="cmd">./mvnw verify                                            # tests + integration tests</span>
+          
+          <span class="cmd">./mvnw spring-boot:build-image                           # OCI image (no Dockerfile)</span>
+          
+          <span class="cmd">./mvnw -Pnative package                                  # GraalVM native binary</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Debug Auto-configuration</div>
+          
+          <span class="cmd">java -jar app.jar --debug                                # print Conditions Evaluation Report</span>
+          
+          <span class="cmd">curl localhost:8080/actuator/conditions                  # conditions at runtime</span>
+          
+          <span class="cmd">curl localhost:8080/actuator/beans                       # all beans in context</span>
+          
+          <span class="cmd">curl localhost:8080/actuator/mappings                    # all registered routes</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Runtime Management</div>
+          
+          <span class="cmd">curl localhost:8080/actuator/health</span>
+          
+          <span class="cmd">curl localhost:8080/actuator/metrics/tomcat.threads.busy</span>
+          
+          <span class="cmd">curl localhost:8080/actuator/metrics/hikaricp.connections.pending</span>
+          
+          <span class="cmd">curl -X POST localhost:8080/actuator/loggers/com.example -H 'Content-Type: application/json' -d '{"configuredLevel":"DEBUG"}'</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">⚖️ Spring Boot vs Quarkus vs Micronaut vs Vert.x</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+            <th>Dimension</th>
+            
+            <th>Spring Boot</th>
+            
+            <th>Quarkus</th>
+            
+            <th>Micronaut</th>
+            
+            <th>Vert.x</th>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Startup (JVM)</td>
+            
+            <td>3–15s (runtime context loading)</td>
+            
+            <td>0.5–2s (build-time processing)</td>
+            
+            <td>0.5–2s (build-time processing)</td>
+            
+            <td><200ms (minimal framework overhead)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Startup (native)</td>
+            
+            <td>~100ms (GraalVM, experimental)</td>
+            
+            <td>~10–50ms (first-class native)</td>
+            
+            <td>~50ms (first-class native)</td>
+            
+            <td>N/A</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Memory footprint</td>
+            
+            <td>200–400 MB baseline</td>
+            
+            <td>50–200 MB</td>
+            
+            <td>50–200 MB</td>
+            
+            <td><50 MB</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Ecosystem</td>
+            
+            <td>Largest — MVC, Data, Security, Batch, Cloud, Integration</td>
+            
+            <td>~500 extensions</td>
+            
+            <td>Growing — Data, Security, Functions</td>
+            
+            <td>Focused on reactive I/O</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>AOP model</td>
+            
+            <td>Runtime CGLIB/JDK proxy — self-call bypass gotcha</td>
+            
+            <td>Build-time bytecode — no self-call issue</td>
+            
+            <td>Build-time AOP — no self-call issue</td>
+            
+            <td>No AOP — explicit composition</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>GraalVM native</td>
+            
+            <td>Supported but complex — reflection hints required</td>
+            
+            <td>First-class, best-in-class</td>
+            
+            <td>First-class</td>
+            
+            <td>Limited</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best for</td>
+            
+            <td>Existing Java shops, rich ecosystem, complex enterprise features</td>
+            
+            <td>Kubernetes-native, serverless, teams wanting Spring DX with fast startup</td>
+            
+            <td>Fast startup, AWS Lambda, teams avoiding runtime reflection</td>
+            
+            <td>High-concurrency reactive services, polyglot teams</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">How does Spring Boot auto-configuration work? Walk through from @SpringBootApplication to a bean being created.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><code>@SpringBootApplication</code> composes <code>@Configuration</code>, <code>@EnableAutoConfiguration</code>, and <code>@ComponentScan</code>. On startup:
+1. <code>@ComponentScan</code> registers beans from the annotated class's package and sub-packages.
+2. <code>@EnableAutoConfiguration</code> loads <code>AutoConfigurationImportSelector</code>, which reads
+   <code>META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code>
+   from every jar on the classpath — every candidate auto-configuration class name.</p>
+<ol>
+<li>Each candidate is evaluated against its <code>@Conditional*</code> annotations. For example,
+   <code>DataSourceAutoConfiguration</code>:</li>
+<li><code>@ConditionalOnClass(DataSource.class)</code> — skipped if no JPA jar present</li>
+<li>
+<p><code>@ConditionalOnMissingBean(DataSource.class)</code> — backed off if you defined your own</p>
+</li>
+<li>
+<p>Matching configurations create beans. Since your own <code>@Bean</code> methods run first,
+   <code>@ConditionalOnMissingBean</code> detects them and the auto-configuration backs off.</p>
+</li>
+</ol>
+<p>Result: <code>spring-boot-starter-data-jpa</code> in pom.xml automatically wires DataSource, EntityManagerFactory, and TransactionManager without any XML or <code>@Bean</code> methods.</p></div>
+        
+        <div class="staff-add">The Conditions Evaluation Report (<code>--debug</code> or <code>/actuator/conditions</code>) is the diagnostic tool. It shows positive matches (applied), negative matches (skipped and why), and unconditional classes. When a bean you expect is missing, the negative matches section tells you exactly which <code>@ConditionalOn*</code> failed.
+When writing a shared library: always guard auto-configuration beans with <code>@ConditionalOnMissingBean</code> so downstream apps can override your defaults. This is the same pattern all Spring Boot starters follow — downstream override without touching the library code.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">How does @Transactional work, and what are its two most common silent failure modes?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Spring wraps <code>@Transactional</code> beans in a CGLIB proxy. External callers go through the proxy, which opens a transaction (or joins/suspends depending on <code>propagation</code>), runs the method, then commits or rolls back.
+<strong>Failure 1 — self-calls</strong>: if method A calls <code>@Transactional</code> method B within the same bean, the call goes via <code>this</code>, bypassing the proxy — no transaction created. Fix: inject <code>self</code> or move B to a separate bean.
+<strong>Failure 2 — wrong exception type</strong>: rollback triggers on <code>RuntimeException</code> (unchecked) by default. Checked exceptions (<code>IOException</code>, <code>SQLException</code>) do NOT roll back. Override: <code>@Transactional(rollbackFor = IOException.class)</code>.
+Other pitfalls: <code>@Transactional</code> on <code>private</code> methods (proxy can't intercept), and on <code>final</code> classes (CGLIB cannot subclass them).</div>
+        
+        <div class="staff-add"><p>Propagation modes matter at the Staff level:
+- <code>REQUIRED</code> (default): join existing or create new. Use for most service methods. - <code>REQUIRES_NEW</code>: always creates a new transaction, suspending the outer one. Use when
+  an operation must commit independently — audit logs that must persist even if the main
+  transaction rolls back.
+- <code>NOT_SUPPORTED</code>: run without any transaction. Use for DDL statements or reads that
+  must bypass the transaction manager.</p>
+<p>Isolation levels: <code>READ_COMMITTED</code> is the PostgreSQL default and correct for most OLTP. Move to <code>REPEATABLE_READ</code> only when you need consistent reads across multiple statements in one transaction. <code>SERIALIZABLE</code> for strong consistency — rare, expensive.</p></div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">What is the difference between @Value and @ConfigurationProperties? When do you use each?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><code>@Value("${some.property}")</code> injects a single property. It supports SpEL and defaults: <code>@Value("${timeout:5000}")</code>. Downsides: scattered injection points, no type safety, no IDE completion for property names, and hard to test without a Spring context.
+<code>@ConfigurationProperties("app.cache")</code> binds an entire prefix to a typed POJO. Benefits: type conversion (<code>timeout=5000</code> → <code>private Duration timeout</code>), JSR-303 validation with <code>@Validated</code>, IDE auto-completion via annotation processor, and constructor binding for immutable config (Spring Boot 2.2+).
+Rule: <code>@Value</code> for a single one-off property. <code>@ConfigurationProperties</code> for any structured configuration block with two or more related properties.</div>
+        
+        <div class="staff-add">Expose <code>@ConfigurationProperties</code> beans through auto-configuration with <code>@ConditionalOnMissingBean</code>. Downstream applications override your library's defaults by defining their own <code>@ConfigurationProperties</code> bean — no fork required. Pair with a <code>spring-configuration-metadata-annotation-processor</code> dependency to generate IDE metadata, so users get auto-completion and documentation in <code>application.yml</code> for your library's config prefix.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">Explain @SpringBootTest, @WebMvcTest, and @DataJpaTest. When do you use each?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong><code>@SpringBootTest</code></strong>: loads the full application context. Use for cross-layer integration tests. Add <code>webEnvironment=RANDOM_PORT</code> to start a real HTTP server. Slowest to start — use sparingly.
+<strong><code>@WebMvcTest(SomeController.class)</code></strong>: loads only the web layer — controllers, filters, <code>@ControllerAdvice</code>, security config. MockMvc sends HTTP without starting a server. Service dependencies need <code>@MockBean</code>. Fast and focused. Use to test request/response mapping, validation, HTTP status codes, and security rules.
+<strong><code>@DataJpaTest</code></strong>: loads only JPA infrastructure + H2 by default. Each test rolls back. Use to test <code>@Query</code> methods and repository behavior.
+<code>@MockBean</code> places a Mockito mock in the Spring context, so it gets autowired into other beans. Different from plain <code>@Mock</code>, which has no Spring context integration.</div>
+        
+        <div class="staff-add">A common anti-pattern: every test uses <code>@SpringBootTest</code>, context starts in 20s, CI takes 15 minutes. Fix: slice-first. <code>@WebMvcTest</code> for controller logic, <code>@DataJpaTest</code> for queries, plain unit tests (no Spring) for business logic. Only use <code>@SpringBootTest</code> when testing cross-layer integration that can't be verified in slices.
+Testcontainers + <code>@DataJpaTest</code> with real Postgres catches database-specific behavior H2 silently ignores: window functions, JSON column types, index usage differences. The cost is a Docker dependency in CI — worth it for data-heavy services.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">How does HikariCP connection pool work in Spring Boot, and which settings matter most?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">HikariCP is Spring Boot's default pool since Boot 2. It maintains a fixed pool of database connections. Key settings via <code>spring.datasource.hikari.*</code>:
+- <code>maximum-pool-size</code> (default 10): max connections. Base on <code>DB max_connections ÷ instance count</code>. - <code>connection-timeout</code> (default 30s): time to wait for a pool connection before throwing.
+  Lower to 5s to fail fast under saturation.
+- <code>max-lifetime</code> (default 30min): replace connections before DB kills them. Set below the
+  database's connection timeout.
+- <code>keepalive-time</code>: periodic test query on idle connections to prevent firewall drops.
+Monitor <code>hikaricp.connections.pending</code> (connections waiting on a pool slot) and <code>hikaricp.connections.active</code> via Actuator metrics. A non-zero <code>pending</code> count means the pool is undersized or queries are slow.</div>
+        
+        <div class="staff-add">Pool sizing: more connections is not better. Each DB connection holds server-side resources. A 200-connection Postgres shared by 10 services = 20 connections max per service. The HikariCP team's guidance: <code>(cpu_cores × 2) + effective_disk_spindles</code> is the right size for most OLTP — typically 10–20, not 100.
+If <code>hikaricp.connections.pending</code> is non-zero, the first fix is query optimization, not a bigger pool. Slow queries hold connections longer. A query that takes 500ms under load instead of 50ms reduces effective pool capacity by 10x.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">How do you build a global exception handler in Spring Boot, and what should it always include?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><code>@ControllerAdvice</code> applies across all controllers. <code>@ExceptionHandler(Type.class)</code> handles specific exceptions and returns a <code>ResponseEntity</code>:
+```java @ControllerAdvice public class GlobalExceptionHandler {</p>
+<p>@ExceptionHandler(ResourceNotFoundException.class)
+  public ResponseEntity<ProblemDetail> handleNotFound(ResourceNotFoundException ex) {
+    ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
+  }</p>
+<p>@ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ProblemDetail> handleValidation(MethodArgumentNotValidException ex) {
+    ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+    pd.setProperty("errors", ex.getBindingResult().getFieldErrors().stream()
+      .map(e -&gt; e.getField() + ": " + e.getDefaultMessage()).toList());
+    return ResponseEntity.badRequest().body(pd);
+  }</p>
+<p>@ExceptionHandler(Exception.class)
+  public ResponseEntity<ProblemDetail> handleGeneric(Exception ex, HttpServletRequest req) {
+    log.error("Unhandled exception on {}", req.getRequestURI(), ex);
+    return ResponseEntity.internalServerError()
+      .body(ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error"));
+  }
+} ```</p></div>
+        
+        <div class="staff-add">Two production concerns beyond basic exception mapping: <strong>observability</strong> and <strong>client contract</strong>. Every 5xx must log the full stack trace with a correlation ID from MDC. 4xx responses should not log stack traces — they're client errors, not yours. The error response body must be structured and consistent so client teams can parse it reliably. Use <code>ProblemDetail</code> (RFC 7807, built into Spring Boot 3) rather than a custom error DTO — it's a standard format, tools understand it, and it's extensible. Never expose internal exception messages or stack traces in the response body — it leaks implementation details and is a security risk.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">How does Spring Boot's embedded Tomcat thread pool work, and how do you diagnose thread pool exhaustion?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Tomcat uses a bounded thread pool (<code>server.tomcat.threads.max</code>, default 200). Each HTTP request holds one thread until the response is sent, including all blocking I/O. Throughput ceiling: <code>threads / mean_response_seconds</code>. At 50ms average = 4,000 req/s. At 500ms average = 400 req/s — same thread count, 10x less throughput.
+<strong>Diagnose exhaustion</strong>: - <code>/actuator/metrics/tomcat.threads.busy</code> — if consistently equals max, threads are saturated. - <code>/actuator/threaddump</code> — look for threads in <code>WAITING</code> or <code>TIMED_WAITING</code> on JDBC, HTTP
+  client socket reads, or lock acquisition. This reveals the blocking call.
+- <code>/actuator/metrics/hikaricp.connections.pending</code> — if &gt; 0, threads are waiting for DB connections. - Application logs for <code>Unable to acquire JDBC Connection</code>.</div>
+        
+        <div class="staff-add">Raising <code>server.tomcat.threads.max</code> is the wrong first move. More threads that are all waiting on a slow database just means more threads waiting. The root cause is almost always slow downstream I/O — optimize queries, add caches, tune the connection pool.
+The architectural fix for consistently I/O-heavy workloads is Spring WebFlux on Netty. A handful of event-loop threads handle thousands of concurrent connections via non-blocking I/O. But WebFlux requires reactive programming end-to-end — any blocking call (JDBC, <code>RestTemplate</code>) blocks an event-loop thread and degrades everything. Choose the model at design time, not after a production incident.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-08</span>
+        <span class="acc-question">How do Spring Boot Actuator health probes integrate with Kubernetes liveness and readiness?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>Enable: <code>management.health.livenessstate.enabled=true</code> and <code>management.health.readinessstate.enabled=true</code> (auto-enabled when running in Kubernetes).
+- <code>/actuator/health/liveness</code> — is the app in a state to serve traffic? Failure causes K8s
+  to <strong>restart</strong> the pod. Reserve for unrecoverable states only: deadlock, OOM, corrupted
+  in-memory state. Do NOT put transient external dependencies here.
+- <code>/actuator/health/readiness</code> — is the app ready for traffic? Failure removes the pod from
+  the load balancer without restarting. DB connectivity, Kafka broker availability, and
+  cache warm-up belong here.</p>
+<p>Add a <code>startupProbe</code> pointing at <code>/actuator/health/liveness</code> with a high <code>failureThreshold</code> to give Spring Boot time to start without the pod entering a restart loop. Only after the startup probe succeeds does K8s start evaluating <code>readinessProbe</code>.</p></div>
+        
+        <div class="staff-add">The most common mistake: putting external dependency health in the liveness probe. A transient DB outage fails the liveness probe, K8s restarts the pod — which doesn't fix the DB, just adds a slow pod startup to the incident. Liveness = the pod can't recover by itself. Readiness = the pod shouldn't receive traffic right now. These are different decisions. Add custom health indicators for readiness by implementing <code>HealthIndicator</code> and publishing <code>AvailabilityChangeEvent</code> from application code to signal state transitions.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-09</span>
+        <span class="acc-question">How do you detect and fix the N+1 query problem in Spring Data JPA?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">N+1 occurs when loading N entities and then accessing a LAZY-loaded association on each — generating N+1 queries total. Loading 100 orders and calling <code>order.getItems()</code> on each triggers 101 queries. Hibernate makes each look like a Java property access — invisible without SQL logging.
+<strong>Detect</strong>: <code>logging.level.org.hibernate.SQL=DEBUG</code>. In tests, use a query counter (<code>@Sql</code> + a custom interceptor, or Hypersistence Utilities) that asserts max queries.
+<strong>Fix options</strong>: - <code>JOIN FETCH</code>: <code>@Query("SELECT o FROM Order o JOIN FETCH o.items WHERE o.id IN :ids")</code> - <code>@EntityGraph(attributePaths = "items")</code> on the repository method - Projection: <code>SELECT new OrderSummary(o.id, i.name) FROM Order o JOIN o.items i</code> - <code>@BatchSize(size = 50)</code> on the collection — N+1 becomes N/50+1</div>
+        
+        <div class="staff-add">The deeper fix is questioning whether to load entities at all for read operations. A DTO projection fetches only needed columns, avoids the lazy-load trap entirely, and is faster. Reserve full entity loading for write operations where you need the full object graph to enforce invariants. For list/search endpoints, always use projections. This is the principle behind CQRS at the persistence layer: separate the read model (projection) from the write model (entity).</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-10</span>
+        <span class="acc-question">How does graceful shutdown work in Spring Boot, and what do you need to configure in Kubernetes?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Enable: <code>server.shutdown=graceful</code> (Spring Boot 2.3+). On SIGTERM, Spring Boot:
+1. Marks the context as "not running" — K8s readiness probe fails, traffic stops routing. 2. Waits up to <code>spring.lifecycle.timeout-per-shutdown-phase</code> (default 30s) for in-flight
+   requests to complete.
+3. Closes the servlet container (drains connections). 4. Destroys Spring beans (closes DataSource, Kafka producers, etc.). 5. JVM exits.
+In Kubernetes: <code>terminationGracePeriodSeconds</code> in the pod spec must be longer than <code>timeout-per-shutdown-phase</code>. If K8s's SIGKILL arrives before Spring finishes draining, in-flight requests abort. Set <code>terminationGracePeriodSeconds: 60</code> and <code>timeout-per-shutdown-phase: 50s</code> as a safe starting point.</div>
+        
+        <div class="staff-add">Bean destruction order matters during shutdown. Spring closes beans in reverse creation order by default. The web server (Tomcat) must drain requests before the DataSource closes — otherwise in-flight requests lose their DB connections mid-flight. Spring Boot 2.3+ handles this correctly with <code>SmartLifecycle</code> phase ordering. If you define custom beans with shutdown logic, implement <code>SmartLifecycle</code> and set appropriate <code>getPhase()</code> values to ensure they close in the right order. Test graceful shutdown under load: send requests during shutdown and verify zero 500s with the <code>--debug</code> log level to observe the shutdown sequence.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">A Spring Boot service returns intermittent 503s under load spikes. Thread pool exhaustion is suspected. Walk through your full diagnosis and fix.</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Diagnose</strong>: 1. <code>tomcat.threads.busy</code> metric — if consistently equals <code>max</code>, threads are saturated. 2. <code>/actuator/threaddump</code> — look for threads <code>WAITING</code> on JDBC socket read, HTTP client,
+   or lock. This reveals the specific blocking call.
+3. <code>hikaricp.connections.pending</code> — if &gt; 0, threads are waiting for DB pool slots. 4. Application logs for <code>Unable to acquire JDBC Connection</code>.
+<strong>Fix sequence</strong>: - <strong>Short-term</strong>: increase <code>server.tomcat.threads.max</code> to 400 to absorb spikes.
+  Not a root fix — just buying time.
+- <strong>Root cause A — slow queries</strong>: enable SQL logging, find the slow query, add indexes,
+  optimize the query. A 500ms query holding a thread is 10x worse than a 50ms one.
+- <strong>Root cause B — slow downstream HTTP calls</strong>: every outbound HTTP call must have a
+  read timeout. A call with no timeout holds a thread indefinitely. Add Resilience4j
+  circuit breaker to fail-fast after the downstream is degraded.
+- <strong>Root cause C — too few DB connections</strong>: tune <code>hikari.maximum-pool-size</code> based on
+  <code>DB max_connections ÷ instance count</code>. Monitor <code>hikaricp.connections.pending</code>.</div>
+        
+        <div class="staff-add">Thread pool exhaustion cascades. If Service A is saturated, responses slow. Service B calls A with no timeout — B's threads pile up waiting, saturating B's pool too. A cascade that takes down multiple services from one slow dependency. Prevention: timeouts everywhere (every outbound call), circuit breakers (Resilience4j), and bulkheads (<code>@Bulkhead</code> to limit concurrent calls into a specific dependency). These three patterns together prevent cascade failures. Add <code>management.health.circuitbreakers.enabled=true</code> to expose Resilience4j circuit state in <code>/actuator/health</code>.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">Walk through the major breaking changes in a Spring Boot 2 → Spring Boot 3 migration.</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Spring Boot 3 requires Java 17 minimum and Jakarta EE 9+ (<code>javax.*</code> → <code>jakarta.*</code>).
+<strong>Phase 1 — Prepare on Boot 2.7.x</strong> (latest Boot 2): - Eliminate all deprecated API usages Boot 2.7 flags — they're removed in Boot 3. - Audit all <code>javax.*</code> imports and transitive dependencies for Jakarta compatibility. - Spring Security: replace <code>WebSecurityConfigurerAdapter</code> (removed) with the lambda DSL.
+<strong>Phase 2 — Package rename</strong>: - Run OpenRewrite <code>UpgradeSpringBoot_3_0</code> recipe: automates <code>javax.persistence</code> →
+  <code>jakarta.persistence</code>, <code>javax.servlet</code> → <code>jakarta.servlet</code>, etc.
+- Update dependency versions: Hibernate 6+, Flyway 9+, MapStruct 1.5+.
+<strong>Phase 3 — Boot 3 compile and verify</strong>: - Fix remaining compile errors (libraries OpenRewrite didn't cover). - Spring Security: <code>antMatchers</code> → <code>requestMatchers</code>. - Actuator: some metric names changed (check Micrometer 1.10+ migration notes). - Run full integration test suite including Testcontainers paths.</div>
+        
+        <div class="staff-add">The hidden risk: transitive dependencies shipping both <code>javax</code> and <code>jakarta</code> classes cause <code>ClassCastException</code> at runtime when objects cross the namespace boundary. Use <code>mvn dependency:tree | grep javax</code> to audit before upgrading. Libraries not yet on Jakarta (some enterprise libs, older generated clients) must be replaced or wrapped. The migration is also an opportunity: Boot 3 + GraalVM native image becomes first-class. If startup time or memory is a concern, plan native compilation as part of the migration, not a separate future project.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">How do you implement idempotent POST endpoints in Spring Boot?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">An idempotent endpoint returns the same result for repeated calls with the same input. Standard approach: <strong>idempotency keys</strong>.
+1. Client sends <code>Idempotency-Key: &lt;UUID&gt;</code> header with each POST. 2. Controller (or a <code>@Aspect</code>) checks a <code>processed_requests</code> table (or Redis):
+   if the key exists, return the cached response immediately.
+3. If new: execute the operation and store <code>(key, response, expires_at)</code> in the same
+   database transaction as the main operation.
+4. Set TTL on stored keys (24–72h) to bound table growth.
+The atomicity requirement: writing the idempotency record and the main operation must be in the same transaction. If you write the record before the operation and crash, the key is "done" but nothing happened. If you write after and crash, the second call re-executes. Atomic write via <code>@Transactional</code> covering both is the correct pattern.</div>
+        
+        <div class="staff-add">When the operation spans external systems (DB write + third-party API call), true atomicity is impossible without two-phase commit. The practical pattern: write a "pending" idempotency record before the external call, execute the call, mark it "complete." A background job retries stuck "pending" records. The external API must itself be idempotent (send an idempotency key on the API call) or you must accept that the external call may execute twice on retry. Documenting this constraint explicitly in the API contract is part of the design.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-04</span>
+        <span class="acc-question">How do you implement distributed tracing in Spring Boot 3 with Micrometer Tracing?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Spring Boot 3 uses <strong>Micrometer Tracing</strong> (successor to Spring Cloud Sleuth):
+Dependencies: - <code>micrometer-tracing-bridge-otel</code> — OpenTelemetry bridge - <code>opentelemetry-exporter-otlp</code> — OTLP exporter for Jaeger/Tempo/Grafana
+Configuration: <code>yaml management:
+  tracing:
+    sampling:
+      probability: 1.0   # 100% in dev; use 0.01–0.1 in prod
+logging:
+  pattern:
+    correlation: "[${spring.application.name},%X{traceId:-},%X{spanId:-}] "</code>
+Auto-instrumented: RestTemplate, WebClient, <code>@Scheduled</code>, Kafka listeners, JDBC. Custom spans: inject <code>Tracer</code> bean or annotate with <code>@NewSpan</code>.
+Log/trace correlation: the <code>traceId</code> in MDC appears in every log line — a single failing request's <code>traceId</code> from the trace backend surfaces all log lines across all services for that request.</div>
+        
+        <div class="staff-add">Sampling strategy is the operationally critical decision. Head-based sampling (decide at the first service) with <code>probability=0.01</code> misses rare slow requests. Use adaptive tail-based sampling (Jaeger's remote sampling, or OpenTelemetry Collector with tail sampling processor): sample 100% of error traces and slow traces (&gt;500ms), 1% of everything else. This captures failures without drowning the backend. Without log correlation, distributed tracing tells you <em>where</em> time was spent but not <em>why</em> it failed — ship <code>traceId</code> into your log aggregation system and ensure it's indexed for queries.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">At 100+ Spring Boot microservices, what platform and governance concerns emerge that don't exist at 10 services?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Dependency governance</strong>: 100 services with independent <code>pom.xml</code> files means 5 different Spring Boot versions, 3 different Jackson versions, inconsistent security patches. Solution: a company-internal BOM (Bill of Materials) declaring canonical versions for Spring Boot, shared libraries, and security dependencies. CI enforces compliance — builds fail on version drift.
+<strong>Configuration proliferation</strong>: each service has its own <code>application.yml</code>. Secrets leak into config files, environments diverge silently. Solution: centralized configuration (Spring Cloud Config backed by Git, or HashiCorp Vault + K8s ConfigMaps). Environment- specific config managed centrally. Secrets not in source control.
+<strong>Observability standardization</strong>: 100 services with different log formats, metric names, and trace ID fields are operationally untenable. Mandate: structured JSON logging with <code>traceId</code> + <code>spanId</code> in MDC, Micrometer metric naming conventions, standard Actuator config. A shared logging library (<code>spring-boot-starter-company-logging</code>) enforces this.
+<strong>Service catalog and ownership</strong>: some services will be abandoned. A service catalog (Backstage) with declared ownership, SLA, and dependency map. Services with no owner get deprecated and decommissioned.</div>
+        
+        <div class="staff-add">At 100 services, the marginal cost of a new service determines whether teams resist splitting. If creating a new service requires 3 tickets, 2 platform team approvals, and manual Kubernetes config setup, teams build larger services. The platform team's job is the Golden Path: scaffold from a template (one command), CI/CD wired automatically, service registered in the catalog, observability configured out of the box. When the right thing is also the easy thing, Conway's Law works for you instead of against you.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-02</span>
+        <span class="acc-question">Evaluate Spring Boot with GraalVM native image for a high-scale deployment. What changes, what breaks, and when is it the right call?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>Native image compiles Spring Boot to a native binary via GraalVM's ahead-of-time (AOT) compilation. Results: startup in 50–150ms vs 5–15s JVM, memory 50–200MB vs 300–600MB, no JIT warm-up — consistent latency from the first request.
+<strong>What changes</strong>: - Build time: native compilation takes 5–20 minutes (full AOT analysis). - Spring AOT (Spring Boot Maven plugin with <code>native</code> profile) processes Spring's
+  reflection-heavy internals at build time. Most Spring features work unchanged.
+- Dynamic reflection, proxies, and resource loading need <code>@RegisterReflectionForBinding</code>
+  hints or native <code>reflect-config.json</code> entries.</p>
+<p><strong>What breaks</strong>: - Libraries using heavy runtime reflection (some Hibernate features, JasperReports,
+  custom serializers) need explicit hints or don't support native.
+- CGLIB runtime proxies replaced by AOT-generated proxies — most work, some edge cases don't. - No HotSwap, no JMX, no heap dump on running process. - Peak throughput often lower than JIT-warmed JVM — native gives consistent latency,
+  JIT eventually optimizes hot paths further for steady-state throughput.</p>
+<p><strong>Right call when</strong>: serverless/FaaS, scale-to-zero Kubernetes, CLI tools, or startup time is a hard business requirement. Wrong call for long-running high-throughput services where JIT's warm optimization exceeds native steady-state performance.</p></div>
+        
+        <div class="staff-add">Evaluate on your specific workload. Cold-start latency (native wins decisively) is different from steady-state throughput (JIT often wins). Run a load test on both: ramp up traffic over 5 minutes and measure p99 at steady state. The native image CI pipeline is also a separate concern — <code>mvn -Pnative test</code> must run independently from JVM tests; a JVM test pass does not mean native passes. This doubles test time. Factor the CI cost into the decision. If startup time matters but not enough to justify native, <code>spring.main.lazy-initialization=true</code> is a 5–15s improvement with no compilation overhead.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">🔥 Scenario 1 — Thread Pool Exhaustion Under Traffic Spike</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A Spring Boot (Spring MVC + PostgreSQL) service handles normal load at 200 req/s with 80ms P99 latency. During a marketing campaign, traffic spikes to 800 req/s. Latency climbs to 8s, then the service returns 503s. After the spike, it recovers. No errors appear in application logs during the spike itself.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Must handle spikes with <1% error rate and P99 < 500ms</li><li>Database connection limit: 100 max (DBA constraint, cannot increase)</li><li>3 pods deployed; horizontal autoscaling is available but takes 90 seconds</li><li>No architectural changes to the synchronous request/response model</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Root cause — thread saturation</strong>: 200 threads × 80ms mean = ~2,500 req/s theoretical capacity. Under load, latency climbs to 8s — 200 threads × 8s = 200 threads all occupied, new requests queue in Tomcat's accept-count buffer, then get rejected.</li><li><strong>Confirm with metrics</strong>: <code>tomcat.threads.busy</code> consistently equals max. <code>hikaricp.connections.pending</code> is non-zero — threads are waiting for DB connections on top of slow queries.</li><li><strong>Short-term — increase thread pool</strong>: raise <code>server.tomcat.threads.max</code> to 400 and <code>server.tomcat.accept-count</code> to 200. Absorbs spikes but doesn't fix the root cause.</li><li><strong>Root cause — slow queries under load</strong>: enable <code>logging.level.org.hibernate.SQL=DEBUG</code> temporarily to identify queries that take 500ms+ under load. A missing index is the most common culprit. Add the index and validate with EXPLAIN ANALYZE.</li><li><strong>HikariCP sizing</strong>: 3 pods × 30 max pool = 90 connections (under the 100 DB limit). Current default of 10 per pod = 30 total — DB connections aren't the bottleneck here, but the pool is undersized for 400 threads.</li><li><strong>Bulkhead</strong>: use Resilience4j <code>@Bulkhead</code> on the DB interaction layer. Limit concurrent calls to 100 (matching pool size). Requests beyond the limit get fast 503s instead of queueing indefinitely — bounded degradation is better than unbounded.</li><li><strong>HPA</strong>: configure Kubernetes HPA on <code>tomcat.threads.busy &gt; 150</code> (75% utilization) with a 60s scale-up window. The 90s scale-out means the bulkhead must absorb the gap.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Raising thread pool to 1000 without fixing the DB bottleneck — more threads waiting on DB connections compounds the problem</li><li>Not setting HikariCP connection-timeout (default 30s) — a thread waiting 30s for a pool slot holds a Tomcat thread for 30s, multiplying the saturation</li><li>Increasing accept-count to 1000 without a bulkhead — requests queue indefinitely, users see 30s+ latency instead of a fast 503</li><li>No timeout on outbound HTTP calls if the service has downstream dependencies — slow downstream cascades to thread exhaustion here</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">🐛 Scenario 2 — LazyInitializationException in Async Email Notification</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A Spring Boot service processes orders. <code>OrderService.createOrder()</code> is <code>@Transactional</code> — it saves the Order entity via JPA, then calls <code>@Async NotificationService.sendConfirmation(order)</code> to email the customer. In production, emails intermittently fail with <code>LazyInitializationException</code> when <code>sendConfirmation</code> accesses <code>order.getCustomer().getEmail()</code>.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Email send must be async — it must not block the order creation HTTP response</li><li>No schema changes</li><li>Fix must not introduce an extra database roundtrip just to load the customer email</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Root cause</strong>: <code>@Transactional</code> on <code>createOrder()</code> closes the Hibernate session when the method returns. The <code>Order</code> entity passed to the async thread is a detached JPA entity. Its <code>@ManyToOne(fetch = LAZY) Customer</code> association cannot load — the session is gone.</li><li><strong>Fix 1 — pass a DTO, not an entity (recommended)</strong>: change <code>sendConfirmation</code> to accept <code>SendConfirmationCommand(orderId, customerEmail, customerName)</code>. The service layer resolves all needed data inside the transaction before dispatching. The async method receives a plain DTO with no JPA dependency.</li><li><strong>Fix 2 — force-load inside the transaction</strong>: within <code>createOrder()</code> (still inside the transaction), call <code>order.getCustomer().getEmail()</code> explicitly to trigger the load. Hibernate caches the loaded association on the entity — the detached entity carries the value into the async thread.</li><li><strong>Fix 3 — reload in async thread</strong>: <code>sendConfirmation</code> receives <code>orderId</code> and calls <code>orderRepository.findById(orderId)</code> in a new <code>@Transactional</code> context. Simple and safe, but requires one DB query in the async path.</li><li><strong>Fix 1 is the cleanest</strong>: DTOs as the interface between layers prevent session leaks and make the async contract explicit. The notification service doesn't need to understand JPA.</li><li><strong>SecurityContext side issue</strong>: if <code>sendConfirmation</code> accesses <code>SecurityContextHolder</code> (e.g., for audit logging), configure <code>DelegatingSecurityContextAsyncTaskExecutor</code> as the <code>@Async</code> executor.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li><code>spring.jpa.open-in-view=true</code> as the fix — extends session to HTTP request lifecycle but doesn't cover async threads, and causes silent N+1 queries in controllers</li><li>Changing all @ManyToOne and @OneToMany to <code>FetchType.EAGER</code> — loads all associations for every query, causing massive over-fetching across the entire service</li><li>Catching <code>LazyInitializationException</code> and returning null — masks the bug</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">🚀 Scenario 3 — Spring Boot Pod Crash-Loops in Kubernetes Due to Slow Startup</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A Spring Boot microservice has grown to 40 Spring beans, a large Flyway migration baseline, and a Spring Cloud Config client. In Kubernetes, the readiness probe returns 503 for 45 seconds. K8s is configured with <code>initialDelaySeconds=30</code> on both liveness and readiness probes. The pod passes liveness but fails readiness, gets restarted repeatedly before becoming ready, and enters a crash loop.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Cannot reduce number of JPA entities or Flyway migrations</li><li>Config server is required</li><li>Target: pod ready within 30 seconds without tuning initialDelaySeconds</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Root cause analysis</strong>: measure startup phases. Add <code>spring.jpa.show-sql=true</code> and <code>logging.level.org.springframework=DEBUG</code> briefly. Common culprits: Flyway running 100+ migrations, Hibernate schema validation scanning all tables, Config server handshake adding 5s, <code>@ComponentScan</code> scanning unrelated packages.</li><li><strong>Fix 1 — startup probe (highest impact, no code change)</strong>: add a <code>startupProbe</code> in the K8s deployment spec pointing at <code>/actuator/health/liveness</code> with <code>failureThreshold=30, periodSeconds=5</code> (150s budget). K8s only starts evaluating <code>readinessProbe</code> after the startup probe passes. This stops the crash loop immediately while you fix startup time properly.</li><li><strong>Fix 2 — Flyway baseline</strong>: if migration history is 100+ scripts, a Flyway baseline migration collapses them into a single snapshot. New environments apply the snapshot instead of replaying all migrations. Cuts Flyway startup from 10s to &lt;1s.</li><li><strong>Fix 3 — lazy initialization</strong>: <code>spring.main.lazy-initialization=true</code> defers bean creation to first request, saving 5–15s. Caveat: startup failures surface on first request. Compensate with a readiness warm-up request in the deployment pipeline.</li><li><strong>Fix 4 — Config server timeout</strong>: set <code>spring.cloud.config.fail-fast=true</code> and <code>spring.cloud.config.retry.max-attempts=3</code> with short intervals. A slow config server can hang the startup for 30s+ with default retry behavior.</li><li><strong>Fix 5 — GraalVM native</strong>: 50–150ms startup, 50–200MB memory. Highest impact, highest migration cost. Plan as a separate initiative after the immediate crash loop is resolved.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Increasing <code>initialDelaySeconds</code> to 90s — delays detection of a genuinely broken pod; K8s won't restart a deadlocked service for 90s</li><li>Removing readiness probe entirely — K8s routes traffic to unready pods; callers see errors during startup</li><li><code>spring.jpa.hibernate.ddl-auto=create-drop</code> anywhere near production — drops the entire schema on shutdown</li><li>Using liveness probe to check DB connectivity — a transient DB outage restarts the pod, which doesn't fix the DB and adds startup overhead to the incident</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>function toggleTheme(){
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  h.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+function switchTab(name, el){
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+}
+
+function toggleAcc(header){
+  const item = header.parentElement;
+  item.classList.toggle('open', !item.classList.contains('open'));
+}
+</script>
+</body>
+</html>

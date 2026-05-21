@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spring Security — Field Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#4338ca;--accent2:#0077aa;--accent3:#be185d; --highlight-bg:#eef2ff;--highlight-text:#4338ca;--highlight-border:#6366f1; --your-exp-bg:rgba(190,24,93,.06);--your-exp-border:rgba(190,24,93,.2);--your-exp-text:#be185d; --acc-hover:rgba(67,56,202,.04);--acc-open-border:#4338ca;--acc-open-bg:rgba(67,56,202,.04); --num-color:#4338ca;--num-bg:rgba(67,56,202,.1); --tag-color:#3730a3;--tag-bg:rgba(67,56,202,.08);--tag-border:rgba(67,56,202,.2); --flow-arrow:#4338ca;--h1-from:#312e81;--h1-to:#4338ca; --badge-color:#312e81;--stat-num:#312e81; --tab-active-color:#4338ca;--tab-active-bg:rgba(67,56,202,.08);--tab-active-border:#4338ca; --section-title:#4338ca;--concept-title:#312e81; --cheat-head-bg:#312e81;--cheat-head-text:#ffffff;--cheat-key:#312e81; --cmd-bg:#eef2ff;--cmd-text:#312e81; }
+  [data-theme="dark"]{ --accent:#818cf8;--accent2:#00d4ff;--accent3:#f472b6; --highlight-bg:#0d0f2a;--highlight-text:#818cf8;--highlight-border:#818cf8; --your-exp-bg:rgba(244,114,182,.08);--your-exp-border:rgba(244,114,182,.25);--your-exp-text:#f9a8d4; --acc-hover:rgba(129,140,248,.04);--acc-open-border:#818cf8;--acc-open-bg:rgba(129,140,248,.03); --num-color:#818cf8;--num-bg:rgba(129,140,248,.08); --tag-color:#818cf8;--tag-bg:rgba(129,140,248,.08);--tag-border:rgba(129,140,248,.2); --flow-arrow:#818cf8;--h1-from:#a5b4fc;--h1-to:#818cf8; --badge-color:#818cf8;--stat-num:#818cf8; --tab-active-color:#818cf8;--tab-active-bg:rgba(129,140,248,.08);--tab-active-border:#818cf8; --section-title:#818cf8;--concept-title:#818cf8; --cheat-head-bg:#0d0f2a;--cheat-head-text:#818cf8;--cheat-key:#818cf8; --cmd-bg:#0d0f2a;--cmd-text:#818cf8; }
+  [data-theme="light"] .toggle-knob{background:#4338ca;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#818cf8;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Stats row ───────────────────────────────────────────────────────────── */
+.stats{display:flex;gap:.75rem;margin-bottom:2rem;flex-wrap:wrap;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.65rem 1rem;text-align:center;flex:1;min-width:90px;}
+.stat-num{font-size:1.6rem;font-weight:800;color:var(--stat-num);font-family:'IBM Plex Mono',monospace;line-height:1;}
+.stat-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:'IBM Plex Mono',monospace;margin-top:.25rem;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .4s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{max-height:3000px;padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+}
+
+</style>
+</head>
+<body>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>Spring Security</h1>
+  <p class="subtitle">// filter chain · authentication · authorization · OAuth2 resource server · JWT · method security · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
+  <div class="tab" onclick="switchTab('deepdive',this)">Deep Dive</div>
+  <div class="tab" onclick="switchTab('qa',this)">Q &amp; A</div>
+  <div class="tab" onclick="switchTab('scenarios',this)">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">🔗 The Security Filter Chain</div>
+      <div class="concept-body">
+        Spring Security is implemented as a <strong>servlet filter chain</strong>. The entry point is <code>DelegatingFilterProxy</code> (a standard servlet filter registered with the servlet container), which delegates to <code>FilterChainProxy</code>. <code>FilterChainProxy</code> holds one or more <code>SecurityFilterChain</code> beans — each with a request matcher and an ordered list of security filters.
+On every request: the chain is traversed. Each filter handles one concern (CSRF, session management, authentication, authorization). The final filter, <code>FilterSecurityInterceptor</code> (or <code>AuthorizationFilter</code> in modern config), enforces the access rules configured in <code>HttpSecurity</code>.
+You configure the chain via <code>SecurityFilterChain</code> bean: <code>java @Bean public SecurityFilterChain api(HttpSecurity http) throws Exception {
+  return http
+    .authorizeHttpRequests(a -&gt; a
+      .requestMatchers("/public/**").permitAll()
+      .anyRequest().authenticated())
+    .oauth2ResourceServer(o -&gt; o.jwt(Customizer.withDefaults()))
+    .build();
+}</code>
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">HTTP Request</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">DelegatingFilterProxy</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">FilterChainProxy</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">SecurityFilterChain (matched)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Filters 1..N</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Controller</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">filter chain = ordered pipeline</span>
+          
+          <span class="tag orange">SecurityFilterChain = your config</span>
+          
+          <span class="tag purple">FilterChainProxy = orchestrator</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔐 Authentication Architecture</div>
+      <div class="concept-body">
+        <p>When a request carries credentials, an authentication filter (e.g., <code>UsernamePasswordAuthenticationFilter</code>, <code>BearerTokenAuthenticationFilter</code>) extracts them and calls <code>AuthenticationManager.authenticate(Authentication token)</code>.
+<code>ProviderManager</code> (the default <code>AuthenticationManager</code>) delegates to a list of <code>AuthenticationProvider</code> implementations until one succeeds or all fail.
+- <code>DaoAuthenticationProvider</code> + <code>UserDetailsService</code>: loads the user by username,
+  verifies the password with <code>PasswordEncoder</code>, returns a populated <code>Authentication</code>.
+- <code>JwtAuthenticationProvider</code>: validates a JWT signature and expiry, maps claims to
+  <code>GrantedAuthority</code> objects.</p>
+<p>On success, the populated <code>Authentication</code> object is stored in <code>SecurityContextHolder</code>.</p>
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Request</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Auth Filter</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">AuthenticationManager</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">AuthenticationProvider</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">UserDetailsService / JWT validator</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Authentication stored in SecurityContext</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">ProviderManager chains providers</span>
+          
+          <span class="tag orange">UserDetailsService = load by username</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🗂️ SecurityContext & SecurityContextHolder</div>
+      <div class="concept-body">
+        <p><code>SecurityContextHolder</code> is the central store for the current principal. By default it uses a <code>ThreadLocal</code>, so the context is available anywhere in the same thread without explicit passing.
+The lifecycle per request: 1. <code>SecurityContextPersistenceFilter</code> (or <code>SecurityContextHolderFilter</code>) loads the context
+   from the session (or starts a new empty one for stateless APIs).
+2. Authentication filters populate it on successful authentication. 3. The context is available throughout the request thread. 4. After the response is sent, the filter clears the <code>ThreadLocal</code> to prevent leaks
+   across thread pool reuse.</p>
+<p>Access the principal: <code>SecurityContextHolder.getContext().getAuthentication()</code>. In Spring MVC controllers: <code>@AuthenticationPrincipal</code> injects the current user directly.</p>
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">ThreadLocal = per-request</span>
+          
+          <span class="tag orange">@AuthenticationPrincipal in controllers</span>
+          
+          <span class="tag purple">cleared after each request</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔒 Password Encoding</div>
+      <div class="concept-body">
+        Spring Security enforces password hashing through the <code>PasswordEncoder</code> interface. The standard implementation is <code>BCryptPasswordEncoder</code> — bcrypt is adaptive (the work factor can be increased as hardware gets faster) and includes a random salt per hash, so two users with the same password produce different hashes.
+<strong>Never store plaintext passwords.</strong> Never use MD5 or SHA-1 (unsalted, fast — trivially cracked by rainbow tables or GPU brute force).
+The <code>DelegatingPasswordEncoder</code> (returned by <code>PasswordEncoderFactories.createDelegatingPasswordEncoder()</code>) prefixes hashes with the algorithm ID (<code>{bcrypt}</code>, <code>{argon2}</code>, etc.), enabling hash migration without invalidating existing passwords — add the new encoder, old hashes continue to work, users re-hash on next login.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">BCrypt = adaptive, salted</span>
+          
+          <span class="tag orange">DelegatingPasswordEncoder = algorithm migration</span>
+          
+          <span class="tag red">never MD5/SHA-1</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🚦 Authorization: HTTP and Method Security</div>
+      <div class="concept-body">
+        <strong>HTTP-level authorization</strong>: configured in <code>SecurityFilterChain</code> via <code>authorizeHttpRequests()</code>. Rules are evaluated in order — first match wins.
+<code>java .authorizeHttpRequests(a -&gt; a
+  .requestMatchers("/admin/**").hasRole("ADMIN")
+  .requestMatchers(HttpMethod.GET, "/api/**").hasAuthority("read:data")
+  .anyRequest().authenticated())</code>
+<strong>Method-level authorization</strong>: enabled with <code>@EnableMethodSecurity</code>. Annotations on service methods: - <code>@PreAuthorize("hasRole('ADMIN')")</code> — checked before the method runs (Spring SpEL). - <code>@PostAuthorize("returnObject.owner == authentication.name")</code> — checked after, on the return value. - <code>@PreFilter</code> / <code>@PostFilter</code> — filter collections before/after method execution.
+Method security also uses AOP proxies — self-calls bypass the proxy and skip the check.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">@PreAuthorize = most flexible</span>
+          
+          <span class="tag orange">first match wins in HTTP rules</span>
+          
+          <span class="tag purple">method security = AOP proxy</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🌐 OAuth2 Resource Server (JWT)</div>
+      <div class="concept-body">
+        A Resource Server validates Bearer tokens on incoming requests. Add <code>spring-boot-starter-oauth2-resource-server</code> and configure:
+<code>yaml spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://auth.example.com</code>
+Spring Security auto-configures <code>BearerTokenAuthenticationFilter</code> which extracts the <code>Authorization: Bearer &lt;token&gt;</code> header, validates the JWT signature against the JWKS endpoint (fetched from <code>issuer-uri/.well-known/openid-configuration</code>), verifies expiry and issuer, and populates <code>SecurityContext</code> with a <code>JwtAuthenticationToken</code>.
+<strong>Custom claims → authorities</strong>: implement <code>JwtAuthenticationConverter</code> to map JWT claims (e.g., <code>roles</code>, <code>scope</code>) to <code>GrantedAuthority</code> objects.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Request + Bearer token</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">BearerTokenAuthenticationFilter</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">JwtDecoder (validate sig + expiry)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">JwtAuthenticationConverter (claims → authorities)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">SecurityContext populated</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">issuer-uri = JWKS auto-discovery</span>
+          
+          <span class="tag orange">JwtAuthenticationConverter = custom claims</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🛡️ CSRF, CORS & Session Management</div>
+      <div class="concept-body">
+        <strong>CSRF</strong>: Cross-Site Request Forgery protection is enabled by default. It requires a CSRF token on state-changing requests (POST, PUT, DELETE). For <strong>stateless JWT APIs</strong>, disable it — CSRF attacks require a browser session cookie, which JWTs don't use: <code>http.csrf(csrf -&gt; csrf.disable())</code>.
+<strong>CORS</strong>: browsers block cross-origin requests unless the server sends correct <code>Access-Control-Allow-*</code> headers. Configure in Spring Security (not just <code>@CrossOrigin</code>) so CORS pre-flight (OPTIONS) requests are handled <strong>before</strong> the security filter chain rejects them as unauthenticated: <code>http.cors(Customizer.withDefaults())</code> + a <code>CorsConfigurationSource</code> bean.
+<strong>Session management</strong>: for stateless APIs, use <code>http.sessionManagement(s -&gt; s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</code>. This prevents Spring Security from creating or using HTTP sessions — every request must carry its own token.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">CSRF — disable for stateless JWT APIs</span>
+          
+          <span class="tag green">CORS before auth filter</span>
+          
+          <span class="tag purple">STATELESS = no server-side session</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">CORS pre-flight fails with 401 before reaching your CORS config</span>
+      Browser CORS pre-flight sends an OPTIONS request with no credentials. If Spring Security's authentication filter runs before CORS headers are applied, the OPTIONS request is rejected with 401 — the browser never sees the CORS headers and blocks the real request. Fix: configure CORS via <code>http.cors(Customizer.withDefaults())</code> in <code>HttpSecurity</code>, not just via <code>@CrossOrigin</code> on controllers. Spring Security's CORS filter runs before authentication filters when configured this way.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">hasRole('ADMIN') vs hasAuthority('ROLE_ADMIN') — the ROLE_ prefix</span>
+      <code>hasRole("ADMIN")</code> automatically prepends <code>ROLE_</code> and checks for authority <code>ROLE_ADMIN</code>. <code>hasAuthority("ROLE_ADMIN")</code> checks the exact string. Both work if your authorities follow the <code>ROLE_</code> convention. If you control the authority strings (e.g., OAuth2 scopes like <code>read:orders</code>), use <code>hasAuthority("read:orders")</code> — <code>hasRole</code> would check for <code>ROLE_read:orders</code>. Mixing the two on the same app creates confusing bugs where access is denied despite the authority appearing in the token.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">SecurityContext is not propagated to @Async threads</span>
+      <code>SecurityContextHolder</code> uses a <code>ThreadLocal</code> by default. When <code>@Async</code> dispatches to another thread, the security context is <strong>not copied</strong> — the async thread sees an empty context. Any code calling <code>SecurityContextHolder.getContext().getAuthentication()</code> in an async method returns null. Fix: configure <code>DelegatingSecurityContextAsyncTaskExecutor</code> as the <code>@Async</code> executor, or set strategy to <code>MODE_INHERITABLETHREADLOCAL</code>. Same issue applies to <code>CompletableFuture.supplyAsync()</code> — always propagate explicitly.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">@PreAuthorize on self-calls is silently bypassed</span>
+      Method security uses AOP proxies — the same proxy mechanism as <code>@Transactional</code>. Calling a <code>@PreAuthorize</code>-annotated method from within the same bean bypasses the proxy and skips the authorization check. This is a silent security hole — no exception, no log, the method runs as if the annotation wasn't there. Fix: move the annotated method to a separate Spring bean so the call goes through the proxy.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">permitAll() does not short-circuit the filter chain</span>
+      <code>permitAll()</code> means the access decision allows unauthenticated requests — it does not skip authentication filters. If your JWT filter throws an exception for a malformed or expired token, that exception propagates even for <code>permitAll()</code> paths. A public endpoint that receives an invalid JWT still returns 401. Fix: configure your JWT filter to <strong>ignore</strong> missing or malformed tokens on public paths (don't throw, just don't set the context), or check <code>Authentication</code> in the filter and only reject actually invalid tokens that are present.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">JWT JWKS key rotation causes 401 until the cache refreshes</span>
+      Spring Security's <code>NimbusJwtDecoder</code> caches the JWKS (public keys) from the <code>issuer-uri</code>. When the authorization server rotates keys, the cached key set is stale — new tokens signed with the new key fail validation with 401. The decoder refreshes the cache periodically (default: when a key ID in the token doesn't match any cached key, it triggers a fetch). Configure <code>jwkSetUri</code> directly and set <code>NimbusJwtDecoder.withJwkSetUri(uri).cache(...)</code> to tune the cache policy if your authorization server rotates keys frequently.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use Spring Security When</div>
+      <ul>
+        
+        <li>Any Spring Boot application that needs authentication and authorization</li>
+        
+        <li>REST APIs that validate OAuth2/JWT Bearer tokens (resource server pattern)</li>
+        
+        <li>Method-level security with @PreAuthorize for fine-grained access control on service methods</li>
+        
+        <li>Applications requiring form-based login, LDAP, or SAML authentication</li>
+        
+        <li>When you need a security framework deeply integrated with the Spring context (bean-level visibility, SpEL expressions, test support)</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use Spring Security When</div>
+      <ul>
+        
+        <li>Non-JVM stacks — use language-native security libraries or API gateway auth</li>
+        
+        <li>When authentication is fully handled by an API gateway (Kong, AWS ALB, Envoy) that strips tokens before reaching the service — adding Spring Security adds complexity with no benefit</li>
+        
+        <li>Very simple internal services where a shared API key header is sufficient and team-managed in infrastructure</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">🔗 Security Filter Chain — Key Filters in Order</div>
+      <table>
+        
+        <tr><td>SecurityContextHolderFilter</td><td>Loads SecurityContext from the repository (session or no-op for stateless). Clears it after the response is sent.</td></tr>
+        
+        <tr><td>CorsFilter</td><td>Handles CORS pre-flight (OPTIONS) and adds Access-Control-* headers. Must run before authentication filters to allow unauthenticated OPTIONS.</td></tr>
+        
+        <tr><td>CsrfFilter</td><td>Validates the CSRF token on state-changing requests (POST/PUT/DELETE). Disabled for stateless JWT APIs.</td></tr>
+        
+        <tr><td>LogoutFilter</td><td>Handles logout requests. Clears SecurityContext, invalidates session, triggers LogoutHandler chain.</td></tr>
+        
+        <tr><td>UsernamePasswordAuthenticationFilter</td><td>For form-based login. Extracts username/password, calls AuthenticationManager, stores Authentication on success.</td></tr>
+        
+        <tr><td>BearerTokenAuthenticationFilter</td><td>For OAuth2 Resource Server. Extracts Bearer token from Authorization header, validates JWT, populates SecurityContext.</td></tr>
+        
+        <tr><td>BasicAuthenticationFilter</td><td>For HTTP Basic auth. Extracts Base64-encoded credentials, calls AuthenticationManager.</td></tr>
+        
+        <tr><td>AnonymousAuthenticationFilter</td><td>If no Authentication has been set by earlier filters, sets an AnonymousAuthenticationToken. Ensures SecurityContext is never null.</td></tr>
+        
+        <tr><td>ExceptionTranslationFilter</td><td>Catches AuthenticationException (→ 401) and AccessDeniedException (→ 403) and converts them to HTTP error responses.</td></tr>
+        
+        <tr><td>AuthorizationFilter</td><td>Final access decision. Evaluates the authorizeHttpRequests() rules against the current Authentication and request.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">🏷️ Security Annotation Reference</div>
+      <table>
+        
+        <tr><td>@EnableMethodSecurity</td><td>Required on a @Configuration class to activate @PreAuthorize, @PostAuthorize, @PreFilter, @PostFilter. Replaces @EnableGlobalMethodSecurity (deprecated in Spring Security 5.6).</td></tr>
+        
+        <tr><td>@PreAuthorize("expr")</td><td>Evaluates SpEL before method execution. Access authentication, method arguments, beans. Most flexible annotation. Fails with AccessDeniedException.</td></tr>
+        
+        <tr><td>@PostAuthorize("returnObject...")</td><td>Evaluates SpEL after method execution against the return value. Use for ownership checks: @PostAuthorize("returnObject.ownerId == authentication.name").</td></tr>
+        
+        <tr><td>@PreFilter("filterObject...")</td><td>Filters a collection argument before the method runs. Removes elements the caller is not allowed to access.</td></tr>
+        
+        <tr><td>@PostFilter("filterObject...")</td><td>Filters the returned collection. Caller only sees elements they have access to.</td></tr>
+        
+        <tr><td>@Secured({"ROLE_ADMIN"})</td><td>Simple role check. Less flexible than @PreAuthorize — no SpEL. Use @PreAuthorize unless you need @Secured for backward compatibility.</td></tr>
+        
+        <tr><td>@AuthenticationPrincipal</td><td>In MVC controller method parameters: injects the current principal (UserDetails, Jwt, or custom type) directly. Avoids SecurityContextHolder.getContext() boilerplate.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">⚙️ HttpSecurity Configuration Reference</div>
+      <table>
+        
+        <tr><td>authorizeHttpRequests()</td><td>Define URL-based access rules. First matching rule wins. Use requestMatchers(pattern) not antMatchers (deprecated in Boot 3).</td></tr>
+        
+        <tr><td>csrf(csrf -> csrf.disable())</td><td>Disable CSRF protection. Required for stateless JWT REST APIs. Never disable for session-based form apps.</td></tr>
+        
+        <tr><td>cors(Customizer.withDefaults())</td><td>Enable CORS handling via a CorsConfigurationSource bean. CORS filter runs before auth filters — handles pre-flight OPTIONS correctly.</td></tr>
+        
+        <tr><td>sessionManagement(s -> s.sessionCreationPolicy(STATELESS))</td><td>Prevent Spring Security from creating or using HTTP sessions. Each request must be independently authenticated.</td></tr>
+        
+        <tr><td>oauth2ResourceServer(o -> o.jwt(...))</td><td>Configure JWT Bearer token validation. Auto-discovers JWKS from issuer-uri. Customize with JwtAuthenticationConverter for claims-to-authorities mapping.</td></tr>
+        
+        <tr><td>formLogin(Customizer.withDefaults())</td><td>Enable form-based login. Not for REST APIs. Configures UsernamePasswordAuthenticationFilter.</td></tr>
+        
+        <tr><td>httpBasic(Customizer.withDefaults())</td><td>Enable HTTP Basic auth. Appropriate for service-to-service or test environments. Not for production user-facing APIs.</td></tr>
+        
+        <tr><td>exceptionHandling(e -> e.authenticationEntryPoint(...))</td><td>Customize the 401 response for unauthenticated requests. Default sends WWW-Authenticate header. For REST APIs, return JSON.</td></tr>
+        
+        <tr><td>addFilterBefore(filter, Class)</td><td>Insert a custom filter before a specific filter in the chain. Use for custom token extraction or pre-processing.</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">⚖️ Spring Security vs Custom JWT Filter vs API Gateway Auth vs Keycloak</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+            <th>Dimension</th>
+            
+            <th>Spring Security</th>
+            
+            <th>Custom JWT Filter</th>
+            
+            <th>API Gateway (Kong / AWS ALB)</th>
+            
+            <th>Keycloak / Auth0</th>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Who validates tokens</td>
+            
+            <td>Application (per-service, Spring Security filter)</td>
+            
+            <td>Application (per-service, custom code)</td>
+            
+            <td>Gateway (once, before routing)</td>
+            
+            <td>External auth server (authorization server role only)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Granularity</td>
+            
+            <td>Method-level (@PreAuthorize), URL-level, Spring context-aware</td>
+            
+            <td>URL-level or method-level via custom code</td>
+            
+            <td>URL-level, route-level only; no method security</td>
+            
+            <td>Manages users/roles; Spring Security or gateway enforces them</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Spring integration</td>
+            
+            <td>Deep — works with @AuthenticationPrincipal, SpEL, test support</td>
+            
+            <td>Manual — no framework integration, manual context population</td>
+            
+            <td>None — strips auth before service sees it</td>
+            
+            <td>Spring Security acts as the OAuth2 client/resource server consuming Keycloak tokens</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Ops burden</td>
+            
+            <td>Low — library, no infra</td>
+            
+            <td>Low — library, but you own all logic</td>
+            
+            <td>High — gateway cluster to operate and scale</td>
+            
+            <td>High — Keycloak cluster to run, update, backup</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Test support</td>
+            
+            <td>First-class — @WithMockUser, @WithUserDetails, SecurityMockMvcRequestPostProcessors</td>
+            
+            <td>Manual — inject mock context</td>
+            
+            <td>Hard to test security rules without a running gateway</td>
+            
+            <td>Testcontainers Keycloak for integration tests</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Multi-service consistency</td>
+            
+            <td>Per-service config — can diverge</td>
+            
+            <td>Per-service code — can diverge</td>
+            
+            <td>Centralized — consistent across all routed services</td>
+            
+            <td>Centralized at auth server; each service still needs its own enforcement</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best for</td>
+            
+            <td>Spring Boot services needing fine-grained, context-aware access control</td>
+            
+            <td>Simple services with minimal auth needs and no desire for framework magic</td>
+            
+            <td>Enforcing network-level policies (rate limiting, auth) before traffic reaches services</td>
+            
+            <td>User management, SSO, federated identity; paired with Spring Security for enforcement</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">How does the Spring Security filter chain process a request? Walk through from HTTP request to controller.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>Every HTTP request passes through <code>DelegatingFilterProxy</code> (a standard servlet filter), which delegates to <code>FilterChainProxy</code>. <code>FilterChainProxy</code> matches the request against configured <code>SecurityFilterChain</code> beans (by URL pattern or other matchers) and passes the request through that chain's ordered filters.
+For a JWT-secured API, the key filters in order: 1. <code>SecurityContextHolderFilter</code> — loads or creates an empty <code>SecurityContext</code>. 2. <code>CorsFilter</code> — adds <code>Access-Control-*</code> headers (handles OPTIONS pre-flight). 3. <code>CsrfFilter</code> — validates CSRF token (disabled for stateless APIs). 4. <code>BearerTokenAuthenticationFilter</code> — extracts <code>Authorization: Bearer &lt;token&gt;</code>,
+   calls <code>AuthenticationManager</code>, which calls <code>JwtAuthenticationProvider</code>, which
+   validates the JWT and populates <code>SecurityContext</code>.
+5. <code>AnonymousAuthenticationFilter</code> — sets an anonymous token if still unauthenticated. 6. <code>ExceptionTranslationFilter</code> — catches <code>AuthenticationException</code> (→ 401) and
+   <code>AccessDeniedException</code> (→ 403).
+7. <code>AuthorizationFilter</code> — evaluates <code>authorizeHttpRequests()</code> rules against the
+   current <code>Authentication</code>. If denied, throws <code>AccessDeniedException</code>.</p>
+<p>If all filters pass, the request reaches the <code>DispatcherServlet</code> and your controller.</p></div>
+        
+        <div class="staff-add">The filter chain is ordered by integer priority. When you add a custom filter, its position in the chain relative to the authentication and authorization filters determines what context it can access. A filter before <code>BearerTokenAuthenticationFilter</code> sees no authentication. A filter after <code>AuthorizationFilter</code> only runs on authorized requests. Multiple <code>SecurityFilterChain</code> beans can match different URL patterns with different configurations — e.g., one chain for <code>/api/**</code> (stateless JWT) and another for <code>/admin/**</code> (form login with sessions). <code>FilterChainProxy</code> uses the first matching chain per request.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">How do you configure Spring Security as an OAuth2 Resource Server to validate JWT tokens?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Add <code>spring-boot-starter-oauth2-resource-server</code>. Configure the issuer:
+<code>yaml spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://auth.example.com</code>
+Spring Security auto-discovers the JWKS endpoint from <code>issuer-uri/.well-known/openid-configuration</code>, configures a <code>NimbusJwtDecoder</code>, and wires <code>BearerTokenAuthenticationFilter</code>.
+<code>SecurityFilterChain</code> configuration: <code>java @Bean public SecurityFilterChain api(HttpSecurity http) throws Exception {
+  return http
+    .csrf(csrf -&gt; csrf.disable())
+    .sessionManagement(s -&gt; s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+    .authorizeHttpRequests(a -&gt; a
+      .requestMatchers("/public/**").permitAll()
+      .anyRequest().authenticated())
+    .oauth2ResourceServer(o -&gt; o.jwt(Customizer.withDefaults()))
+    .build();
+}</code>
+To map JWT claims to authorities (e.g., a <code>roles</code> claim): <code>java @Bean public JwtAuthenticationConverter jwtAuthConverter() {
+  JwtGrantedAuthoritiesConverter conv = new JwtGrantedAuthoritiesConverter();
+  conv.setAuthoritiesClaimName("roles");
+  conv.setAuthorityPrefix("ROLE_");
+  JwtAuthenticationConverter jac = new JwtAuthenticationConverter();
+  jac.setJwtGrantedAuthoritiesConverter(conv);
+  return jac;
+}</code></div>
+        
+        <div class="staff-add">The <code>issuer-uri</code> auto-discovery approach is clean for production but requires network access at startup. For environments where the auth server isn't reachable during service startup (cold environments, CI), configure <code>jwk-set-uri</code> directly: <code>spring.security.oauth2.resourceserver.jwt.jwk-set-uri: https://auth.example.com/.well-known/jwks.json</code>. This skips the discovery call.
+For multi-issuer setups (tokens from multiple auth servers), implement a custom <code>AuthenticationManagerResolver&lt;HttpServletRequest&gt;</code> that selects the appropriate <code>JwtDecoder</code> based on the token's <code>iss</code> claim or a request header.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">What is CSRF, when should you disable it, and what is the correct CORS configuration for a REST API?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>CSRF (Cross-Site Request Forgery)</strong>: a browser automatically includes cookies with cross-origin requests. An attacker on <code>evil.com</code> can make a user's browser send a POST to <code>bank.com</code> — if <code>bank.com</code> uses session cookies for auth, the request is authenticated. The CSRF token (a random value in a form field or header, not a cookie) prevents this — the attacker can't read the CSRF token from a different origin.
+<strong>When to disable</strong>: for stateless APIs using JWT Bearer tokens in <code>Authorization</code> headers. Bearer tokens are not automatically sent by browsers — the attacker can't forge an authenticated request. Disable: <code>http.csrf(csrf -&gt; csrf.disable())</code>.
+<strong>Never disable</strong> for session-based apps that use cookies for authentication.
+<strong>CORS</strong>: configure via <code>http.cors(Customizer.withDefaults())</code> + a <code>CorsConfigurationSource</code> bean. This ensures the <code>CorsFilter</code> runs <strong>before</strong> authentication filters, so OPTIONS pre-flight requests (which carry no credentials) are handled correctly:
+<code>java @Bean public CorsConfigurationSource corsConfigurationSource() {
+  CorsConfiguration config = new CorsConfiguration();
+  config.setAllowedOrigins(List.of("https://app.example.com"));
+  config.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
+  config.setAllowedHeaders(List.of("Authorization","Content-Type"));
+  config.setAllowCredentials(true);
+  UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+  source.registerCorsConfiguration("/**", config);
+  return source;
+}</code></div>
+        
+        <div class="staff-add">CORS is a browser security feature — it does not protect server-to-server communication. A permissive CORS configuration (<code>allowedOrigins("*")</code>) doesn't expose you to CSRF because CSRF requires a browser. But it does allow any browser-based JavaScript on any site to make authenticated requests to your API — which is a different risk if your API uses cookies. For JWT Bearer APIs with no cookies, <code>allowedOrigins("*")</code> is acceptable for truly public APIs. For anything that should only be called from your own frontend, restrict to your domain explicitly.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">How does @PreAuthorize work, and what are its limitations?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><code>@PreAuthorize</code> is a method security annotation that evaluates a Spring Expression Language (SpEL) expression before the method runs. If the expression returns false, <code>AccessDeniedException</code> is thrown (→ 403).
+Enable with <code>@EnableMethodSecurity</code> on a <code>@Configuration</code> class.
+Available in the SpEL context: - <code>authentication</code> — the current <code>Authentication</code> object - <code>principal</code> — <code>authentication.getPrincipal()</code> - <code>hasRole('ADMIN')</code> — checks for <code>ROLE_ADMIN</code> authority - <code>hasAuthority('read:orders')</code> — checks exact authority string - <code>#variableName</code> — references method parameter by name
+<code>java @PreAuthorize("hasRole('ADMIN') or #userId == authentication.name") public UserProfile getProfile(String userId) { ... }</code>
+<strong>Limitations</strong>: - Works via AOP proxy — self-calls within the same bean bypass the check silently. - Requires Spring context — testing the method directly without Spring bypasses security. - SpEL evaluation adds overhead on every call — for hot paths, consider HTTP-level rules.</div>
+        
+        <div class="staff-add"><code>@PostAuthorize</code> is underused but valuable for ownership checks where you can't determine access without loading the resource:
+<code>java @PostAuthorize("returnObject.ownerId == authentication.name") public Order getOrder(Long orderId) { ... }</code>
+The method loads the order from DB, then the expression checks if the current user owns it — avoids a separate ownership query. The cost: the DB query runs even if access is denied. For high-frequency endpoints, pre-check ownership with a specialized query in the service layer instead. <code>@PostFilter</code> filters returned collections — but loading 10,000 records to filter down to 10 is wasteful; use <code>@PreAuthorize</code> with a query that incorporates the ownership clause.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">How do you test Spring Security configurations? What tools does Spring provide?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong><code>@WebMvcTest</code> with security enabled</strong> (default): the security filter chain runs during MockMvc tests. Without credentials, secured endpoints return 401/403.
+<strong><code>@WithMockUser</code></strong>: creates a mock authenticated user with specified roles: <code>java @Test @WithMockUser(roles = "ADMIN") void adminEndpointReturns200() throws Exception {
+  mockMvc.perform(get("/admin/dashboard"))
+    .andExpect(status().isOk());
+}</code>
+<strong><code>@WithUserDetails("username")</code></strong>: loads an actual <code>UserDetails</code> from <code>UserDetailsService</code> — tests with real user data.
+<strong><code>SecurityMockMvcRequestPostProcessors</code></strong>: for JWT resource servers where <code>@WithMockUser</code> doesn't work (no session): <code>java mockMvc.perform(get("/api/orders")
+  .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))
+             .jwt(j -&gt; j.claim("sub", "user123"))))
+  .andExpect(status().isOk());</code></div>
+        
+        <div class="staff-add">Test the security configuration itself, not just the happy path. For each secured endpoint, write: (1) authenticated with correct role → 200, (2) authenticated with wrong role → 403, (3) unauthenticated → 401. This is a security regression test that catches accidentally permissive changes. Use a parameterized test for coverage without boilerplate. For <code>@PreAuthorize</code> method security, the same principle applies — test that the check fires, not just that the method works when authorized.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">How do you implement a stateless JWT-based API with Spring Security? Walk through the full configuration.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>Full configuration for a stateless JWT resource server:
+```java @Configuration @EnableMethodSecurity public class SecurityConfig {</p>
+<p>@Bean
+  public SecurityFilterChain api(HttpSecurity http) throws Exception {
+    return http
+      .csrf(csrf -&gt; csrf.disable())
+      .cors(Customizer.withDefaults())
+      .sessionManagement(s -&gt;
+        s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+      .authorizeHttpRequests(a -&gt; a
+        .requestMatchers("/actuator/health").permitAll()
+        .requestMatchers("/api/public/**").permitAll()
+        .anyRequest().authenticated())
+      .oauth2ResourceServer(o -&gt; o
+        .jwt(j -&gt; j.jwtAuthenticationConverter(jwtAuthConverter()))
+        .authenticationEntryPoint((req, res, ex) -&gt; {
+          res.setContentType("application/json");
+          res.setStatus(401);
+          res.getWriter().write("{\"error\":\"Unauthorized\"}");
+        }))
+      .build();
+  }</p>
+<p>@Bean
+  public JwtAuthenticationConverter jwtAuthConverter() {
+    JwtGrantedAuthoritiesConverter conv = new JwtGrantedAuthoritiesConverter();
+    conv.setAuthoritiesClaimName("roles");
+    conv.setAuthorityPrefix("ROLE_");
+    JwtAuthenticationConverter jac = new JwtAuthenticationConverter();
+    jac.setJwtGrantedAuthoritiesConverter(conv);
+    return jac;
+  }
+} ```</p></div>
+        
+        <div class="staff-add">Two production concerns this configuration doesn't show: <strong>token expiry granularity</strong> and <strong>structured error responses</strong>. The custom <code>authenticationEntryPoint</code> above returns a raw JSON string — better to return a proper <code>ProblemDetail</code> object serialized via Jackson. For token expiry: <code>JwtDecoder</code> rejects expired tokens with a <code>JwtValidationException</code>. Distinguish between "token expired" (the client should refresh) and "token invalid" (the client must re-authenticate) in your 401 response body so clients can react differently. Add <code>error_code: TOKEN_EXPIRED</code> vs <code>error_code: INVALID_TOKEN</code> to the response.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">What is the difference between hasRole and hasAuthority in Spring Security?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><code>hasRole("ADMIN")</code> checks if the current user has an authority named <code>ROLE_ADMIN</code>. Spring Security automatically prepends <code>ROLE_</code> to the argument.
+<code>hasAuthority("ROLE_ADMIN")</code> checks for the exact authority string <code>ROLE_ADMIN</code>. No prefix is added.
+Functionally, <code>hasRole("ADMIN")</code> == <code>hasAuthority("ROLE_ADMIN")</code> when your authorities follow the <code>ROLE_</code> convention.
+When to use which: - Use <code>hasRole("ADMIN")</code> for role-based access following the <code>ROLE_</code> convention. - Use <code>hasAuthority("read:orders")</code> for permission-based scopes (e.g., OAuth2 scopes)
+  where the string is not a role and does not start with <code>ROLE_</code>.</p>
+<p>Mixing them creates subtle bugs — <code>hasRole("read:orders")</code> checks for <code>ROLE_read:orders</code>, which never matches a scope authority.</p></div>
+        
+        <div class="staff-add">At the Staff level, the question is really about your authority model design. Role-based (<code>ROLE_ADMIN</code>) vs permission-based (<code>orders:write</code>) vs scope-based (<code>read:orders</code> from OAuth2) are three different models. Permission-based is more granular but more complex to manage. For a mature authorization model, consider: roles aggregate permissions, permissions map to specific operations. Spring Security's <code>GrantedAuthority</code> is just a string — the semantics are entirely yours to define. Make the convention explicit and documented so every service interprets authorities consistently.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-08</span>
+        <span class="acc-question">A service returns 401 for all requests after deploying a security config change. How do you diagnose it?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>Work through the filter chain systematically:
+1. <strong>Enable security debug logging</strong>: <code>logging.level.org.springframework.security=DEBUG</code>.
+   Security logs show every filter decision, the current <code>Authentication</code>, and the
+   access decision for each request.</p>
+<ol>
+<li>
+<p><strong>Check the access rule order</strong>: <code>authorizeHttpRequests()</code> rules match first-fit.
+   A catch-all <code>anyRequest().authenticated()</code> before your <code>permitAll()</code> rules means
+   everything is secured. Rules must go from most specific to most general.</p>
+</li>
+<li>
+<p><strong>Verify JWT decoder config</strong>: if using OAuth2 resource server, confirm the <code>issuer-uri</code>
+   or <code>jwk-set-uri</code> is reachable from the service. A network issue at startup may
+   have caused the <code>JwtDecoder</code> bean to fail silently.</p>
+</li>
+<li>
+<p><strong>Check <code>@EnableMethodSecurity</code></strong>: if method security was added, a missing role
+   on an endpoint that used to have none causes 403 (not 401).</p>
+</li>
+<li>
+<p><strong>Multiple <code>SecurityFilterChain</code> beans</strong>: if you have more than one, verify which
+   chain matches the URL in question. Add a <code>securityMatcher()</code> to each to make
+   matching explicit.</p>
+</li>
+</ol></div>
+        
+        <div class="staff-add">Security debug logging is verbose but indispensable for diagnosing access issues. In production, keep it off (it logs every request including headers). Use structured logging with a correlation ID that you can filter on: enable <code>DEBUG</code> temporarily for a specific session or IP via the <code>/actuator/loggers</code> endpoint, reproduce the issue, then restore. Add a security audit log (via <code>ApplicationEventPublisher</code> + <code>AuthenticationSuccessEvent</code>, <code>AbstractAuthorizationEvent</code>) that logs authentication events to your SIEM — this is separate from the debug filter chain output and always on.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">S-09</span>
+        <span class="acc-question">How do you configure CORS correctly in Spring Security for a REST API called by a browser frontend?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Correct CORS configuration requires two things: a <code>CorsConfigurationSource</code> bean and wiring it into Spring Security via <code>http.cors()</code>.
+<code>java @Bean public CorsConfigurationSource corsConfigurationSource() {
+  CorsConfiguration config = new CorsConfiguration();
+  config.setAllowedOrigins(List.of("https://app.example.com"));
+  config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+  config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+  config.setExposedHeaders(List.of("X-Total-Count", "Link"));
+  config.setAllowCredentials(true);
+  config.setMaxAge(3600L);
+  UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+  source.registerCorsConfiguration("/**", config);
+  return source;
+}</code>
+In <code>SecurityFilterChain</code>: <code>http.cors(Customizer.withDefaults())</code> — picks up the <code>CorsConfigurationSource</code> bean automatically.
+Why Spring Security must handle CORS (not just <code>@CrossOrigin</code>): OPTIONS pre-flight requests carry no credentials. If the <code>CsrfFilter</code> or authentication filter runs first, the OPTIONS request is rejected before the CORS headers are written. <code>http.cors()</code> inserts the <code>CorsFilter</code> before the auth filters.</div>
+        
+        <div class="staff-add"><code>allowedOrigins("*")</code> and <code>allowCredentials(true)</code> cannot be combined — browsers reject responses that send both. If you need <code>allowCredentials(true)</code> (for session cookies or <code>Authorization</code> header via fetch <code>credentials: 'include'</code>), you must explicitly list allowed origins. For development, use a profile-specific CORS config that allows <code>localhost:3000</code> in <code>dev</code> profile only — never merge a wildcard CORS config into production.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">How do you design a multi-tenant authorization model with Spring Security where tenants have different role hierarchies?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Multi-tenancy in Spring Security requires making the tenant context part of the authentication and authorization decision.
+<strong>Step 1 — encode tenant in the token</strong>: include <code>tenant_id</code> (or similar) as a JWT claim. The <code>JwtAuthenticationConverter</code> maps it onto the <code>Authentication</code> object:
+<code>java jac.setJwtGrantedAuthoritiesConverter(jwt -&gt; {
+  String tenantId = jwt.getClaimAsString("tenant_id");
+  List&lt;GrantedAuthority&gt; authorities = extractRoles(jwt, tenantId);
+  return authorities;
+});</code>
+<strong>Step 2 — tenant-aware <code>@PreAuthorize</code></strong>: inject the tenant from the JWT into SpEL: <code>java @PreAuthorize("authentication.token.claims['tenant_id'] == #tenantId and hasRole('ADMIN')") public void adminAction(String tenantId) { ... }</code>
+<strong>Step 3 — data isolation</strong>: use a <code>TenantContextHolder</code> (populated from the JWT in a filter) that Hibernate's <code>CurrentTenantIdentifierResolver</code> reads to apply row-level security or switch database schemas per tenant.
+<strong>Step 4 — role hierarchy per tenant</strong>: <code>RoleHierarchy</code> bean defines which roles imply others. For per-tenant hierarchies, resolve the hierarchy dynamically based on the current tenant context.</div>
+        
+        <div class="staff-add">The hardest part of multi-tenant authorization is preventing tenant A from accessing tenant B's data through a path that looks authorized. HTTP-level rules check roles but not data ownership. Method-level <code>@PreAuthorize</code> checks must always include tenant context. A missing tenant check is a tenant isolation failure — not just a permissions bug. Consider a custom <code>AccessDeniedHandler</code> that logs cross-tenant access attempts explicitly as a security event to your SIEM. Test tenant isolation explicitly: create two tenants with the same role, confirm tenant A cannot access tenant B's resources even with a valid token.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">How does Spring Security handle SecurityContext propagation in reactive (WebFlux) and async contexts?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Spring MVC + @Async</strong>: <code>SecurityContextHolder</code> uses <code>ThreadLocal</code> by default. Async threads don't inherit it. Fix: configure <code>DelegatingSecurityContextAsyncTaskExecutor</code>:
+<code>java @Bean public Executor taskExecutor() {
+  return new DelegatingSecurityContextAsyncTaskExecutor(
+    new ThreadPoolTaskExecutor() {{ initialize(); }});
+}</code>
+<strong>Spring WebFlux</strong>: <code>ThreadLocal</code> doesn't work in reactive pipelines (each operator may run on a different thread). Spring Security uses <strong>Reactor Context</strong> instead — <code>ReactiveSecurityContextHolder</code>. The <code>SecurityContext</code> is stored in the subscriber context and flows through the reactive chain automatically.
+Access in WebFlux: <code>java ReactiveSecurityContextHolder.getContext()
+  .map(SecurityContext::getAuthentication)
+  .flatMap(auth -&gt; process(auth));</code>
+<code>@PreAuthorize</code> works in WebFlux via <code>ReactiveMethodSecurityExpressionHandler</code> — enabled automatically with <code>@EnableReactiveMethodSecurity</code>.</div>
+        
+        <div class="staff-add">The common mistake when migrating from MVC to WebFlux: any code that calls <code>SecurityContextHolder.getContext()</code> directly (utility classes, legacy helpers, Hibernate interceptors) fails silently in WebFlux — it returns an empty context. Audit all security context access patterns before migrating. Replace <code>SecurityContextHolder</code> calls with <code>ReactiveSecurityContextHolder</code> and propagate via the reactive chain. This is a larger refactor than it appears — security context access tends to be scattered through service and utility code.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">How do you implement rate limiting and brute-force protection in Spring Security?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>Spring Security does not include rate limiting out of the box. Implementation options:
+<strong>Option 1 — Spring Security filter + Bucket4j</strong> (token bucket algorithm): ```java @Component public class RateLimitFilter extends OncePerRequestFilter {
+  private final Bucket4jRateLimiter rateLimiter; // per-IP or per-user buckets</p>
+<p>@Override
+  protected void doFilterInternal(HttpServletRequest req, ...) {
+    String key = extractKey(req); // IP or authenticated userId
+    if (!rateLimiter.tryConsume(key)) {
+      response.setStatus(429);
+      return;
+    }
+    filterChain.doFilter(req, response);
+  }
+} <code>`` Register:</code>http.addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)<code>.
+**Option 2 — Brute-force on login**: override</code>AuthenticationEventPublisher<code>to listen for</code>AuthenticationFailureBadCredentialsEvent<code>. Track failures per username/IP in Redis. After N failures in a window, lock the account (</code>UserDetails.isAccountNonLocked()`) or add a delay.
+<strong>Option 3 — API gateway</strong>: implement rate limiting in Kong, AWS WAF, or Envoy before traffic reaches the service. Preferred for rate limits that apply across multiple services.</p></div>
+        
+        <div class="staff-add">Brute-force protection has a subtle failure mode: locking accounts on authentication failure enables a denial-of-service attack. An attacker can lock any user's account by failing their login N times intentionally. Mitigate: add an exponential backoff delay per username rather than full lockout; rate limit the login endpoint by IP (attacker's IP); alert on lockout events. For APIs, prefer per-client-token or per-IP rate limiting over per-account — the attack surface is different from user-facing login forms.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">ST-04</span>
+        <span class="acc-question">A legacy Spring Boot service uses form login with sessions. You need to migrate it to OAuth2/JWT without downtime. How do you design the migration?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Migration goal: support both session-based (old) and JWT (new) clients simultaneously during the transition, then cut over.
+<strong>Phase 1 — dual auth chains</strong>: Configure two <code>SecurityFilterChain</code> beans. Chain 1 matches <code>/api/v2/**</code> (new clients, stateless JWT). Chain 2 matches everything else (existing clients, form login + sessions). Both chains coexist. New clients use JWT; old clients continue using sessions.
+<strong>Phase 2 — issue JWT alongside sessions</strong> (optional transition aid): After successful form login, generate a JWT and return it in the response body. Clients can start storing and using it.
+<strong>Phase 3 — migrate clients</strong>: Update each client (frontend, mobile, service) to use JWT Bearer tokens. Monitor session creation rate in Actuator metrics — when it drops to zero, all clients have migrated.
+<strong>Phase 4 — remove session chain</strong>: Remove Chain 2. Disable session creation globally. Clean up <code>HttpSession</code> infrastructure.</div>
+        
+        <div class="staff-add">The risk in dual-chain migration is authorization divergence — the two chains may have different access rules that get out of sync as features are added. Minimize divergence by sharing access rule definitions: extract rules into a shared method called by both chain configurations. Monitor for access rule differences in security tests that run the same request against both chains. Plan the transition timeline in weeks, not months — dual auth chains are temporary infrastructure with a maintenance cost.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">At scale with 50+ microservices, where should authentication and authorization logic live — in each service or centralized?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Centralized at the API gateway</strong> (authentication only): The gateway validates the token once (JWT signature, expiry, issuer), strips and re-emits claims in a trusted header (e.g., <code>X-User-Id</code>, <code>X-User-Roles</code>). Services trust the headers — no JWT validation overhead per service. Clean separation: one place to update token validation logic.
+Risk: services must trust that the gateway enforces authentication. A path that bypasses the gateway reaches services with no auth. Every internal service-to-service call must go through the gateway or a trusted mesh — or re-validate a service account token.
+<strong>Distributed in each service</strong> (authentication + authorization): Each service validates JWT and enforces its own access rules. More resilient — no gateway SPOF for auth. Fine-grained control: method-level <code>@PreAuthorize</code> with business logic. Consistent JWT validation via a shared library (internal Spring Security starter).
+<strong>Hybrid (recommended at scale)</strong>: gateway handles rate limiting, mTLS termination, and coarse-grained auth (is the token valid?). Each service enforces fine-grained authorization with Spring Security. Service-to-service calls use short-lived service tokens (OAuth2 client credentials) validated by each service independently.</div>
+        
+        <div class="staff-add">The real question is blast radius and complexity tradeoff. A centralized gateway is a shared component — a config bug in auth rules affects all 50 services simultaneously. Distributed validation isolates failures — a misconfigured service affects only that service. At 50+ services, a shared Spring Security starter that encodes the JWT validation configuration and authority mapping is the platform team's responsibility. Services consume the starter without configuring auth mechanics themselves. This gives centralized consistency with distributed execution. The starter version becomes a security artifact that must be bumped when the JWT validation logic changes — treat it with the same rigor as a database schema migration.</div>
+        
+      </div>
+    </div>
+    
+    <div class="acc-item">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-num">P-02</span>
+        <span class="acc-question">How do you design a zero-trust service-to-service authentication model in a Spring Boot microservices architecture?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Zero-trust: every service-to-service call is authenticated, regardless of network location. No implicit trust because a call is on the internal network.
+<strong>OAuth2 Client Credentials</strong> (recommended): Each service is registered as an OAuth2 client. To call another service, it requests a token from the authorization server using its client ID and secret (or mTLS certificate). The called service validates the token as a resource server — same mechanism as user tokens.
+Spring Security 6 + Spring WebClient: <code>java @Bean public WebClient serviceClient(OAuth2AuthorizedClientManager manager) {
+  ServletOAuth2AuthorizedClientExchangeFilterFunction oauth2 =
+    new ServletOAuth2AuthorizedClientExchangeFilterFunction(manager);
+  oauth2.setDefaultClientRegistrationId("order-service");
+  return WebClient.builder().apply(oauth2.oauth2Configuration()).build();
+}</code>
+<strong>mTLS</strong> (stronger): Each service has a client certificate issued by an internal CA (Vault PKI). The called service validates the client cert. Spring Boot + Tomcat: configure <code>clientAuth=want</code> or <code>need</code>. Extract the client subject from <code>X509Certificate</code> in a custom filter. Combined mTLS + JWT: mTLS proves service identity at the transport layer; JWT carries claims at the application layer.</div>
+        
+        <div class="staff-add">The operational cost of zero-trust service auth is certificate or token lifecycle management. Client credentials secrets rotate on a schedule — coordinate rotation without downtime (dual-secret validity window). mTLS certificates expire — automate renewal via cert-manager + Vault PKI before human intervention is needed. The failure mode that kills zero-trust programs is the secret that couldn't be rotated because the rotation process was manual and the team was mid-sprint — so it stays unchanged for 2 years. Build rotation automation before you mandate zero-trust, not after. The policy is only as strong as the automation that enforces it.</div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">🔐 Scenario 1 — Securing a REST API with JWT and Role-Based Access</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A new Spring Boot REST API serves multiple client types: a web frontend (user-facing, OAuth2 PKCE flow), internal backend services (OAuth2 client credentials), and a mobile app (OAuth2 PKCE on mobile). The authorization server is external (e.g., Auth0). The API has endpoints that require different roles: public read, authenticated read, user write, and admin-only operations.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>No sessions — all clients use Bearer tokens</li><li>Roles come from the JWT's 'roles' claim as a list of strings</li><li>Public health endpoints must be accessible without a token</li><li>Invalid tokens must return JSON 401, not HTML or a redirect to login</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Resource server configuration</strong>: <code>issuer-uri</code> points to Auth0. Spring Security auto-discovers JWKS. <code>SessionCreationPolicy.STATELESS</code> and <code>csrf.disable()</code> for all routes.</li><li><strong>Custom authority mapping</strong>: <code>JwtGrantedAuthoritiesConverter</code> reads the <code>roles</code> claim, prefixes each with <code>ROLE_</code>. A <code>roles: ["admin", "user"]</code> claim becomes <code>ROLE_ADMIN</code>, <code>ROLE_USER</code> as <code>GrantedAuthority</code> objects.</li><li><strong>URL-level rules</strong>: <code>/actuator/health</code> and <code>/api/v1/public/**</code> → <code>permitAll()</code>. <code>anyRequest()</code> → <code>authenticated()</code>. Specific admin routes protected via <code>@PreAuthorize("hasRole('ADMIN')")</code> on service methods.</li><li><strong>Custom error responses</strong>: implement <code>AuthenticationEntryPoint</code> returning <code>ProblemDetail</code> JSON for 401. Implement <code>AccessDeniedHandler</code> returning <code>ProblemDetail</code> JSON for 403. Neither should redirect — clients are not browsers expecting a login page.</li><li><strong>CORS</strong>: <code>http.cors(Customizer.withDefaults())</code> + <code>CorsConfigurationSource</code> bean allowing <code>https://app.example.com</code>. <code>allowCredentials(false)</code> since auth is via Bearer header, not cookies.</li><li><strong>Service-to-service</strong>: internal services send <code>Authorization: Bearer &lt;client_credentials_token&gt;</code>. The same resource server validates them. Service tokens carry a <code>service</code> role, not <code>user</code> or <code>admin</code>.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Using <code>antMatchers</code> in Spring Boot 3 — deprecated, replaced by <code>requestMatchers</code></li><li><code>authorizeHttpRequests</code> rules in wrong order — <code>anyRequest().authenticated()</code> before <code>permitAll()</code> rules means permitAll() is never reached</li><li>Disabling CSRF without <code>SessionCreationPolicy.STATELESS</code> — sessions + no CSRF = CSRF vulnerability</li><li>CORS configured only via @CrossOrigin on controllers — OPTIONS pre-flight is rejected as unauthenticated before reaching the controller</li><li>401 response body is Spring Security's default HTML error page — clients (especially mobile) can't parse it</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">🔍 Scenario 2 — Production Security Audit: Service Returns 200 for Unauthorized Requests</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A security review finds that a Spring Boot service's admin endpoints are returning 200 to requests without any Authorization header in a staging environment. The service was recently upgraded from Spring Boot 2 to Spring Boot 3. In production (different environment), the same endpoints correctly return 401.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>The staging environment uses a different application-staging.yml profile</li><li>No change to the SecurityFilterChain @Bean was made during the upgrade</li><li>The security configuration class was moved to a new package during a refactoring</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Root cause — package move broke @ComponentScan</strong>: moving the <code>SecurityConfig</code> class to a new package outside the base <code>@SpringBootApplication</code> package means <code>@ComponentScan</code> no longer finds it. The <code>SecurityFilterChain</code> bean is never registered. Spring Security's default configuration applies — which in Spring Boot 3 is <code>httpBasic + formLogin + all endpoints secured</code>... but without the custom bean, the <code>oauth2ResourceServer</code> configuration is gone.</li><li><strong>Why staging differs from production</strong>: the <code>application-staging.yml</code> may disable security (<code>spring.security.enabled=false</code> or a custom flag) for integration testing convenience. Production does not have this flag.</li><li><strong>Verify with /actuator/beans</strong>: check if <code>SecurityFilterChain</code> bean appears in the context. If not, the config class isn't loaded.</li><li><strong>Fix 1 — move the class back or extend @ComponentScan</strong>: <code>@SpringBootApplication(scanBasePackages = {"com.example.app", "com.example.security"})</code>.</li><li><strong>Fix 2 — add a security integration test to CI</strong>: <code>@WebMvcTest + mockMvc.perform(get("/admin/dashboard")).andExpect(status().isUnauthorized())</code>. This test must run in CI against the staging profile — it would have caught this.</li><li><strong>Fix 3 — remove <code>spring.security.enabled=false</code> from staging</strong>: security should be enabled in all environments. Use a test user with limited permissions instead of disabling security.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li><code>spring.security.enabled=false</code> in any non-local environment — a misconfigured flag disabling security in staging is one env-var away from production</li><li>No security regression tests in CI — access control changes must be tested, not assumed</li><li>Testing only the happy path (authorized requests return 200) without testing the rejection path (unauthorized returns 401)</li><li>Relying on 'security works in production' without automated verification — manual spot-checks miss regressions</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">🔄 Scenario 3 — Migrating from Session-Based Auth to OAuth2 JWT Without Downtime</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A Spring Boot service with 50,000 daily active users uses form login with HTTP sessions stored in Redis. A platform initiative mandates all services migrate to OAuth2/JWT within 6 months. The frontend (React SPA) will migrate to PKCE. Mobile apps have a 6-month forced upgrade cycle — old versions will keep using sessions until they're gone.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Zero downtime — active user sessions must not be invalidated during migration</li><li>Old mobile app versions (session-based) and new versions (JWT) must coexist for 6 months</li><li>New web frontend deploys first, then mobile follows over 6 months</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Dual SecurityFilterChain strategy</strong>: Chain 1 — <code>securityMatcher("/api/v2/**")</code> → stateless JWT resource server for new clients. Chain 2 — matches everything else → form login + session. Both chains coexist for 6 months.</li><li><strong>Frontend migration (week 1)</strong>: update React SPA to use PKCE flow with the OAuth2 authorization server. Calls move to <code>/api/v2/**</code>. Sessions are no longer created for web traffic.</li><li><strong>Mobile migration (months 1–6)</strong>: old app versions continue using session-based <code>/api/v1/**</code>. New app versions use JWT + <code>/api/v2/**</code>. Monitor session creation rate in Actuator metrics — <code>http.sessions.active</code> declining indicates migration progress.</li><li><strong>Shared access rules</strong>: extract <code>authorizeHttpRequests()</code> rules into a shared lambda method called by both chains. This prevents rules diverging over the 6-month period as features are added.</li><li><strong>Session drain</strong>: after all mobile versions are sunset (6 months), session creation rate drops to zero. At this point, remove Chain 2, disable <code>spring-session-data-redis</code>, and remove Redis session storage.</li><li><strong>Rollback plan</strong>: Chain 2 can be re-enabled without a code change (feature flag → Spring profile). Keep Chain 2 code in the codebase for 2 months after sunset before deleting.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Migrating all clients at once — mobile apps cannot be force-updated; there's always a tail of old versions</li><li>Different access rules in Chain 1 vs Chain 2 — a feature added to one and not the other creates an inconsistency that persists for 6 months</li><li>Invalidating existing Redis sessions on cutover — users are logged out mid-session</li><li>No monitoring of session creation rate — no signal to know when migration is complete and Chain 2 can be removed</li><li>Removing Chain 2 before all old mobile versions are sunset — old app users lose access with no recourse</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>function toggleTheme(){
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  h.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+function switchTab(name, el){
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+}
+
+function toggleAcc(header){
+  const item = header.parentElement;
+  item.classList.toggle('open', !item.classList.contains('open'));
+}
+</script>
+</body>
+</html>

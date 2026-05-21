@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A data-driven interview preparation hub for software engineers targeting Senior, Staff, and Principal-level roles. The goal is a single place to study key technologies in depth — concept overviews, quick-reference tables, level-tagged Q&A, and system design scenarios. Content is fully generic (no company-specific references) so it applies to any interview.
 
-The hub is served as a static site: `index.html` is the landing page listing all topics; each topic is a self-contained HTML file (`kafka.html`, `aws.html`, etc.) that works offline with no server.
+The hub is served as a static site: `index.html` is the landing page listing all topics; each topic is a self-contained HTML file (`kafka.html`, `kubernetes.html`, etc.) that works offline with no server.
 
 ## Architecture
 
@@ -16,7 +16,7 @@ templates/      ← topic.html.j2 (Jinja2 template)
 shared/         ← style.css + script.js (inlined into every output file)
 generate.py     ← reads content/*.yaml → renders template → writes HTML
 index.html      ← generated hub page (auto-rebuilt on every generate run)
-{id}.html       ← generated topic pages (self-contained, offline-capable); currently kafka.html, ocp.html, oauth2.html
+{id}.html       ← generated topic pages (self-contained, offline-capable)
 ```
 
 **Adding a new topic = write one YAML file + run `python generate.py`.**
@@ -123,8 +123,14 @@ Topics are grouped by category on the index page. Current order: `Backend · Inf
 
 The order is controlled by `CATEGORY_ORDER` in `generate.py:35`. When adding a YAML with a `category` value not already in that list, append it there — otherwise the category appears after all known ones.
 
+## Deploy
+
+Push to `main` triggers GitHub Actions (`.github/workflows/deploy.yml`), which regenerates all HTML and deploys to `thisisbalu/thisisbalu.github.io` under `/projects/field-guide`.
+
+Live URL: `https://www.balasubramanyamlanka.com/projects/field-guide`
+
 ## Topics
 
-**Done:** kafka (Backend), ocp (Infrastructure), oauth2 (Security)
+**Current (11):** kafka (Backend), golang (Backend), distributed-systems (Backend), springboot (Backend), postgresql (Data), kubernetes (Infrastructure), ocp (Infrastructure), oauth2 (Security), jwt (Security), vault (Security), spring-security (Security)
 
-**Planned:** aws, postgresql, vault, datadog, helm, springboot, kibana, snowflake_qlik, sonarqube_gatling_cucumber, trident_jfrog_nexusiq
+**Planned:** aws, datadog, helm, springboot, kibana, snowflake_qlik, sonarqube_gatling_cucumber, trident_jfrog_nexusiq

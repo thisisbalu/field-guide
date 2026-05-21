@@ -1,0 +1,901 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Spring Boot — Interview Field Guide Content
+# Edit this file to update the guide. Run: python generate.py springboot
+# ══════════════════════════════════════════════════════════════════════════════
+
+meta:
+  id: springboot
+  title: Spring Boot
+  title_short: Spring Boot
+  subtitle: "// auto-configuration · starters · actuator · JPA · embedded server · senior → principal"
+  category: Backend
+  icon: "🌱"
+
+colors:
+  toggle_light: "#5a9e2f"
+  toggle_dark:  "#86C943"
+  light_vars: >-
+    --accent:#5a9e2f;--accent2:#0077aa;--accent3:#5b21b6;
+    --highlight-bg:#f2fae9;--highlight-text:#5a9e2f;--highlight-border:#6DB33F;
+    --your-exp-bg:rgba(91,33,182,.06);--your-exp-border:rgba(91,33,182,.2);--your-exp-text:#5b21b6;
+    --acc-hover:rgba(90,158,47,.04);--acc-open-border:#5a9e2f;--acc-open-bg:rgba(90,158,47,.04);
+    --num-color:#5a9e2f;--num-bg:rgba(90,158,47,.12);
+    --tag-color:#3d7020;--tag-bg:rgba(90,158,47,.08);--tag-border:rgba(90,158,47,.2);
+    --flow-arrow:#5a9e2f;--h1-from:#3d7020;--h1-to:#5a9e2f;
+    --badge-color:#3d7020;--stat-num:#3d7020;
+    --tab-active-color:#5a9e2f;--tab-active-bg:rgba(90,158,47,.08);--tab-active-border:#5a9e2f;
+    --section-title:#5a9e2f;--concept-title:#3d7020;
+    --cheat-head-bg:#3d7020;--cheat-head-text:#ffffff;--cheat-key:#3d7020;
+    --cmd-bg:#f2fae9;--cmd-text:#3d7020;
+  dark_vars: >-
+    --accent:#86C943;--accent2:#00d4ff;--accent3:#a78bfa;
+    --highlight-bg:#0c1a04;--highlight-text:#86C943;--highlight-border:#86C943;
+    --your-exp-bg:rgba(167,139,250,.08);--your-exp-border:rgba(167,139,250,.25);--your-exp-text:#c4b5fd;
+    --acc-hover:rgba(134,201,67,.04);--acc-open-border:#86C943;--acc-open-bg:rgba(134,201,67,.03);
+    --num-color:#86C943;--num-bg:rgba(134,201,67,.08);
+    --tag-color:#86C943;--tag-bg:rgba(134,201,67,.08);--tag-border:rgba(134,201,67,.2);
+    --flow-arrow:#86C943;--h1-from:#86C943;--h1-to:#00d4ff;
+    --badge-color:#86C943;--stat-num:#86C943;
+    --tab-active-color:#86C943;--tab-active-bg:rgba(134,201,67,.08);--tab-active-border:#86C943;
+    --section-title:#86C943;--concept-title:#86C943;
+    --cheat-head-bg:#0c1a04;--cheat-head-text:#86C943;--cheat-key:#86C943;
+    --cmd-bg:#0c1a04;--cmd-text:#86C943;
+
+# ── OVERVIEW ──────────────────────────────────────────────────────────────────
+overview:
+  concepts:
+    - title: "⚡ Auto-configuration"
+      body: >
+        The core of Spring Boot's opinionation. `@SpringBootApplication` combines
+        `@Configuration + @EnableAutoConfiguration + @ComponentScan`. On startup,
+        `@EnableAutoConfiguration` triggers `AutoConfigurationImportSelector`, which reads
+        `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+        from every jar on the classpath. Each candidate configuration is evaluated against
+        its `@Conditional*` annotations:
+
+        - `@ConditionalOnClass(DataSource.class)` — only applies if a JPA jar is on the classpath
+        - `@ConditionalOnMissingBean(DataSource.class)` — backs off if you defined your own bean
+        - `@ConditionalOnProperty("spring.datasource.url")` — only applies if the property is set
+
+        Adding `spring-boot-starter-data-jpa` to your pom automatically creates a DataSource,
+        EntityManagerFactory, and TransactionManager — unless you override them.
+        Debug with `--debug` flag or `/actuator/conditions` endpoint.
+      flows:
+        - ["@SpringBootApplication", "@EnableAutoConfiguration", "Read AutoConfiguration candidates", "Evaluate @Conditional*", "Create matching beans"]
+      tags:
+        - {text: "@ConditionalOnMissingBean = override", color: green}
+        - {text: "@ConditionalOnClass", color: orange}
+        - {text: "--debug = conditions report", color: purple}
+
+    - title: "📦 Starters"
+      body: >
+        Starters are **dependency aggregators** — they pull in classpath dependencies but add
+        no beans themselves. Beans come from auto-configuration triggered by the new classpath.
+
+        Common starters and what they bring:
+        - `spring-boot-starter-web` → Spring MVC + embedded Tomcat + Jackson
+        - `spring-boot-starter-data-jpa` → Hibernate + Spring Data + HikariCP
+        - `spring-boot-starter-security` → Spring Security filter chain
+        - `spring-boot-starter-actuator` → Actuator endpoints + Micrometer
+        - `spring-boot-starter-test` → JUnit 5 + Mockito + AssertJ + MockMvc
+
+        To swap an embedded server (Tomcat → Undertow): exclude
+        `spring-boot-starter-tomcat` from `spring-boot-starter-web` and add
+        `spring-boot-starter-undertow`.
+      tags:
+        - {text: "starters = dependencies only", color: green}
+        - {text: "auto-config creates the beans", color: orange}
+
+    - title: "🖥️ Embedded Server & Thread Model"
+      body: >
+        Spring Boot embeds Tomcat (default), Jetty, or Undertow in the fat JAR. No external
+        application server. `java -jar app.jar` starts a production-capable HTTP server.
+
+        **Thread-per-request (Spring MVC / servlet)**: each request occupies one thread from a
+        bounded pool (`server.tomcat.threads.max`, default 200). Blocking I/O — DB queries,
+        HTTP calls — holds the thread for its full duration. Throughput ceiling:
+        `thread_count / mean_response_time_seconds`.
+
+        **Event-loop (Spring WebFlux / Netty)**: a small number of threads (≈ CPU count)
+        handle thousands of concurrent connections via non-blocking I/O. Higher concurrency
+        under I/O-heavy workloads. Requires the reactive programming model end-to-end — a
+        single blocking call in the pipeline blocks an event-loop thread.
+      tags:
+        - {text: "MVC = thread-per-request", color: orange}
+        - {text: "WebFlux = event-loop", color: green}
+        - {text: "default 200 threads", color: purple}
+
+    - title: "📊 Spring Boot Actuator"
+      body: >
+        Actuator adds production-readiness endpoints with no code:
+
+        - `/actuator/health` — UP/DOWN status + component health (DB, Kafka, disk).
+          Maps to Kubernetes liveness/readiness probes.
+        - `/actuator/metrics` — Micrometer metrics. Add `micrometer-registry-prometheus`
+          for a Prometheus-compatible `/actuator/prometheus` scrape endpoint.
+        - `/actuator/loggers` — view and change log levels at runtime without restart.
+        - `/actuator/env` — all active properties and sources (values sanitized by default).
+        - `/actuator/threaddump` — full JVM thread dump for diagnosing deadlocks and saturation.
+
+        Default: only `/health` and `/info` exposed. Expose others explicitly:
+        `management.endpoints.web.exposure.include=health,metrics,loggers`
+        and protect them with Spring Security.
+      tags:
+        - {text: "/health for K8s probes", color: green}
+        - {text: "/loggers = runtime log level", color: orange}
+        - {text: "protect non-health endpoints", color: red}
+
+    - title: "⚙️ Properties, Profiles & Configuration"
+      body: >
+        **Property source precedence** (highest wins):
+        1. Command-line args (`--server.port=9090`)
+        2. Environment variables (`SPRING_DATASOURCE_URL`)
+        3. `application-{profile}.yml`
+        4. `application.yml`
+
+        **Profiles** (`spring.profiles.active=prod`): activate profile-specific config files
+        and `@Profile("prod")`-gated beans.
+
+        **`@ConfigurationProperties("prefix")`** binds an entire config prefix to a typed POJO —
+        type-safe, IDE-completable, JSR-303 validated with `@Validated`. Prefer it over `@Value`
+        for any structured config block with two or more related properties.
+      flows:
+        - ["CLI args", "Env vars", "application-{profile}.yml", "application.yml", "defaults"]
+      tags:
+        - {text: "env vars beat yml", color: orange}
+        - {text: "@ConfigurationProperties = type-safe", color: green}
+
+    - title: "🗃️ Spring Data JPA"
+      body: >
+        Spring Data eliminates boilerplate DAO code via **repository interfaces**. Extend
+        `JpaRepository<Entity, ID>` to get CRUD, paging, and sorting for free.
+
+        **Query derivation**: method names derive queries automatically —
+        `findByEmailAndStatus(String email, Status s)` generates the JPQL at startup.
+
+        **`@Query`**: explicit JPQL or native SQL for complex queries.
+
+        **Fetch strategies**: `FetchType.LAZY` (default for collections) defers loading until
+        the field is accessed. Accessing a lazy association after the transaction closes
+        throws `LazyInitializationException`. Fix with `@EntityGraph`, `JOIN FETCH`, or
+        DTOs via projections.
+
+        **N+1 problem**: loading 100 orders then calling `order.getItems()` on each triggers
+        100 additional queries. Enable `logging.level.org.hibernate.SQL=DEBUG` in development
+        to catch this early.
+      tags:
+        - {text: "LAZY = load on access", color: orange}
+        - {text: "@EntityGraph = explicit fetch", color: green}
+        - {text: "N+1 = silent performance killer", color: red}
+
+    - title: "🌐 Spring MVC REST"
+      body: >
+        `@RestController` = `@Controller` + `@ResponseBody`. Spring MVC maps requests to
+        methods via `@GetMapping`, `@PostMapping`, etc.
+
+        **Input validation**: annotate DTOs with Bean Validation constraints (`@NotNull`,
+        `@Size`, `@Email`) and add `@Valid` on the `@RequestBody` parameter.
+        Spring throws `MethodArgumentNotValidException` on failure.
+
+        **Global error handling**: `@ControllerAdvice` + `@ExceptionHandler` centralizes
+        exception-to-response mapping across all controllers. Use `ProblemDetail` (RFC 7807,
+        native in Spring Boot 3) for a standards-compliant error format.
+
+        **`ResponseEntity<T>`**: full control over status code, headers, and body — use when
+        the HTTP response must vary (201 with Location header, 204 No Content).
+      tags:
+        - {text: "@Valid for input validation", color: green}
+        - {text: "@ControllerAdvice = global handler", color: orange}
+
+    - title: "🧪 Testing Spring Boot"
+      body: >
+        Spring Boot provides **test slices** — lightweight contexts that load only one layer,
+        making tests faster and more focused.
+
+        - **`@SpringBootTest`**: full application context. Use for integration tests that span
+          multiple layers. Add `webEnvironment=RANDOM_PORT` for a real HTTP server. Slow.
+        - **`@WebMvcTest(Controller.class)`**: web layer only — controllers, filters, security.
+          Inject `MockMvc`. Mock service dependencies with `@MockBean`.
+        - **`@DataJpaTest`**: JPA infrastructure + H2 (default). Tests repository queries in
+          isolation. Rolls back after each test.
+        - **`@MockBean`**: replaces a Spring bean with a Mockito mock in the context. Unlike
+          `@Mock`, it integrates with Spring DI — other beans get the mock autowired.
+
+        **Testcontainers** + `@DataJpaTest` with a real Postgres image catches database-specific
+        behavior that H2 silently ignores (window functions, constraints, custom types).
+      tags:
+        - {text: "@WebMvcTest = controller layer", color: green}
+        - {text: "@DataJpaTest = JPA layer", color: orange}
+        - {text: "Testcontainers for real DB", color: purple}
+
+  gotchas:
+    - title: "@Transactional on self-calls is silently ignored"
+      body: >
+        Spring's `@Transactional` works via AOP proxy. When method `A` in the same class calls
+        `@Transactional` method `B`, the call goes directly to `this`, bypassing the proxy —
+        no transaction is created or joined. This is the most common Spring gotcha. Fix: inject
+        `self` via `@Autowired`, move `B` to another Spring bean, or use AspectJ weaving (load-time
+        or compile-time) which instruments `this` calls directly.
+
+    - title: "LazyInitializationException — JPA relations accessed outside a transaction"
+      body: >
+        `@OneToMany(fetch = LAZY)` proxies load from the DB only when accessed. Accessing them
+        after the `@Transactional` method returns (in a controller, in `toString()`, or during
+        Jackson serialization) throws `LazyInitializationException`. Fix: use DTOs/projections,
+        `@EntityGraph`, or `JOIN FETCH`. Avoid `spring.jpa.open-in-view=true` (the "Open Session
+        In View" anti-pattern) — it masks the root cause and causes silent N+1 queries.
+
+    - title: "@Async does not propagate the SecurityContext"
+      body: >
+        `SecurityContextHolder` uses a `ThreadLocal` by default. When `@Async` dispatches work
+        to another thread, the security context is not copied — the async thread sees an empty
+        `SecurityContextHolder`. Any code calling `SecurityContextHolder.getContext()` in an async
+        method (e.g., to get the current user for auditing) gets null. Fix: configure
+        `DelegatingSecurityContextAsyncTaskExecutor` as the `@Async` executor, or set the holder
+        strategy to `MODE_INHERITABLETHREADLOCAL`.
+
+    - title: "Auto-configuration conflicts produce cryptic startup failures"
+      body: >
+        Two auto-configurations producing the same bean type, or your bean conflicting with an
+        auto-configured one, causes `NoSuchBeanDefinitionException` or duplicate bean errors.
+        Run with `--debug` to see the **Conditions Evaluation Report**: which configurations
+        matched, which were excluded, and why. The fix is usually: add
+        `@ConditionalOnMissingBean` to your bean definition, or explicitly exclude an
+        auto-configuration class via `@SpringBootApplication(exclude = ...)`.
+
+    - title: "Spring Boot 2 → Boot 3: javax → jakarta namespace break"
+      body: >
+        Spring Boot 3 (Spring Framework 6) moved to Jakarta EE 9+, renaming `javax.*` packages
+        to `jakarta.*`. Any import of `javax.persistence.*`, `javax.servlet.*`, or
+        `javax.validation.*` fails to compile. Transitive dependencies on pre-Jakarta libraries
+        also break. Run OpenRewrite's `UpgradeSpringBoot_3_0` recipe to automate most renames.
+        Verify each transitive dependency (Hibernate 6+, Flyway 9+, MapStruct 1.5+) supports
+        Jakarta EE before upgrading.
+
+    - title: "Lazy initialization hides startup failures"
+      body: >
+        `spring.main.lazy-initialization=true` defers bean creation to first use, reducing startup
+        time by 5–15s. The cost: a misconfigured datasource, missing property, or broken bean
+        definition only surfaces on the first request that touches it — not at startup. In
+        production, this means a deployment can succeed and the pod can become "Ready" while
+        harboring a fatal configuration error. Use lazy init only if startup time is a hard
+        requirement, and compensate with a smoke test that exercises every major flow on deploy.
+
+  when_to_use:
+    - "Building Java/Kotlin microservices where Spring ecosystem (JPA, Security, Kafka, Redis) is needed"
+    - "Teams with existing Spring expertise — Boot reduces boilerplate without changing idioms"
+    - "When production-readiness (Actuator, Micrometer, health checks, structured logging) is needed out of the box"
+    - "CRUD-heavy services with relational data — Spring Data JPA is unmatched for productivity"
+    - "When a rich testing ecosystem (@WebMvcTest, @DataJpaTest, Testcontainers) matters"
+
+  when_not_to_use:
+    - "Cold-start latency or sub-100ms startup is required (serverless, scale-to-zero) — prefer Quarkus or Micronaut"
+    - "Memory is heavily constrained — Spring Boot JVM overhead starts at 200–400 MB baseline"
+    - "Non-JVM teams — the framework's value is tied to the Java/Kotlin ecosystem"
+    - "Simple scripts or CLIs where a 3–15s JVM startup is not justified"
+
+# ── DEEP DIVE ─────────────────────────────────────────────────────────────────
+deep_dive:
+  tables:
+    - title: "🏷️ Core Annotation Reference"
+      full_width: true
+      rows:
+        - {key: "@SpringBootApplication", value: "Entry point. Combines @Configuration + @EnableAutoConfiguration + @ComponentScan(basePackage of annotated class)."}
+        - {key: "@RestController", value: "@Controller + @ResponseBody. All return values serialized to the HTTP response body (JSON by default via Jackson)."}
+        - {key: "@Service / @Repository", value: "@Component specializations. @Repository additionally translates JPA/JDBC exceptions to Spring's DataAccessException hierarchy."}
+        - {key: "@Autowired", value: "Dependency injection. Prefer constructor injection — Spring injects implicitly if there is only one constructor. Avoid field injection (untestable without Spring context)."}
+        - {key: "@ConfigurationProperties(\"prefix\")", value: "Binds a config prefix to a typed POJO. Type-safe, IDE-completable, validated with @Validated. Preferred over @Value for structured config."}
+        - {key: "@Value(\"${prop}\")", value: "Inject a single property. Supports SpEL and defaults: @Value(\"${timeout:5000}\"). Use only for one-off single properties."}
+        - {key: "@Transactional", value: "Proxy-based AOP transaction. propagation controls join/create/suspend; isolation controls concurrency. readOnly=true hints optimizer. Self-calls bypass proxy."}
+        - {key: "@Query", value: "Explicit JPQL or SQL on a Spring Data repository method. nativeQuery=true for raw SQL. Overrides derived query name parsing."}
+        - {key: "@EntityGraph(attributePaths)", value: "Declares which LAZY associations to eagerly fetch for a specific repository method. Prevents N+1 without changing the entity mapping."}
+        - {key: "@ControllerAdvice + @ExceptionHandler", value: "@ControllerAdvice applies globally to all controllers. @ExceptionHandler maps an exception type to an HTTP response. Most-specific handler wins."}
+        - {key: "@Valid / @Validated", value: "@Valid triggers Bean Validation on @RequestBody or method parameters. Failure throws MethodArgumentNotValidException (400)."}
+        - {key: "@Async", value: "Run a method on a separate executor thread pool. Requires @EnableAsync on a @Configuration class. Return void or Future/CompletableFuture."}
+
+    - title: "📊 Actuator Endpoints Reference"
+      full_width: true
+      rows:
+        - {key: "/actuator/health", value: "Liveness + readiness. K8s probe paths: /actuator/health/liveness and /actuator/health/readiness. Component health (DB, Kafka, disk) shown when management.endpoint.health.show-details=always."}
+        - {key: "/actuator/metrics", value: "Micrometer metrics as JSON. Add micrometer-registry-prometheus for /actuator/prometheus scrape endpoint. Query: /actuator/metrics/http.server.requests?tag=status:500"}
+        - {key: "/actuator/loggers", value: "GET: current log levels. POST {configuredLevel:'DEBUG'}: change log level at runtime — invaluable for debugging production without restart."}
+        - {key: "/actuator/threaddump", value: "Full JVM thread dump. Diagnose deadlocks and thread pool saturation without a connected profiler."}
+        - {key: "/actuator/env", value: "All active properties, sources, and precedence order. Sensitive values masked. Restrict to internal network — exposes config secrets otherwise."}
+        - {key: "/actuator/conditions", value: "Conditions evaluation report at runtime — same output as --debug flag. Shows which auto-configurations applied and why others were skipped."}
+        - {key: "/actuator/mappings", value: "All @RequestMapping routes registered. Useful for verifying route configuration and discovering endpoints."}
+        - {key: "/actuator/heapdump", value: "Downloads a .hprof heap dump. Large response; restrict access tightly. Use only for diagnosing memory leaks."}
+
+    - title: "🔌 HikariCP Connection Pool Key Settings"
+      rows:
+        - {key: "maximum-pool-size", value: "Default 10. Max connections per pool. Set based on DB max_connections ÷ number of instances. More is not better — over-provisioning starves other services."}
+        - {key: "minimum-idle", value: "Default = maximumPoolSize (pool never shrinks). Lower for bursty workloads to release idle connections."}
+        - {key: "connection-timeout", value: "Default 30000ms. Time to wait for a connection from pool before throwing. Lower to 5000ms to fail fast under saturation."}
+        - {key: "max-lifetime", value: "Default 1800000ms (30 min). Replace connections before DB/firewall kills them. Set below DB wait_timeout."}
+        - {key: "keepalive-time", value: "Default 0 (disabled). Periodic test query on idle connections to prevent silent firewall drops. Enable if connections go stale mid-flight."}
+        - {key: "spring.datasource.hikari.*", value: "All HikariCP settings via Boot properties: spring.datasource.hikari.maximum-pool-size=20, spring.datasource.hikari.connection-timeout=5000"}
+
+  cli:
+    - label: "Build & Run"
+      commands:
+        - "./mvnw spring-boot:run                                   # run via Maven wrapper"
+        - "./mvnw spring-boot:run -Dspring-boot.run.profiles=dev    # with profile"
+        - "./gradlew bootRun                                        # run via Gradle"
+        - "./mvnw package && java -jar target/app.jar               # build fat JAR and run"
+        - "java -jar app.jar --server.port=9090 --spring.profiles.active=prod"
+
+    - label: "Build & Test"
+      commands:
+        - "./mvnw test                                              # all tests"
+        - "./mvnw test -Dtest=OrderServiceTest                      # one test class"
+        - "./mvnw verify                                            # tests + integration tests"
+        - "./mvnw spring-boot:build-image                           # OCI image (no Dockerfile)"
+        - "./mvnw -Pnative package                                  # GraalVM native binary"
+
+    - label: "Debug Auto-configuration"
+      commands:
+        - "java -jar app.jar --debug                                # print Conditions Evaluation Report"
+        - "curl localhost:8080/actuator/conditions                  # conditions at runtime"
+        - "curl localhost:8080/actuator/beans                       # all beans in context"
+        - "curl localhost:8080/actuator/mappings                    # all registered routes"
+
+    - label: "Runtime Management"
+      commands:
+        - "curl localhost:8080/actuator/health"
+        - "curl localhost:8080/actuator/metrics/tomcat.threads.busy"
+        - "curl localhost:8080/actuator/metrics/hikaricp.connections.pending"
+        - "curl -X POST localhost:8080/actuator/loggers/com.example -H 'Content-Type: application/json' -d '{\"configuredLevel\":\"DEBUG\"}'"
+
+  comparison:
+    title: "⚖️ Spring Boot vs Quarkus vs Micronaut vs Vert.x"
+    headers: ["Dimension", "Spring Boot", "Quarkus", "Micronaut", "Vert.x"]
+    rows:
+      - ["Startup (JVM)", "3–15s (runtime context loading)", "0.5–2s (build-time processing)", "0.5–2s (build-time processing)", "<200ms (minimal framework overhead)"]
+      - ["Startup (native)", "~100ms (GraalVM, experimental)", "~10–50ms (first-class native)", "~50ms (first-class native)", "N/A"]
+      - ["Memory footprint", "200–400 MB baseline", "50–200 MB", "50–200 MB", "<50 MB"]
+      - ["Ecosystem", "Largest — MVC, Data, Security, Batch, Cloud, Integration", "~500 extensions", "Growing — Data, Security, Functions", "Focused on reactive I/O"]
+      - ["AOP model", "Runtime CGLIB/JDK proxy — self-call bypass gotcha", "Build-time bytecode — no self-call issue", "Build-time AOP — no self-call issue", "No AOP — explicit composition"]
+      - ["GraalVM native", "Supported but complex — reflection hints required", "First-class, best-in-class", "First-class", "Limited"]
+      - ["Best for", "Existing Java shops, rich ecosystem, complex enterprise features", "Kubernetes-native, serverless, teams wanting Spring DX with fast startup", "Fast startup, AWS Lambda, teams avoiding runtime reflection", "High-concurrency reactive services, polyglot teams"]
+
+# ── Q & A ─────────────────────────────────────────────────────────────────────
+qa:
+  senior:
+    - id: S-01
+      question: "How does Spring Boot auto-configuration work? Walk through from @SpringBootApplication to a bean being created."
+      answer: >
+        `@SpringBootApplication` composes `@Configuration`, `@EnableAutoConfiguration`, and
+        `@ComponentScan`. On startup:
+
+        1. `@ComponentScan` registers beans from the annotated class's package and sub-packages.
+
+        2. `@EnableAutoConfiguration` loads `AutoConfigurationImportSelector`, which reads
+           `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+           from every jar on the classpath — every candidate auto-configuration class name.
+
+        3. Each candidate is evaluated against its `@Conditional*` annotations. For example,
+           `DataSourceAutoConfiguration`:
+           - `@ConditionalOnClass(DataSource.class)` — skipped if no JPA jar present
+           - `@ConditionalOnMissingBean(DataSource.class)` — backed off if you defined your own
+
+        4. Matching configurations create beans. Since your own `@Bean` methods run first,
+           `@ConditionalOnMissingBean` detects them and the auto-configuration backs off.
+
+        Result: `spring-boot-starter-data-jpa` in pom.xml automatically wires DataSource,
+        EntityManagerFactory, and TransactionManager without any XML or `@Bean` methods.
+      staff_add: >
+        The Conditions Evaluation Report (`--debug` or `/actuator/conditions`) is the diagnostic
+        tool. It shows positive matches (applied), negative matches (skipped and why), and
+        unconditional classes. When a bean you expect is missing, the negative matches section
+        tells you exactly which `@ConditionalOn*` failed.
+
+        When writing a shared library: always guard auto-configuration beans with
+        `@ConditionalOnMissingBean` so downstream apps can override your defaults. This is the
+        same pattern all Spring Boot starters follow — downstream override without touching
+        the library code.
+
+    - id: S-02
+      question: "How does @Transactional work, and what are its two most common silent failure modes?"
+      answer: >
+        Spring wraps `@Transactional` beans in a CGLIB proxy. External callers go through
+        the proxy, which opens a transaction (or joins/suspends depending on `propagation`),
+        runs the method, then commits or rolls back.
+
+        **Failure 1 — self-calls**: if method A calls `@Transactional` method B within the same
+        bean, the call goes via `this`, bypassing the proxy — no transaction created. Fix:
+        inject `self` or move B to a separate bean.
+
+        **Failure 2 — wrong exception type**: rollback triggers on `RuntimeException` (unchecked)
+        by default. Checked exceptions (`IOException`, `SQLException`) do NOT roll back.
+        Override: `@Transactional(rollbackFor = IOException.class)`.
+
+        Other pitfalls: `@Transactional` on `private` methods (proxy can't intercept), and
+        on `final` classes (CGLIB cannot subclass them).
+      staff_add: >
+        Propagation modes matter at the Staff level:
+
+        - `REQUIRED` (default): join existing or create new. Use for most service methods.
+        - `REQUIRES_NEW`: always creates a new transaction, suspending the outer one. Use when
+          an operation must commit independently — audit logs that must persist even if the main
+          transaction rolls back.
+        - `NOT_SUPPORTED`: run without any transaction. Use for DDL statements or reads that
+          must bypass the transaction manager.
+
+        Isolation levels: `READ_COMMITTED` is the PostgreSQL default and correct for most OLTP.
+        Move to `REPEATABLE_READ` only when you need consistent reads across multiple statements
+        in one transaction. `SERIALIZABLE` for strong consistency — rare, expensive.
+
+    - id: S-03
+      question: "What is the difference between @Value and @ConfigurationProperties? When do you use each?"
+      answer: >
+        `@Value("${some.property}")` injects a single property. It supports SpEL and defaults:
+        `@Value("${timeout:5000}")`. Downsides: scattered injection points, no type safety,
+        no IDE completion for property names, and hard to test without a Spring context.
+
+        `@ConfigurationProperties("app.cache")` binds an entire prefix to a typed POJO.
+        Benefits: type conversion (`timeout=5000` → `private Duration timeout`), JSR-303
+        validation with `@Validated`, IDE auto-completion via annotation processor, and
+        constructor binding for immutable config (Spring Boot 2.2+).
+
+        Rule: `@Value` for a single one-off property. `@ConfigurationProperties` for any
+        structured configuration block with two or more related properties.
+      staff_add: >
+        Expose `@ConfigurationProperties` beans through auto-configuration with
+        `@ConditionalOnMissingBean`. Downstream applications override your library's defaults by
+        defining their own `@ConfigurationProperties` bean — no fork required. Pair with a
+        `spring-configuration-metadata-annotation-processor` dependency to generate IDE metadata,
+        so users get auto-completion and documentation in `application.yml` for your library's
+        config prefix.
+
+    - id: S-04
+      question: "Explain @SpringBootTest, @WebMvcTest, and @DataJpaTest. When do you use each?"
+      answer: >
+        **`@SpringBootTest`**: loads the full application context. Use for cross-layer integration
+        tests. Add `webEnvironment=RANDOM_PORT` to start a real HTTP server. Slowest to start —
+        use sparingly.
+
+        **`@WebMvcTest(SomeController.class)`**: loads only the web layer — controllers, filters,
+        `@ControllerAdvice`, security config. MockMvc sends HTTP without starting a server.
+        Service dependencies need `@MockBean`. Fast and focused. Use to test request/response
+        mapping, validation, HTTP status codes, and security rules.
+
+        **`@DataJpaTest`**: loads only JPA infrastructure + H2 by default. Each test rolls back.
+        Use to test `@Query` methods and repository behavior.
+
+        `@MockBean` places a Mockito mock in the Spring context, so it gets autowired into other
+        beans. Different from plain `@Mock`, which has no Spring context integration.
+      staff_add: >
+        A common anti-pattern: every test uses `@SpringBootTest`, context starts in 20s, CI takes
+        15 minutes. Fix: slice-first. `@WebMvcTest` for controller logic, `@DataJpaTest` for
+        queries, plain unit tests (no Spring) for business logic. Only use `@SpringBootTest`
+        when testing cross-layer integration that can't be verified in slices.
+
+        Testcontainers + `@DataJpaTest` with real Postgres catches database-specific behavior
+        H2 silently ignores: window functions, JSON column types, index usage differences.
+        The cost is a Docker dependency in CI — worth it for data-heavy services.
+
+    - id: S-05
+      question: "How does HikariCP connection pool work in Spring Boot, and which settings matter most?"
+      answer: >
+        HikariCP is Spring Boot's default pool since Boot 2. It maintains a fixed pool of database
+        connections. Key settings via `spring.datasource.hikari.*`:
+
+        - `maximum-pool-size` (default 10): max connections. Base on `DB max_connections ÷ instance count`.
+        - `connection-timeout` (default 30s): time to wait for a pool connection before throwing.
+          Lower to 5s to fail fast under saturation.
+        - `max-lifetime` (default 30min): replace connections before DB kills them. Set below the
+          database's connection timeout.
+        - `keepalive-time`: periodic test query on idle connections to prevent firewall drops.
+
+        Monitor `hikaricp.connections.pending` (connections waiting on a pool slot) and
+        `hikaricp.connections.active` via Actuator metrics. A non-zero `pending` count means
+        the pool is undersized or queries are slow.
+      staff_add: >
+        Pool sizing: more connections is not better. Each DB connection holds server-side resources.
+        A 200-connection Postgres shared by 10 services = 20 connections max per service. The
+        HikariCP team's guidance: `(cpu_cores × 2) + effective_disk_spindles` is the right size
+        for most OLTP — typically 10–20, not 100.
+
+        If `hikaricp.connections.pending` is non-zero, the first fix is query optimization, not
+        a bigger pool. Slow queries hold connections longer. A query that takes 500ms under load
+        instead of 50ms reduces effective pool capacity by 10x.
+
+    - id: S-06
+      question: "How do you build a global exception handler in Spring Boot, and what should it always include?"
+      answer: >
+        `@ControllerAdvice` applies across all controllers. `@ExceptionHandler(Type.class)`
+        handles specific exceptions and returns a `ResponseEntity`:
+
+        ```java
+        @ControllerAdvice
+        public class GlobalExceptionHandler {
+
+          @ExceptionHandler(ResourceNotFoundException.class)
+          public ResponseEntity<ProblemDetail> handleNotFound(ResourceNotFoundException ex) {
+            ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
+          }
+
+          @ExceptionHandler(MethodArgumentNotValidException.class)
+          public ResponseEntity<ProblemDetail> handleValidation(MethodArgumentNotValidException ex) {
+            ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+            pd.setProperty("errors", ex.getBindingResult().getFieldErrors().stream()
+              .map(e -> e.getField() + ": " + e.getDefaultMessage()).toList());
+            return ResponseEntity.badRequest().body(pd);
+          }
+
+          @ExceptionHandler(Exception.class)
+          public ResponseEntity<ProblemDetail> handleGeneric(Exception ex, HttpServletRequest req) {
+            log.error("Unhandled exception on {}", req.getRequestURI(), ex);
+            return ResponseEntity.internalServerError()
+              .body(ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error"));
+          }
+        }
+        ```
+      staff_add: >
+        Two production concerns beyond basic exception mapping: **observability** and **client
+        contract**. Every 5xx must log the full stack trace with a correlation ID from MDC.
+        4xx responses should not log stack traces — they're client errors, not yours.
+        The error response body must be structured and consistent so client teams can parse it
+        reliably. Use `ProblemDetail` (RFC 7807, built into Spring Boot 3) rather than a custom
+        error DTO — it's a standard format, tools understand it, and it's extensible.
+        Never expose internal exception messages or stack traces in the response body —
+        it leaks implementation details and is a security risk.
+
+    - id: S-07
+      question: "How does Spring Boot's embedded Tomcat thread pool work, and how do you diagnose thread pool exhaustion?"
+      answer: >
+        Tomcat uses a bounded thread pool (`server.tomcat.threads.max`, default 200). Each HTTP
+        request holds one thread until the response is sent, including all blocking I/O.
+        Throughput ceiling: `threads / mean_response_seconds`. At 50ms average = 4,000 req/s.
+        At 500ms average = 400 req/s — same thread count, 10x less throughput.
+
+        **Diagnose exhaustion**:
+        - `/actuator/metrics/tomcat.threads.busy` — if consistently equals max, threads are saturated.
+        - `/actuator/threaddump` — look for threads in `WAITING` or `TIMED_WAITING` on JDBC, HTTP
+          client socket reads, or lock acquisition. This reveals the blocking call.
+        - `/actuator/metrics/hikaricp.connections.pending` — if > 0, threads are waiting for DB connections.
+        - Application logs for `Unable to acquire JDBC Connection`.
+      staff_add: >
+        Raising `server.tomcat.threads.max` is the wrong first move. More threads that are all
+        waiting on a slow database just means more threads waiting. The root cause is almost always
+        slow downstream I/O — optimize queries, add caches, tune the connection pool.
+
+        The architectural fix for consistently I/O-heavy workloads is Spring WebFlux on Netty.
+        A handful of event-loop threads handle thousands of concurrent connections via non-blocking
+        I/O. But WebFlux requires reactive programming end-to-end — any blocking call (JDBC,
+        `RestTemplate`) blocks an event-loop thread and degrades everything. Choose the model at
+        design time, not after a production incident.
+
+    - id: S-08
+      question: "How do Spring Boot Actuator health probes integrate with Kubernetes liveness and readiness?"
+      answer: >
+        Enable: `management.health.livenessstate.enabled=true` and
+        `management.health.readinessstate.enabled=true` (auto-enabled when running in Kubernetes).
+
+        - `/actuator/health/liveness` — is the app in a state to serve traffic? Failure causes K8s
+          to **restart** the pod. Reserve for unrecoverable states only: deadlock, OOM, corrupted
+          in-memory state. Do NOT put transient external dependencies here.
+        - `/actuator/health/readiness` — is the app ready for traffic? Failure removes the pod from
+          the load balancer without restarting. DB connectivity, Kafka broker availability, and
+          cache warm-up belong here.
+
+        Add a `startupProbe` pointing at `/actuator/health/liveness` with a high `failureThreshold`
+        to give Spring Boot time to start without the pod entering a restart loop. Only after
+        the startup probe succeeds does K8s start evaluating `readinessProbe`.
+      staff_add: >
+        The most common mistake: putting external dependency health in the liveness probe. A
+        transient DB outage fails the liveness probe, K8s restarts the pod — which doesn't fix
+        the DB, just adds a slow pod startup to the incident. Liveness = the pod can't recover
+        by itself. Readiness = the pod shouldn't receive traffic right now. These are different
+        decisions. Add custom health indicators for readiness by implementing `HealthIndicator`
+        and publishing `AvailabilityChangeEvent` from application code to signal state transitions.
+
+    - id: S-09
+      question: "How do you detect and fix the N+1 query problem in Spring Data JPA?"
+      answer: >
+        N+1 occurs when loading N entities and then accessing a LAZY-loaded association on each —
+        generating N+1 queries total. Loading 100 orders and calling `order.getItems()` on each
+        triggers 101 queries. Hibernate makes each look like a Java property access — invisible
+        without SQL logging.
+
+        **Detect**: `logging.level.org.hibernate.SQL=DEBUG`. In tests, use a query counter
+        (`@Sql` + a custom interceptor, or Hypersistence Utilities) that asserts max queries.
+
+        **Fix options**:
+        - `JOIN FETCH`: `@Query("SELECT o FROM Order o JOIN FETCH o.items WHERE o.id IN :ids")`
+        - `@EntityGraph(attributePaths = "items")` on the repository method
+        - Projection: `SELECT new OrderSummary(o.id, i.name) FROM Order o JOIN o.items i`
+        - `@BatchSize(size = 50)` on the collection — N+1 becomes N/50+1
+      staff_add: >
+        The deeper fix is questioning whether to load entities at all for read operations.
+        A DTO projection fetches only needed columns, avoids the lazy-load trap entirely, and
+        is faster. Reserve full entity loading for write operations where you need the full
+        object graph to enforce invariants. For list/search endpoints, always use projections.
+        This is the principle behind CQRS at the persistence layer: separate the read model
+        (projection) from the write model (entity).
+
+    - id: S-10
+      question: "How does graceful shutdown work in Spring Boot, and what do you need to configure in Kubernetes?"
+      answer: >
+        Enable: `server.shutdown=graceful` (Spring Boot 2.3+). On SIGTERM, Spring Boot:
+
+        1. Marks the context as "not running" — K8s readiness probe fails, traffic stops routing.
+        2. Waits up to `spring.lifecycle.timeout-per-shutdown-phase` (default 30s) for in-flight
+           requests to complete.
+        3. Closes the servlet container (drains connections).
+        4. Destroys Spring beans (closes DataSource, Kafka producers, etc.).
+        5. JVM exits.
+
+        In Kubernetes: `terminationGracePeriodSeconds` in the pod spec must be longer than
+        `timeout-per-shutdown-phase`. If K8s's SIGKILL arrives before Spring finishes draining,
+        in-flight requests abort. Set `terminationGracePeriodSeconds: 60` and
+        `timeout-per-shutdown-phase: 50s` as a safe starting point.
+      staff_add: >
+        Bean destruction order matters during shutdown. Spring closes beans in reverse creation
+        order by default. The web server (Tomcat) must drain requests before the DataSource closes —
+        otherwise in-flight requests lose their DB connections mid-flight. Spring Boot 2.3+
+        handles this correctly with `SmartLifecycle` phase ordering. If you define custom beans
+        with shutdown logic, implement `SmartLifecycle` and set appropriate `getPhase()` values to
+        ensure they close in the right order. Test graceful shutdown under load: send requests
+        during shutdown and verify zero 500s with the `--debug` log level to observe the shutdown
+        sequence.
+
+  staff:
+    - id: ST-01
+      question: "A Spring Boot service returns intermittent 503s under load spikes. Thread pool exhaustion is suspected. Walk through your full diagnosis and fix."
+      answer: >
+        **Diagnose**:
+        1. `tomcat.threads.busy` metric — if consistently equals `max`, threads are saturated.
+        2. `/actuator/threaddump` — look for threads `WAITING` on JDBC socket read, HTTP client,
+           or lock. This reveals the specific blocking call.
+        3. `hikaricp.connections.pending` — if > 0, threads are waiting for DB pool slots.
+        4. Application logs for `Unable to acquire JDBC Connection`.
+
+        **Fix sequence**:
+        - **Short-term**: increase `server.tomcat.threads.max` to 400 to absorb spikes.
+          Not a root fix — just buying time.
+        - **Root cause A — slow queries**: enable SQL logging, find the slow query, add indexes,
+          optimize the query. A 500ms query holding a thread is 10x worse than a 50ms one.
+        - **Root cause B — slow downstream HTTP calls**: every outbound HTTP call must have a
+          read timeout. A call with no timeout holds a thread indefinitely. Add Resilience4j
+          circuit breaker to fail-fast after the downstream is degraded.
+        - **Root cause C — too few DB connections**: tune `hikari.maximum-pool-size` based on
+          `DB max_connections ÷ instance count`. Monitor `hikaricp.connections.pending`.
+      staff_add: >
+        Thread pool exhaustion cascades. If Service A is saturated, responses slow. Service B
+        calls A with no timeout — B's threads pile up waiting, saturating B's pool too. A cascade
+        that takes down multiple services from one slow dependency. Prevention: timeouts
+        everywhere (every outbound call), circuit breakers (Resilience4j), and bulkheads
+        (`@Bulkhead` to limit concurrent calls into a specific dependency). These three patterns
+        together prevent cascade failures. Add `management.health.circuitbreakers.enabled=true`
+        to expose Resilience4j circuit state in `/actuator/health`.
+
+    - id: ST-02
+      question: "Walk through the major breaking changes in a Spring Boot 2 → Spring Boot 3 migration."
+      answer: >
+        Spring Boot 3 requires Java 17 minimum and Jakarta EE 9+ (`javax.*` → `jakarta.*`).
+
+        **Phase 1 — Prepare on Boot 2.7.x** (latest Boot 2):
+        - Eliminate all deprecated API usages Boot 2.7 flags — they're removed in Boot 3.
+        - Audit all `javax.*` imports and transitive dependencies for Jakarta compatibility.
+        - Spring Security: replace `WebSecurityConfigurerAdapter` (removed) with the lambda DSL.
+
+        **Phase 2 — Package rename**:
+        - Run OpenRewrite `UpgradeSpringBoot_3_0` recipe: automates `javax.persistence` →
+          `jakarta.persistence`, `javax.servlet` → `jakarta.servlet`, etc.
+        - Update dependency versions: Hibernate 6+, Flyway 9+, MapStruct 1.5+.
+
+        **Phase 3 — Boot 3 compile and verify**:
+        - Fix remaining compile errors (libraries OpenRewrite didn't cover).
+        - Spring Security: `antMatchers` → `requestMatchers`.
+        - Actuator: some metric names changed (check Micrometer 1.10+ migration notes).
+        - Run full integration test suite including Testcontainers paths.
+      staff_add: >
+        The hidden risk: transitive dependencies shipping both `javax` and `jakarta` classes
+        cause `ClassCastException` at runtime when objects cross the namespace boundary. Use
+        `mvn dependency:tree | grep javax` to audit before upgrading. Libraries not yet on
+        Jakarta (some enterprise libs, older generated clients) must be replaced or wrapped.
+        The migration is also an opportunity: Boot 3 + GraalVM native image becomes
+        first-class. If startup time or memory is a concern, plan native compilation as part
+        of the migration, not a separate future project.
+
+    - id: ST-03
+      question: "How do you implement idempotent POST endpoints in Spring Boot?"
+      answer: >
+        An idempotent endpoint returns the same result for repeated calls with the same input.
+        Standard approach: **idempotency keys**.
+
+        1. Client sends `Idempotency-Key: <UUID>` header with each POST.
+        2. Controller (or a `@Aspect`) checks a `processed_requests` table (or Redis):
+           if the key exists, return the cached response immediately.
+        3. If new: execute the operation and store `(key, response, expires_at)` in the same
+           database transaction as the main operation.
+        4. Set TTL on stored keys (24–72h) to bound table growth.
+
+        The atomicity requirement: writing the idempotency record and the main operation must
+        be in the same transaction. If you write the record before the operation and crash,
+        the key is "done" but nothing happened. If you write after and crash, the second call
+        re-executes. Atomic write via `@Transactional` covering both is the correct pattern.
+      staff_add: >
+        When the operation spans external systems (DB write + third-party API call), true
+        atomicity is impossible without two-phase commit. The practical pattern: write a
+        "pending" idempotency record before the external call, execute the call, mark it
+        "complete." A background job retries stuck "pending" records. The external API must
+        itself be idempotent (send an idempotency key on the API call) or you must accept that
+        the external call may execute twice on retry. Documenting this constraint explicitly in
+        the API contract is part of the design.
+
+    - id: ST-04
+      question: "How do you implement distributed tracing in Spring Boot 3 with Micrometer Tracing?"
+      answer: >
+        Spring Boot 3 uses **Micrometer Tracing** (successor to Spring Cloud Sleuth):
+
+        Dependencies:
+        - `micrometer-tracing-bridge-otel` — OpenTelemetry bridge
+        - `opentelemetry-exporter-otlp` — OTLP exporter for Jaeger/Tempo/Grafana
+
+        Configuration:
+        ```yaml
+        management:
+          tracing:
+            sampling:
+              probability: 1.0   # 100% in dev; use 0.01–0.1 in prod
+        logging:
+          pattern:
+            correlation: "[${spring.application.name},%X{traceId:-},%X{spanId:-}] "
+        ```
+
+        Auto-instrumented: RestTemplate, WebClient, `@Scheduled`, Kafka listeners, JDBC.
+        Custom spans: inject `Tracer` bean or annotate with `@NewSpan`.
+
+        Log/trace correlation: the `traceId` in MDC appears in every log line — a single
+        failing request's `traceId` from the trace backend surfaces all log lines across
+        all services for that request.
+      staff_add: >
+        Sampling strategy is the operationally critical decision. Head-based sampling (decide
+        at the first service) with `probability=0.01` misses rare slow requests. Use
+        adaptive tail-based sampling (Jaeger's remote sampling, or OpenTelemetry Collector
+        with tail sampling processor): sample 100% of error traces and slow traces
+        (>500ms), 1% of everything else. This captures failures without drowning the backend.
+        Without log correlation, distributed tracing tells you *where* time was spent but not
+        *why* it failed — ship `traceId` into your log aggregation system and ensure it's
+        indexed for queries.
+
+  principal:
+    - id: P-01
+      question: "At 100+ Spring Boot microservices, what platform and governance concerns emerge that don't exist at 10 services?"
+      answer: >
+        **Dependency governance**: 100 services with independent `pom.xml` files means 5 different
+        Spring Boot versions, 3 different Jackson versions, inconsistent security patches.
+        Solution: a company-internal BOM (Bill of Materials) declaring canonical versions for
+        Spring Boot, shared libraries, and security dependencies. CI enforces compliance — builds
+        fail on version drift.
+
+        **Configuration proliferation**: each service has its own `application.yml`. Secrets leak
+        into config files, environments diverge silently. Solution: centralized configuration
+        (Spring Cloud Config backed by Git, or HashiCorp Vault + K8s ConfigMaps). Environment-
+        specific config managed centrally. Secrets not in source control.
+
+        **Observability standardization**: 100 services with different log formats, metric names,
+        and trace ID fields are operationally untenable. Mandate: structured JSON logging with
+        `traceId` + `spanId` in MDC, Micrometer metric naming conventions, standard Actuator
+        config. A shared logging library (`spring-boot-starter-company-logging`) enforces this.
+
+        **Service catalog and ownership**: some services will be abandoned. A service catalog
+        (Backstage) with declared ownership, SLA, and dependency map. Services with no owner
+        get deprecated and decommissioned.
+      staff_add: >
+        At 100 services, the marginal cost of a new service determines whether teams resist
+        splitting. If creating a new service requires 3 tickets, 2 platform team approvals,
+        and manual Kubernetes config setup, teams build larger services. The platform team's
+        job is the Golden Path: scaffold from a template (one command), CI/CD wired
+        automatically, service registered in the catalog, observability configured out of
+        the box. When the right thing is also the easy thing, Conway's Law works for you
+        instead of against you.
+
+    - id: P-02
+      question: "Evaluate Spring Boot with GraalVM native image for a high-scale deployment. What changes, what breaks, and when is it the right call?"
+      answer: >
+        Native image compiles Spring Boot to a native binary via GraalVM's ahead-of-time (AOT)
+        compilation. Results: startup in 50–150ms vs 5–15s JVM, memory 50–200MB vs 300–600MB,
+        no JIT warm-up — consistent latency from the first request.
+
+        **What changes**:
+        - Build time: native compilation takes 5–20 minutes (full AOT analysis).
+        - Spring AOT (Spring Boot Maven plugin with `native` profile) processes Spring's
+          reflection-heavy internals at build time. Most Spring features work unchanged.
+        - Dynamic reflection, proxies, and resource loading need `@RegisterReflectionForBinding`
+          hints or native `reflect-config.json` entries.
+
+        **What breaks**:
+        - Libraries using heavy runtime reflection (some Hibernate features, JasperReports,
+          custom serializers) need explicit hints or don't support native.
+        - CGLIB runtime proxies replaced by AOT-generated proxies — most work, some edge cases don't.
+        - No HotSwap, no JMX, no heap dump on running process.
+        - Peak throughput often lower than JIT-warmed JVM — native gives consistent latency,
+          JIT eventually optimizes hot paths further for steady-state throughput.
+
+        **Right call when**: serverless/FaaS, scale-to-zero Kubernetes, CLI tools, or startup
+        time is a hard business requirement. Wrong call for long-running high-throughput services
+        where JIT's warm optimization exceeds native steady-state performance.
+      staff_add: >
+        Evaluate on your specific workload. Cold-start latency (native wins decisively) is
+        different from steady-state throughput (JIT often wins). Run a load test on both:
+        ramp up traffic over 5 minutes and measure p99 at steady state. The native image
+        CI pipeline is also a separate concern — `mvn -Pnative test` must run independently
+        from JVM tests; a JVM test pass does not mean native passes. This doubles test time.
+        Factor the CI cost into the decision. If startup time matters but not enough to justify
+        native, `spring.main.lazy-initialization=true` is a 5–15s improvement with no
+        compilation overhead.
+
+scenarios:
+  - title: "🔥 Scenario 1 — Thread Pool Exhaustion Under Traffic Spike"
+    problem: >
+      A Spring Boot (Spring MVC + PostgreSQL) service handles normal load at 200 req/s with
+      80ms P99 latency. During a marketing campaign, traffic spikes to 800 req/s. Latency
+      climbs to 8s, then the service returns 503s. After the spike, it recovers. No errors
+      appear in application logs during the spike itself.
+    constraints:
+      - "Must handle spikes with <1% error rate and P99 < 500ms"
+      - "Database connection limit: 100 max (DBA constraint, cannot increase)"
+      - "3 pods deployed; horizontal autoscaling is available but takes 90 seconds"
+      - "No architectural changes to the synchronous request/response model"
+    discussion:
+      - "**Root cause — thread saturation**: 200 threads × 80ms mean = ~2,500 req/s theoretical capacity. Under load, latency climbs to 8s — 200 threads × 8s = 200 threads all occupied, new requests queue in Tomcat's accept-count buffer, then get rejected."
+      - "**Confirm with metrics**: `tomcat.threads.busy` consistently equals max. `hikaricp.connections.pending` is non-zero — threads are waiting for DB connections on top of slow queries."
+      - "**Short-term — increase thread pool**: raise `server.tomcat.threads.max` to 400 and `server.tomcat.accept-count` to 200. Absorbs spikes but doesn't fix the root cause."
+      - "**Root cause — slow queries under load**: enable `logging.level.org.hibernate.SQL=DEBUG` temporarily to identify queries that take 500ms+ under load. A missing index is the most common culprit. Add the index and validate with EXPLAIN ANALYZE."
+      - "**HikariCP sizing**: 3 pods × 30 max pool = 90 connections (under the 100 DB limit). Current default of 10 per pod = 30 total — DB connections aren't the bottleneck here, but the pool is undersized for 400 threads."
+      - "**Bulkhead**: use Resilience4j `@Bulkhead` on the DB interaction layer. Limit concurrent calls to 100 (matching pool size). Requests beyond the limit get fast 503s instead of queueing indefinitely — bounded degradation is better than unbounded."
+      - "**HPA**: configure Kubernetes HPA on `tomcat.threads.busy > 150` (75% utilization) with a 60s scale-up window. The 90s scale-out means the bulkhead must absorb the gap."
+    red_flags:
+      - "Raising thread pool to 1000 without fixing the DB bottleneck — more threads waiting on DB connections compounds the problem"
+      - "Not setting HikariCP connection-timeout (default 30s) — a thread waiting 30s for a pool slot holds a Tomcat thread for 30s, multiplying the saturation"
+      - "Increasing accept-count to 1000 without a bulkhead — requests queue indefinitely, users see 30s+ latency instead of a fast 503"
+      - "No timeout on outbound HTTP calls if the service has downstream dependencies — slow downstream cascades to thread exhaustion here"
+
+  - title: "🐛 Scenario 2 — LazyInitializationException in Async Email Notification"
+    problem: >
+      A Spring Boot service processes orders. `OrderService.createOrder()` is `@Transactional`
+      — it saves the Order entity via JPA, then calls `@Async NotificationService.sendConfirmation(order)`
+      to email the customer. In production, emails intermittently fail with
+      `LazyInitializationException` when `sendConfirmation` accesses `order.getCustomer().getEmail()`.
+    constraints:
+      - "Email send must be async — it must not block the order creation HTTP response"
+      - "No schema changes"
+      - "Fix must not introduce an extra database roundtrip just to load the customer email"
+    discussion:
+      - "**Root cause**: `@Transactional` on `createOrder()` closes the Hibernate session when the method returns. The `Order` entity passed to the async thread is a detached JPA entity. Its `@ManyToOne(fetch = LAZY) Customer` association cannot load — the session is gone."
+      - "**Fix 1 — pass a DTO, not an entity (recommended)**: change `sendConfirmation` to accept `SendConfirmationCommand(orderId, customerEmail, customerName)`. The service layer resolves all needed data inside the transaction before dispatching. The async method receives a plain DTO with no JPA dependency."
+      - "**Fix 2 — force-load inside the transaction**: within `createOrder()` (still inside the transaction), call `order.getCustomer().getEmail()` explicitly to trigger the load. Hibernate caches the loaded association on the entity — the detached entity carries the value into the async thread."
+      - "**Fix 3 — reload in async thread**: `sendConfirmation` receives `orderId` and calls `orderRepository.findById(orderId)` in a new `@Transactional` context. Simple and safe, but requires one DB query in the async path."
+      - "**Fix 1 is the cleanest**: DTOs as the interface between layers prevent session leaks and make the async contract explicit. The notification service doesn't need to understand JPA."
+      - "**SecurityContext side issue**: if `sendConfirmation` accesses `SecurityContextHolder` (e.g., for audit logging), configure `DelegatingSecurityContextAsyncTaskExecutor` as the `@Async` executor."
+    red_flags:
+      - "`spring.jpa.open-in-view=true` as the fix — extends session to HTTP request lifecycle but doesn't cover async threads, and causes silent N+1 queries in controllers"
+      - "Changing all @ManyToOne and @OneToMany to `FetchType.EAGER` — loads all associations for every query, causing massive over-fetching across the entire service"
+      - "Catching `LazyInitializationException` and returning null — masks the bug"
+
+  - title: "🚀 Scenario 3 — Spring Boot Pod Crash-Loops in Kubernetes Due to Slow Startup"
+    problem: >
+      A Spring Boot microservice has grown to 40 Spring beans, a large Flyway migration baseline,
+      and a Spring Cloud Config client. In Kubernetes, the readiness probe returns 503 for 45
+      seconds. K8s is configured with `initialDelaySeconds=30` on both liveness and readiness
+      probes. The pod passes liveness but fails readiness, gets restarted repeatedly before
+      becoming ready, and enters a crash loop.
+    constraints:
+      - "Cannot reduce number of JPA entities or Flyway migrations"
+      - "Config server is required"
+      - "Target: pod ready within 30 seconds without tuning initialDelaySeconds"
+    discussion:
+      - "**Root cause analysis**: measure startup phases. Add `spring.jpa.show-sql=true` and `logging.level.org.springframework=DEBUG` briefly. Common culprits: Flyway running 100+ migrations, Hibernate schema validation scanning all tables, Config server handshake adding 5s, `@ComponentScan` scanning unrelated packages."
+      - "**Fix 1 — startup probe (highest impact, no code change)**: add a `startupProbe` in the K8s deployment spec pointing at `/actuator/health/liveness` with `failureThreshold=30, periodSeconds=5` (150s budget). K8s only starts evaluating `readinessProbe` after the startup probe passes. This stops the crash loop immediately while you fix startup time properly."
+      - "**Fix 2 — Flyway baseline**: if migration history is 100+ scripts, a Flyway baseline migration collapses them into a single snapshot. New environments apply the snapshot instead of replaying all migrations. Cuts Flyway startup from 10s to <1s."
+      - "**Fix 3 — lazy initialization**: `spring.main.lazy-initialization=true` defers bean creation to first request, saving 5–15s. Caveat: startup failures surface on first request. Compensate with a readiness warm-up request in the deployment pipeline."
+      - "**Fix 4 — Config server timeout**: set `spring.cloud.config.fail-fast=true` and `spring.cloud.config.retry.max-attempts=3` with short intervals. A slow config server can hang the startup for 30s+ with default retry behavior."
+      - "**Fix 5 — GraalVM native**: 50–150ms startup, 50–200MB memory. Highest impact, highest migration cost. Plan as a separate initiative after the immediate crash loop is resolved."
+    red_flags:
+      - "Increasing `initialDelaySeconds` to 90s — delays detection of a genuinely broken pod; K8s won't restart a deadlocked service for 90s"
+      - "Removing readiness probe entirely — K8s routes traffic to unready pods; callers see errors during startup"
+      - "`spring.jpa.hibernate.ddl-auto=create-drop` anywhere near production — drops the entire schema on shutdown"
+      - "Using liveness probe to check DB connectivity — a transient DB outage restarts the pod, which doesn't fix the DB and adds startup overhead to the incident"
