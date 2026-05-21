@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hibernate / JPA — Field Guide</title>
+<script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#C2410C;--accent2:#B45309;--accent3:#059669; --highlight-bg:#fff7ed;--highlight-text:#C2410C;--highlight-border:#fdba74; --your-exp-bg:rgba(194,65,12,.06);--your-exp-border:rgba(194,65,12,.2);--your-exp-text:#7c2d12; --acc-hover:rgba(194,65,12,.04);--acc-open-border:#C2410C;--acc-open-bg:rgba(194,65,12,.03); --num-color:#C2410C;--num-bg:rgba(194,65,12,.1); --tag-color:#C2410C;--tag-bg:rgba(194,65,12,.08);--tag-border:rgba(194,65,12,.2); --flow-arrow:#C2410C;--h1-from:#7c2d12;--h1-to:#C2410C; --badge-color:#7c2d12;--stat-num:#C2410C; --tab-active-color:#C2410C;--tab-active-bg:rgba(194,65,12,.08);--tab-active-border:#C2410C; --section-title:#C2410C;--concept-title:#7c2d12; --cheat-head-bg:#7c2d12;--cheat-head-text:#ffffff;--cheat-key:#7c2d12; --cmd-bg:#fff7ed;--cmd-text:#7c2d12; }
+  [data-theme="dark"]{ --accent:#FB923C;--accent2:#FCD34D;--accent3:#10b981; --highlight-bg:#431407;--highlight-text:#FB923C;--highlight-border:#EA580C; --your-exp-bg:rgba(16,185,129,.1);--your-exp-border:rgba(16,185,129,.3);--your-exp-text:#6ee7b7; --acc-hover:rgba(251,146,60,.04);--acc-open-border:#FB923C;--acc-open-bg:rgba(251,146,60,.03); --num-color:#FB923C;--num-bg:rgba(251,146,60,.1); --tag-color:#FB923C;--tag-bg:rgba(251,146,60,.08);--tag-border:rgba(251,146,60,.2); --flow-arrow:#FB923C;--h1-from:#FB923C;--h1-to:#EA580C; --badge-color:#FB923C;--stat-num:#FB923C; --tab-active-color:#FB923C;--tab-active-bg:rgba(251,146,60,.08);--tab-active-border:#FB923C; --section-title:#FB923C;--concept-title:#FB923C; --cheat-head-bg:#431407;--cheat-head-text:#FB923C;--cheat-key:#FB923C; --cmd-bg:#431407;--cmd-text:#FB923C; }
+  [data-theme="light"] .toggle-knob{background:#C2410C;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#FB923C;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Back navigation ─────────────────────────────────────────────────────── */
+.back-link{position:fixed;top:1.25rem;left:1.25rem;z-index:100;display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);text-decoration:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.back-link:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
+/* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
+.qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
+.qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
+.qa-search:focus{border-color:var(--tab-active-border,var(--text));}
+.qa-search::placeholder{color:var(--muted);}
+.expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
+.expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;cursor:pointer;transition:opacity .2s;}
+.cmd:hover{opacity:.75;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+  .back-link span{display:none;}
+}
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
+
+</style>
+</head>
+<body data-topic-id="hibernate-jpa">
+
+<a class="back-link" href="index.html">← <span>Field Guide</span></a>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>Hibernate / JPA</h1>
+  <p class="subtitle">// ORM · entity lifecycle · N+1 · caching · JPQL · transactions · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="overview" role="button" tabindex="0" onclick="switchTab('overview',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('overview',this);event.preventDefault();}">Overview</div>
+  <div class="tab" data-tab="deepdive" role="button" tabindex="0" onclick="switchTab('deepdive',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('deepdive',this);event.preventDefault();}">Deep Dive</div>
+  <div class="tab" data-tab="qa" role="button" tabindex="0" onclick="switchTab('qa',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('qa',this);event.preventDefault();}">Q &amp; A</div>
+  <div class="tab" data-tab="scenarios" role="button" tabindex="0" onclick="switchTab('scenarios',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('scenarios',this);event.preventDefault();}">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">📋 JPA vs Hibernate</div>
+      <div class="concept-body">
+        <strong>JPA (Jakarta Persistence API)</strong> is a specification — a set of interfaces and annotations (<code>jakarta.persistence.*</code>) defining how Java objects map to relational databases: entity mapping, JPQL, the EntityManager lifecycle, and transaction handling.
+<strong>Hibernate</strong> is the dominant JPA <em>implementation</em>. It translates JPA calls into SQL, manages the Session, handles caching and dirty checking, and provides many extensions beyond the spec (HQL, Criteria API, Envers, spatial types).
+<strong>Spring Data JPA</strong> adds a repository abstraction on top of JPA — generating query implementations from method names (<code>findByEmailAndStatus(...)</code>) and reducing boilerplate EntityManager code.
+In practice: code to JPA interfaces; use Hibernate extensions only when JPA can't express what you need, accepting the provider lock-in that entails.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">JPA = spec</span>
+          
+          <span class="tag green">Hibernate = implementation</span>
+          
+          <span class="tag">Spring Data JPA = abstraction layer</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">♻️ Entity Lifecycle</div>
+      <div class="concept-body">
+        Every entity instance lives in one of four states:
+<strong>Transient</strong> — created with <code>new</code>, unknown to Hibernate, no DB row.
+<strong>Persistent (Managed)</strong> — associated with an open Session. All changes are tracked automatically via dirty checking; Hibernate flushes them to the DB at commit.
+<strong>Detached</strong> — Session was closed or <code>evict()</code> called. Changes are no longer tracked. Accessing LAZY associations throws <code>LazyInitializationException</code>. Re-attach via <code>merge()</code> to create a new persistent copy.
+<strong>Removed</strong> — <code>remove()</code> called on a persistent entity; the DB row will be deleted on flush/commit.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">new → Transient</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">persist()</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Persistent</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">close Session</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Detached</span>
+          
+        </div>
+        
+        <div class="flow">
+          
+          <span class="flow-step">Persistent</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">remove()</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Removed</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">flush/commit</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">DB DELETE</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">dirty checking = persistent only</span>
+          
+          <span class="tag red">LazyInit risk = detached state</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔍 Session / EntityManager</div>
+      <div class="concept-body">
+        The <strong>Session</strong> (Hibernate) / <strong>EntityManager</strong> (JPA) is a <em>Unit of Work</em> that:
+- Holds a <strong>first-level cache</strong> (identity map): loading the same entity by ID within
+  one Session returns the same Java object instance — no duplicate SELECTs.
+- Tracks all persistent entities for <strong>dirty checking</strong> at flush time. - Scopes the transaction context.
+A Session is short-lived — one request, one transaction. The <strong>SessionFactory</strong> / <strong>EntityManagerFactory</strong> is expensive to build and lives as an application singleton.
+In Spring Boot, <code>@PersistenceContext EntityManager em</code> injects a thread-safe proxy to the current transaction-scoped EntityManager.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">Session = Unit of Work</span>
+          
+          <span class="tag orange">SessionFactory = singleton</span>
+          
+          <span class="tag">L1 cache = per Session</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">⚡ Lazy vs Eager Fetching</div>
+      <div class="concept-body">
+        <strong>EAGER</strong> — associated data is loaded immediately with the parent, typically via a JOIN. <strong>LAZY</strong> — a proxy is returned; the DB is hit only on first access.
+<strong>JPA defaults (memorise these):</strong> - <code>@ManyToOne</code> → EAGER - <code>@OneToOne</code> → EAGER - <code>@OneToMany</code> → LAZY - <code>@ManyToMany</code> → LAZY
+<code>@ManyToOne</code> being EAGER by default is a common trap: loading 100 orders automatically JOINs the customer table every time, even when it's not needed.
+<strong>The N+1 problem</strong>: loading N entities then accessing a LAZY collection per entity fires N additional SELECTs. Fix with <code>JOIN FETCH</code> in JPQL, <code>@BatchSize</code>, or <code>@EntityGraph</code>. Never "fix" globally with EAGER — it causes over-fetching on all queries.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Load 10 Orders (1 query)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">access order.getItems() in loop</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">10 more queries = N+1</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag red">@ManyToOne: EAGER default</span>
+          
+          <span class="tag green">@OneToMany: LAZY default</span>
+          
+          <span class="tag orange">JOIN FETCH to eliminate N+1</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📦 Caching: L1, L2, Query</div>
+      <div class="concept-body">
+        <strong>First-level cache (L1)</strong> — an identity map built into every Session. Always on, cannot be disabled. Deduplicates entity lookups by PK within a transaction.
+<strong>Second-level cache (L2)</strong> — optional, shared across all Sessions in the SessionFactory. Annotate entities with <code>@Cache(usage=READ_WRITE)</code> and configure a provider (EhCache, Caffeine, Hazelcast, Redis). Ideal for reference data that changes rarely. Risk: stale entries when another node or direct JDBC write changes the DB without going through Hibernate — requires distributed invalidation in multi-node deployments.
+<strong>Query cache</strong> — caches result-set identifiers for JPQL queries. Only useful with L2 cache; rarely worth the complexity.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">L1 = always on, per Session</span>
+          
+          <span class="tag orange">L2 = opt-in, cross-Session</span>
+          
+          <span class="tag red">stale data risk in clusters</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔄 Transactions & @Transactional</div>
+      <div class="concept-body">
+        JPA requires an active transaction to flush changes. Spring's <code>@Transactional</code> opens a transaction at method entry and commits or rolls back at exit via AOP proxy.
+<strong>Propagation behaviours:</strong> - <code>REQUIRED</code> (default) — join an existing transaction or start a new one - <code>REQUIRES_NEW</code> — always start a new transaction, suspending any outer one - <code>SUPPORTS</code> — use a transaction if one exists; otherwise run non-transactionally
+<strong>Rollback rules:</strong> Spring rolls back on unchecked exceptions by default. Use <code>rollbackFor = Exception.class</code> to include checked exceptions.
+<strong>Self-invocation trap:</strong> calling a <code>@Transactional</code> method from another method in the <em>same bean</em> bypasses the AOP proxy — the transaction annotation has no effect.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">REQUIRED = default propagation</span>
+          
+          <span class="tag red">self-invocation bypasses proxy</span>
+          
+          <span class="tag orange">rollback = unchecked by default</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🏗️ Inheritance Strategies</div>
+      <div class="concept-body">
+        <strong>SINGLE_TABLE</strong> (default) — all subclasses share one table with a discriminator column. Fast queries, no JOINs, but many nullable columns; can't enforce NOT NULL on subtype-specific fields.
+<strong>JOINED</strong> — parent in one table, each subclass in its own table linked by PK/FK. Fully normalised, enforces constraints, but polymorphic queries need JOINs across all subtype tables.
+<strong>TABLE_PER_CLASS</strong> — each concrete class gets its own full table with all inherited columns. No JOINs for single-type queries, but polymorphic queries require UNION — slow and unindexable. Generally avoid.
+<strong>Rule of thumb:</strong> few subtypes with many shared fields → SINGLE_TABLE. Many unique fields per subtype with data integrity requirements → JOINED.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">SINGLE_TABLE: fast, nullable</span>
+          
+          <span class="tag green">JOINED: normalised, JOINs</span>
+          
+          <span class="tag red">TABLE_PER_CLASS: UNION penalty</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔒 Optimistic & Pessimistic Locking</div>
+      <div class="concept-body">
+        <strong>Optimistic locking (<code>@Version</code>)</strong> — prevents lost updates without DB locks. Hibernate adds <code>WHERE version = ?</code> to every UPDATE. If another transaction committed first, 0 rows are updated → <code>OptimisticLockException</code>. The caller must catch and retry. Best for low write-contention workloads.
+<strong>Pessimistic locking</strong> — <code>em.find(Entity.class, id, PESSIMISTIC_WRITE)</code> issues <code>SELECT ... FOR UPDATE</code>, serialising access at the DB level. Correct for high-contention scenarios (inventory decrement, seat booking) but reduces throughput and can cause deadlocks if not applied consistently.
+Never rely on application-level <code>if (stock &gt; 0)</code> checks — a concurrent transaction can pass the check and commit between your read and write.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">@Version = optimistic</span>
+          
+          <span class="tag orange">PESSIMISTIC_WRITE = FOR UPDATE</span>
+          
+          <span class="tag red">OptimisticLockException → retry</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">N+1 Select Problem</span>
+      Loading N entities and accessing a LAZY collection on each fires N additional queries. <strong>Fix per query</strong>: use <code>JOIN FETCH</code> in JPQL. For multiple collections, use <code>@BatchSize(size=25)</code> — Hibernate batches proxy initialisation with an <code>IN</code> clause, turning N queries into ceil(N/25). <code>@EntityGraph</code> gives per-repository control without altering entity defaults. Never change global fetch to EAGER — that trades N+1 for always-joining on every query.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">LazyInitializationException</span>
+      Thrown when a LAZY proxy is accessed after the Session is closed — most commonly in a serialiser (Jackson) touching fields outside the <code>@Transactional</code> boundary, or in an <code>@Async</code> method that received a detached entity from the calling thread. <strong>Fix</strong>: return DTOs from your service layer, use <code>JOIN FETCH</code> to load what you need inside the transaction, or explicitly initialise with <code>Hibernate.initialize()</code> before the Session closes. Do NOT enable OSIV to suppress this — it just hides the symptom.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Open Session In View (OSIV) Enabled by Default</span>
+      Spring Boot sets <code>spring.jpa.open-in-view=true</code> by default, keeping the Hibernate Session open for the entire HTTP request so LAZY associations can be accessed in serialisers. At scale this silently causes N+1 queries outside transactions, holds DB connections for the full request duration (including I/O waits), and bleeds data access concerns into the web layer. <strong>Action</strong>: set <code>spring.jpa.open-in-view=false</code> and use service-layer DTOs.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Dirty Checking Surprises</span>
+      Any field change on a persistent entity is flushed automatically at commit — no <code>save()</code> call required. This means loading an entity, calling a setter for local computation only, and accidentally persisting the change. <strong>Fix</strong>: annotate read-only service methods with <code>@Transactional(readOnly=true)</code> — Hibernate skips dirty checking entirely, improving performance and preventing accidental writes.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">equals() / hashCode() on Entities</span>
+      Hibernate proxies are subclasses of your entity — <code>instanceof</code> in <code>equals()</code> breaks proxy comparison. Using the DB-generated ID means two newly persisted (transient) entities with <code>id=null</code> are incorrectly equal in Sets/Maps. <strong>Best practice</strong>: implement <code>equals()</code>/<code>hashCode()</code> on a <strong>natural business key</strong> (e.g., a UUID assigned before persist, or a unique domain attribute) rather than the surrogate DB key.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">CascadeType.ALL + orphanRemoval Without Care</span>
+      <code>CascadeType.ALL</code> with <code>orphanRemoval=true</code> on a <code>@OneToMany</code> means removing a child from the Java collection triggers a DELETE in the DB. A seemingly innocent <code>collection.clear()</code> inside a transaction deletes every element. Use cascade types precisely: typically only PERSIST and MERGE are needed. Reserve REMOVE + orphanRemoval for true ownership relationships where the child cannot exist without the parent.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use Hibernate When</div>
+      <ul>
+        
+        <li>Complex domain models with rich object graphs and bidirectional relationships</li>
+        
+        <li>Rapid development where hand-written SQL CRUD boilerplate slows iteration</li>
+        
+        <li>Projects on the Spring ecosystem where Spring Data JPA is a first-class citizen</li>
+        
+        <li>Applications requiring portable, database-agnostic query code via JPQL</li>
+        
+        <li>When built-in audit trails, optimistic locking, and entity versioning are required</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use Hibernate When</div>
+      <ul>
+        
+        <li>High-volume batch processing — use StatelessSession, JDBC directly, or Spring Batch</li>
+        
+        <li>Simple CRUD with 2–3 tables — Spring Data JDBC is lighter and more predictable</li>
+        
+        <li>Reporting/analytics queries — raw SQL with projections or jOOQ is far more expressive</li>
+        
+        <li>Microservices owning a single narrow aggregate — JDBC avoids the ORM overhead</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Core JPA Annotations</div>
+      <table>
+        
+        <tr><td>@Entity</td><td>Marks a class as a JPA entity mapped to a DB table</td></tr>
+        
+        <tr><td>@Table(name=...)</td><td>Overrides the default table name derived from class name</td></tr>
+        
+        <tr><td>@Id</td><td>Designates the primary key field</td></tr>
+        
+        <tr><td>@GeneratedValue</td><td>PK generation strategy: AUTO, IDENTITY, SEQUENCE, TABLE</td></tr>
+        
+        <tr><td>@Column</td><td>Column override: name, nullable, unique, length, insertable, updatable</td></tr>
+        
+        <tr><td>@Transient</td><td>Excludes a field from persistence — not mapped to any column</td></tr>
+        
+        <tr><td>@Version</td><td>Optimistic lock version field (Long or Timestamp); auto-incremented on UPDATE</td></tr>
+        
+        <tr><td>@Embeddable / @Embedded</td><td>Value type embedded inline in the owning entity's table (no separate PK)</td></tr>
+        
+        <tr><td>@MappedSuperclass</td><td>Base class whose mappings are inherited but is not itself an entity</td></tr>
+        
+        <tr><td>@Enumerated(STRING)</td><td>Persist enum by name. Avoid ORDINAL — breaks silently when enum order changes</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Relationship Annotations & Fetch Defaults</div>
+      <table>
+        
+        <tr><td>@ManyToOne</td><td>Default EAGER. Always name the FK with @JoinColumn(name=...) explicitly</td></tr>
+        
+        <tr><td>@OneToMany</td><td>Default LAZY. Non-owning side; requires mappedBy on bidirectional</td></tr>
+        
+        <tr><td>@OneToOne</td><td>Default EAGER. True LAZY requires bytecode enhancement for proxy support</td></tr>
+        
+        <tr><td>@ManyToMany</td><td>Default LAZY. Creates a join table; if the join table needs extra columns, model it as an @Entity with two @ManyToOne instead</td></tr>
+        
+        <tr><td>mappedBy</td><td>Marks the inverse (non-owning) side; the owning side holds the FK column</td></tr>
+        
+        <tr><td>@JoinColumn</td><td>Specifies FK column name, nullable, and constraint options</td></tr>
+        
+        <tr><td>orphanRemoval=true</td><td>Deletes child entity from DB when removed from parent's collection</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Cascade Types</div>
+      <table>
+        
+        <tr><td>PERSIST</td><td>New children are saved when parent is persisted</td></tr>
+        
+        <tr><td>MERGE</td><td>Detached children are merged when parent is merged</td></tr>
+        
+        <tr><td>REMOVE</td><td>Children are deleted when parent is deleted</td></tr>
+        
+        <tr><td>REFRESH</td><td>Children are reloaded from DB when parent is refreshed</td></tr>
+        
+        <tr><td>DETACH</td><td>Children are detached from Session when parent is detached</td></tr>
+        
+        <tr><td>ALL</td><td>All of the above. Use carefully — REMOVE can delete data unexpectedly</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Inheritance Strategies Compared</div>
+      <table>
+        
+        <tr><td>SINGLE_TABLE</td><td>All subclasses in one table with a discriminator column. No JOINs, fast queries. Downside: subtype-specific columns are nullable; cannot enforce NOT NULL.</td></tr>
+        
+        <tr><td>JOINED</td><td>Parent table + one table per subclass joined by PK. Normalised, enforces constraints. Downside: polymorphic queries JOIN all subtype tables.</td></tr>
+        
+        <tr><td>TABLE_PER_CLASS</td><td>Each concrete class gets its own full table. No JOINs for single-type. Downside: polymorphic queries use UNION — avoid this strategy.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Key Spring JPA / Hibernate Properties</div>
+      <table>
+        
+        <tr><td>spring.jpa.hibernate.ddl-auto</td><td>none | validate | update | create | create-drop. Use none or validate in production. Never update in prod.</td></tr>
+        
+        <tr><td>spring.jpa.open-in-view</td><td>Disable (false) in production to avoid silent N+1 and connection exhaustion</td></tr>
+        
+        <tr><td>spring.jpa.show-sql</td><td>Quick SQL logging; prefer logging.level.org.hibernate.SQL=DEBUG for control</td></tr>
+        
+        <tr><td>hibernate.jdbc.batch_size</td><td>Batch INSERT/UPDATE statements (25–50). Also set order_inserts=true and order_updates=true</td></tr>
+        
+        <tr><td>hibernate.default_batch_fetch_size</td><td>Batch-fetches LAZY collections using IN clauses — reduces N+1 without JOIN FETCH</td></tr>
+        
+        <tr><td>hibernate.generate_statistics</td><td>Enables Statistics MBean for query count, cache hit/miss, and timing per Session</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">💻 CLI Commands</div>
+      <div class="cmd-block">
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Schema & DDL</div>
+          
+          <span class="cmd">spring.jpa.hibernate.ddl-auto=validate    # prod: validate only</span>
+          
+          <span class="cmd">spring.jpa.hibernate.ddl-auto=create-drop # test only</span>
+          
+          <span class="cmd">./mvnw flyway:migrate                      # preferred in prod</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">SQL & Bind Param Logging</div>
+          
+          <span class="cmd">logging.level.org.hibernate.SQL=DEBUG</span>
+          
+          <span class="cmd">logging.level.org.hibernate.orm.jdbc.bind=TRACE</span>
+          
+          <span class="cmd">spring.jpa.properties.hibernate.format_sql=true</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Batch & Performance Tuning</div>
+          
+          <span class="cmd">spring.jpa.properties.hibernate.jdbc.batch_size=25</span>
+          
+          <span class="cmd">spring.jpa.properties.hibernate.order_inserts=true</span>
+          
+          <span class="cmd">spring.jpa.properties.hibernate.order_updates=true</span>
+          
+          <span class="cmd">spring.jpa.properties.hibernate.default_batch_fetch_size=25</span>
+          
+          <span class="cmd">spring.jpa.open-in-view=false</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">HikariCP Connection Pool</div>
+          
+          <span class="cmd">spring.datasource.hikari.maximum-pool-size=10</span>
+          
+          <span class="cmd">spring.datasource.hikari.minimum-idle=5</span>
+          
+          <span class="cmd">spring.datasource.hikari.connection-timeout=20000</span>
+          
+          <span class="cmd">spring.datasource.hikari.idle-timeout=300000</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Hibernate vs Spring Data JDBC vs jOOQ vs MyBatis vs Raw JDBC</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+            <th>Aspect</th>
+            
+            <th>Hibernate / JPA</th>
+            
+            <th>Spring Data JDBC</th>
+            
+            <th>jOOQ</th>
+            
+            <th>MyBatis</th>
+            
+            <th>Raw JDBC</th>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Abstraction</td>
+            
+            <td>High — entity graph, ORM</td>
+            
+            <td>Medium — aggregate roots</td>
+            
+            <td>Medium — type-safe SQL DSL</td>
+            
+            <td>Medium — SQL + mapping XML</td>
+            
+            <td>Low — raw ResultSet</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Learning curve</td>
+            
+            <td>Steep (lifecycle, caching, N+1)</td>
+            
+            <td>Low</td>
+            
+            <td>Medium</td>
+            
+            <td>Low–Medium</td>
+            
+            <td>Low</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>SQL control</td>
+            
+            <td>Low (generated SQL)</td>
+            
+            <td>Medium</td>
+            
+            <td>Full</td>
+            
+            <td>Full</td>
+            
+            <td>Full</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>N+1 risk</td>
+            
+            <td>High — requires discipline</td>
+            
+            <td>Low (explicit)</td>
+            
+            <td>None</td>
+            
+            <td>Manual</td>
+            
+            <td>None</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Complex queries</td>
+            
+            <td>Awkward (JPQL limits)</td>
+            
+            <td>Manual SQL required</td>
+            
+            <td>Excellent</td>
+            
+            <td>Excellent</td>
+            
+            <td>Excellent</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Bulk / batch ops</td>
+            
+            <td>OK with tuning (StatelessSession)</td>
+            
+            <td>Good</td>
+            
+            <td>Excellent</td>
+            
+            <td>Good</td>
+            
+            <td>Best</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best for</td>
+            
+            <td>Rich domain models, write path</td>
+            
+            <td>Simple aggregates</td>
+            
+            <td>Reporting, analytics</td>
+            
+            <td>Legacy DB, tuned SQL</td>
+            
+            <td>Performance-critical paths</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
+  <div class="qa-controls">
+    <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
+    <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
+  </div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="S-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">What is the difference between JPA and Hibernate? Why does the distinction matter?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>JPA (Jakarta Persistence API)</strong> is a specification — interfaces, annotations, and contracts defined by the Jakarta EE standard. It covers entity mapping, JPQL, the EntityManager lifecycle, and transaction handling.
+<strong>Hibernate</strong> is the most widely used JPA <em>implementation</em>. It provides the actual SQL generation, caching, lazy loading proxies, dirty checking, and session management behind those interfaces.
+The distinction matters because: - <strong>Portability</strong>: code written against JPA interfaces can theoretically switch
+  providers (EclipseLink, DataNucleus), though this rarely happens in practice.
+- <strong>Extensions</strong>: Hibernate adds features beyond the spec — HQL, <code>@BatchSize</code>,
+  Envers, spatial types. Using them creates Hibernate lock-in.
+- <strong>Spring Data JPA</strong> sits above JPA, generating repository implementations from
+  method names. It delegates to Hibernate but abstracts the EntityManager.</p>
+<p>Best practice: code to JPA interfaces; use Hibernate extensions only when JPA cannot express what you need.</p></div>
+        
+        <div class="staff-add">At the Staff level the conversation shifts to <em>when not to use JPA at all</em>. Complex reporting, bulk batch processing, and high-volume single-table writes are better served by jOOQ, Spring Data JDBC, or raw JDBC. Mature architectures often mix: Hibernate for the rich domain write path; jOOQ or projections for the read/reporting path; JDBC for bulk imports. Deciding which layer owns which use case — and enforcing that as a team standard — is a Staff responsibility.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','S-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">Explain the four entity lifecycle states in Hibernate and the transitions between them.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Transient</strong>: object created with <code>new</code>, unknown to Hibernate, no DB row. Garbage collected when dereferenced.
+<strong>Persistent (Managed)</strong>: associated with an open Session. Hibernate tracks all changes via dirty checking and flushes them to the DB on commit or explicit <code>flush()</code>. LAZY association access works here.
+<strong>Detached</strong>: the Session was closed or <code>evict()</code> was called. The entity has a DB row but is no longer tracked. Accessing LAZY associations throws <code>LazyInitializationException</code>. Re-attach via <code>merge()</code> (copies state onto a new persistent instance) or Hibernate's <code>update()</code> (reattaches the exact object).
+<strong>Removed</strong>: <code>remove()</code> called on a persistent entity. The DB row will be deleted at flush/commit.
+<strong>Key implication</strong>: dirty checking only works on <em>persistent</em> entities. Modifications to detached entities are silently lost unless explicitly merged back.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','S-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">What is the N+1 select problem, how do you detect it, and what are the fix strategies?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>The problem</strong>: loading N parent entities and then accessing a LAZY collection per entity fires 1 initial query + N subsequent queries:
+<code>java List&lt;Order&gt; orders = repo.findAll(); // 1 query orders.forEach(o -&gt; notify(o.getLineItems())); // N queries</code>
+<strong>Detection</strong>: enable <code>spring.jpa.properties.hibernate.generate_statistics=true</code> and check <code>StatisticsImpl.getQueryExecutionCount()</code> per request. Or use datasource-proxy / p6spy to count raw JDBC calls.
+<strong>Fix strategies</strong>: - <strong>JOIN FETCH</strong> (per-query): <code>SELECT o FROM Order o JOIN FETCH o.lineItems</code> — one
+  query. Watch for Cartesian products when joining multiple collections.
+- <strong>@BatchSize(size=25)</strong> on the collection: when any proxy is accessed, Hibernate
+  fetches up to 25 others with an IN clause — reduces to ceil(N/25)+1 queries.
+- <strong>@EntityGraph</strong>: per-repository override of fetch plan without altering defaults. - <strong>DTO projections</strong>: <code>SELECT new OrderDTO(o.id, o.total) FROM Order o</code> — don't
+  load the entity graph at all.</p>
+<p>Never "fix" N+1 by changing the fetch type to EAGER globally — that trades N+1 in some queries for over-fetching in all queries.</p></div>
+        
+        <div class="staff-add">N+1 is insidious because it's proportional to data volume — tests with 5 rows never reveal it; prod with 500 rows does. Staff engineers add a query-count assertion to every integration test for collection-loading endpoints. Tools: datasource-proxy <code>QueryCountHolder</code> or the Hibernate Statistics bean. The fix then drives a policy: every PR adding a collection-loading endpoint must document its fetch strategy.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','S-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-04">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">What are the JPA fetch type defaults, and why is @ManyToOne being EAGER a problem?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Defaults:</strong> - <code>@ManyToOne</code> → <strong>EAGER</strong> - <code>@OneToOne</code> → <strong>EAGER</strong> - <code>@OneToMany</code> → <strong>LAZY</strong> - <code>@ManyToMany</code> → <strong>LAZY</strong>
+<code>@ManyToOne</code> defaulting to EAGER means: every time you load an entity with a <code>@ManyToOne</code> field, Hibernate JOINs the associated table — even if you never use that association in the current use case. With a chain of EAGER associations (Order → Customer → Address → Country), a simple order load becomes a 4-table JOIN.
+<strong>Best practice</strong>: explicitly set everything to LAZY and use <code>JOIN FETCH</code> / <code>@EntityGraph</code> per query to load only what that specific query needs:
+<code>java @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "customer_id") private Customer customer;</code>
+This makes the data access explicit and prevents silent performance regressions as the entity graph grows.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','S-04',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-05">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">How does dirty checking work in Hibernate, and what are its performance implications?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">At Session open, Hibernate snapshots the state of each managed entity. At flush time (before commit, or on explicit <code>flush()</code>), it compares current field values against the snapshot. Any changed field generates a SQL UPDATE for that entity's row.
+This is <strong>automatic</strong> — you don't call <code>save()</code>:
+<code>java @Transactional public void changeEmail(Long id, String email) {
+    User user = em.find(User.class, id);
+    user.setEmail(email); // automatically flushed at commit
+}</code>
+<strong>Trap</strong>: setting a field inside a transaction for a local purpose accidentally persists it. Always be intentional about modifications inside <code>@Transactional</code> methods.
+<strong>Performance</strong>: dirty checking compares every field of every managed entity at flush time. For bulk processing loading thousands of entities this is expensive. Solutions: use <code>@Transactional(readOnly=true)</code> (Hibernate skips dirty checking), call <code>em.clear()</code> periodically in batch loops, or use <code>StatelessSession</code> for bulk operations.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','S-05',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-06">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">What is the Hibernate first-level cache and when can it cause problems?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The first-level cache is an <strong>identity map</strong> scoped to the current Session. Within one Session, loading the same entity by PK returns the exact same Java object instance — no duplicate SELECT is fired:
+<code>java User a = em.find(User.class, 1L); User b = em.find(User.class, 1L); assert a == b; // true — only one SELECT</code>
+It is always on and cannot be disabled. This guarantees object identity consistency within a transaction.
+<strong>Problem in batch processing</strong>: loading tens of thousands of entities in a loop accumulates them all in the L1 cache, causing memory pressure and eventually OOM. Fix: call <code>em.flush(); em.clear()</code> every N iterations to release the cache while still committing work.
+The L1 cache is <strong>not shared between Sessions</strong>. Cross-Session caching requires the optional second-level (L2) cache.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','S-06',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-07">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">What is LazyInitializationException and what are the correct ways to prevent it?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Thrown when a LAZY-loaded proxy is accessed after the Hibernate Session that created it has been closed. The proxy cannot issue the SELECT needed to initialise itself.
+<strong>Common causes:</strong> - REST controller returning a detached entity — Jackson serialisation accesses LAZY
+  fields outside the <code>@Transactional</code> service method boundary
+- <code>@Async</code> thread receiving an entity passed from the parent request thread - OSIV disabled but service returns entities instead of DTOs
+<strong>Prevention (pick the appropriate one):</strong> 1. <strong>DTOs / projections</strong>: map entities to records inside the transaction — no proxies
+   cross the boundary
+2. <strong>JOIN FETCH</strong>: load all associations you'll need within the active transaction scope 3. <strong><code>Hibernate.initialize(entity.getCollection())</code></strong>: explicit initialisation before
+   the Session closes (use sparingly)
+4. <strong><code>@Transactional</code> boundary</strong>: ensure all lazy access happens within the transaction
+Do NOT enable OSIV to suppress this error — it hides the symptom while causing N+1 queries at scale.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','S-07',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-08">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-08</span>
+        <span class="acc-question">What are the JPA inheritance mapping strategies and how do you choose between them?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Configured via <code>@Inheritance(strategy = InheritanceType.XXX)</code> on the root entity.
+<strong>SINGLE_TABLE</strong> (default): all subclasses share one table with a discriminator column. Pros: simplest queries, no JOINs, best read performance. Cons: all subclass-specific columns are nullable; cannot enforce NOT NULL constraints on subtype fields; poor third normal form.
+<strong>JOINED</strong>: parent class in one table; each subclass in its own table linked by PK/FK. Pros: fully normalised, enforces constraints per subtype, clean schema. Cons: polymorphic queries JOIN across all subtype tables.
+<strong>TABLE_PER_CLASS</strong>: each concrete class gets its own complete table. Pros: no JOINs for single concrete-type queries. Cons: polymorphic queries require UNION — unindexable and slow. Generally avoid.
+<strong>Decision guide:</strong> - Few subtypes with many shared fields, few unique fields → SINGLE_TABLE - Many distinct fields per subtype, data integrity matters → JOINED - Polymorphic queries across all subtypes are never needed → could use TABLE_PER_CLASS, but JOINED is usually safer</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','S-08',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-09">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-09</span>
+        <span class="acc-question">How does optimistic locking with @Version work, and when would you choose pessimistic locking instead?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><code>@Version</code> on a <code>Long</code> or <code>Timestamp</code> field enables optimistic locking:
+<code>java @Entity public class Product {
+    @Version private Long version;
+    private int stock;
+}</code>
+Hibernate adds <code>AND version = ?</code> to every UPDATE: <code>sql UPDATE product SET stock = ?, version = 2 WHERE id = ? AND version = 1</code>
+If another transaction committed in between, 0 rows are updated → Hibernate throws <code>OptimisticLockException</code>. The caller should catch and retry the operation, or surface a 409 Conflict to the client.
+<strong>Choose optimistic</strong> when: low-to-moderate write contention, reads heavily outnumber writes, and retry cost is acceptable.
+<strong>Choose pessimistic</strong> (<code>LockModeType.PESSIMISTIC_WRITE</code> → <code>SELECT ... FOR UPDATE</code>) when: high write contention makes retries impractical (inventory, seat booking, financial balances), or when you cannot tolerate even momentary inconsistency.
+Pessimistic locking serialises access at the DB level — correct, but reduces throughput and risks deadlocks if not applied consistently across all code paths.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','S-09',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-10">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-10</span>
+        <span class="acc-question">What is the difference between EntityManager.merge() and Hibernate Session.update()?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Both reattach a detached entity, but differ in semantics:
+<strong><code>EntityManager.merge(detached)</code></strong> (JPA-standard): - Loads the persistent copy from the Session L1 cache or DB - Copies the detached entity's state onto the persistent instance - Returns the <em>managed</em> instance — the original argument remains detached - Safe when another transaction may have modified the entity since detachment
+<strong><code>Session.update(detached)</code></strong> (Hibernate-specific): - Reattaches the exact same object instance to the Session - Throws <code>NonUniqueObjectException</code> if a different instance with the same ID already
+  exists in the Session
+- Does not check for concurrent modifications
+<strong>Always prefer <code>merge()</code></strong> for JPA code — it's portable and safe by default. Use <code>update()</code> only when you need Hibernate-specific semantics and fully control the Session state (rare).</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','S-10',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="ST-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">How do you systematically diagnose and eliminate N+1 problems in a production Spring Boot application?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Detection pipeline:</strong>
+1. <strong>Hibernate Statistics</strong> (<code>hibernate.generate_statistics=true</code>): exposes
+   <code>QueryExecutionCount</code>, <code>EntityLoadCount</code>, <code>CollectionFetchCount</code> per SessionFactory.
+   Wire into a Spring <code>HandlerInterceptor</code> to log counts per HTTP request.</p>
+<ol>
+<li>
+<p><strong>datasource-proxy / p6spy</strong>: intercepts JDBC at the <code>DataSource</code> level. Gives
+   exact SQL and counts regardless of ORM. Assert in integration tests:
+   <code>java
+   assertThat(QueryCountHolder.getGrandTotal().getSelect()).isLessThanOrEqualTo(3);</code></p>
+</li>
+<li>
+<p><strong>APM agents</strong> (Datadog, Dynatrace): trace JDBC spans per transaction in production.
+   Set an alert when any endpoint exceeds, e.g., 10 queries per request.</p>
+</li>
+</ol>
+<p><strong>Fix hierarchy (apply in order):</strong> 1. <code>JOIN FETCH</code> in the repository query for the specific endpoint 2. <code>@EntityGraph</code> for per-method overrides without modifying entity defaults 3. <code>@BatchSize(size=25)</code> for collections too large to JOIN (Cartesian product risk) 4. DTO projections for read-only endpoints — bypass entity hydration entirely 5. <code>spring.jpa.properties.hibernate.default_batch_fetch_size=25</code> as a safety net
+<strong>Prevention</strong>: add query-count assertions to every integration test for collection-loading endpoints. Gate new collection endpoints with a fetch strategy checklist in PR reviews.</p></div>
+        
+        <div class="staff-add">At scale this becomes an org-wide reliability concern, not a per-ticket fix. Staff engineers define the runbook: detect → profile → assert → fix → assert again. The goal is to never let N+1 reach production — which requires test infrastructure that measures query counts automatically for every endpoint, not just the ones that are already slow.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','ST-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">When would you choose jOOQ or Spring Data JDBC over Hibernate for part of a system?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Choose jOOQ when:</strong> - Complex reporting queries with aggregations, window functions, CTEs — JPQL can't
+  express them and native queries in JPA lose type safety and IDE support.
+- You want compile-time SQL validation against the real schema. - The query logic is complex enough that "what SQL will this generate?" should be
+  obvious from the code, not a debugging exercise.</p>
+<p><strong>Choose Spring Data JDBC when:</strong> - The aggregate is narrow (1–3 tables) with a clear DDD boundary. - You want predictable, explicit SQL: <code>save()</code> always issues an INSERT or UPDATE,
+  no dirty checking, no proxy, no Session lifecycle surprises.
+- A team new to JPA wants data access without Hibernate's footguns.
+<strong>In practice, mix them within one application</strong>: Hibernate for the domain write path and rich object graphs; jOOQ or JDBC for reporting endpoints, analytics, or bulk export jobs. They share the same <code>DataSource</code> and <code>@Transactional</code> infrastructure.
+The decisive question: does the Unit of Work / entity graph model add value here, or does it add accidental complexity?</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','ST-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">How does the Hibernate second-level cache work, and what are the risks in a multi-node deployment?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>How it works:</strong> - Scoped to the <code>SessionFactory</code> — shared across all Sessions in the same JVM. - Annotate entities with <code>@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)</code> and
+  configure a provider (EhCache, Caffeine via JCache, Hazelcast).
+- Hibernate checks L2 before querying the DB for <code>em.find()</code> calls. - L2 entries are evicted automatically when Hibernate executes an UPDATE or DELETE
+  through its own Session.</p>
+<p><strong>Multi-node risks:</strong> - <strong>Stale data</strong>: direct JDBC updates, another service writing to the same table,
+  or DB migrations bypass Hibernate's eviction. The L2 cache serves stale data.
+- <strong>Per-node isolation</strong>: without a distributed cache, each node has its own L2 region.
+  Writes on Node A are invisible to Node B's cache — inconsistent reads.
+- <strong>Fix</strong>: use a distributed provider (Hazelcast cluster, Redis via Redisson) so
+  invalidation propagates cluster-wide.
+- <strong>Memory pressure</strong>: caching large or frequently updated entities wastes heap
+  and increases GC pause times.</p>
+<p><strong>Safe L2 candidates</strong>: slowly changing reference data — product categories, country codes, configuration values. Avoid caching inventory levels, user sessions, or anything requiring tight consistency.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','ST-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-04">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-04</span>
+        <span class="acc-question">How do you handle large-scale batch processing efficiently with Hibernate?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Hibernate's default Session is not designed for batch workloads — dirty checking and L1 cache accumulate all loaded entities in memory.
+<strong>Strategy by use case:</strong>
+<strong>Bulk UPDATE/DELETE without loading entities (fastest):</strong> <code>java em.createQuery("UPDATE Product p SET p.price = p.price * 1.1 WHERE p.category = :c")
+  .setParameter("c", "electronics").executeUpdate();</code> Bypasses L1/L2 and lifecycle callbacks. Manually evict L2 regions if needed.
+<strong>Processing entities in chunks (flush-and-clear):</strong> <code>java for (int i = 0; i &lt; entities.size(); i++) {
+    process(entities.get(i));
+    if (i % 50 == 0) { em.flush(); em.clear(); }
+}</code> Prevents L1 cache bloat. Enable JDBC batching (<code>hibernate.jdbc.batch_size=50</code>) to group the resulting INSERTs/UPDATEs into batch round-trips.
+<strong>Hibernate <code>StatelessSession</code></strong>: no L1 cache, no dirty checking, no lazy loading proxy — pure CRUD. Ideal for high-volume imports where you don't need lifecycle hooks.
+<strong>Spring Batch</strong>: for production-grade jobs, use <code>JpaPagingItemReader</code> / <code>JdbcCursorItemReader</code> with chunk-oriented processing. Provides restartability, skip/retry policies, and partitioned parallel execution — critical for large datasets.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','ST-04',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="P-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How do you decide on persistence strategy for a new distributed system — full ORM, lightweight JDBC, or polyglot?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The decision turns on five factors evaluated per service, not once for the whole system:
+<strong>1. Domain complexity</strong>: a rich object graph with deep relationships and lifecycle rules (orders → line items → inventory → fulfilment) justifies Hibernate's entity model. A service with two tables and a few foreign keys does not.
+<strong>2. Write vs read ratio</strong>: Hibernate excels on the write path. For read-heavy reporting or analytics endpoints, jOOQ or raw SQL projections are faster, more expressive, and easier to reason about.
+<strong>3. Team capability</strong>: Hibernate's footguns (N+1, OSIV, detached state, cache invalidation) require sustained discipline. A team without JPA expertise will consistently hit them in production. A simpler tool may be safer.
+<strong>4. Schema ownership</strong>: if the service owns its schema end-to-end, full ORM is reasonable. If it must write to a legacy schema with stored procedures or unusual column types, jOOQ or MyBatis preserves full SQL control.
+<strong>5. Service boundary width</strong>: microservices owning one or two aggregates get little value from Hibernate. Spring Data JDBC or JDBC templates are faster to start, easier to test, and have lower cognitive overhead.
+<strong>Pattern that works at scale</strong>: Hibernate for the domain write path, CQRS projections or jOOQ for the read path, and JDBC for batch exports. The mistake is applying one tool uniformly across all use cases.</div>
+        
+        <div class="staff-add">At the Principal level, the decision also involves governance: what persistence abstractions does the organisation standardise on? If every team chooses independently, the platform team ends up supporting four ORM frameworks. The right outcome is usually: one standard ORM for complex domains (Hibernate), one lightweight option for simple aggregates (Spring Data JDBC or jOOQ), and a documented policy for when each applies. That policy is more valuable than any individual technology decision.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','P-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="P-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">P-02</span>
+        <span class="acc-question">How do you architect caching for a Hibernate-based system running across multiple nodes?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Single-node L2 cache (EhCache in local heap) fails in multi-instance deployments: each node has an independent cache region. A write on Node A invalidates A's cache but not B's — inconsistent reads across the cluster.
+<strong>Architectural options:</strong>
+<strong>1. Distributed L2 cache</strong>: configure Hibernate's JCache SPI with a distributed provider — Hazelcast (native Hibernate 6 integration) or Redis via Redisson. Writes propagate invalidation messages to all nodes. Tradeoff: network latency per cache read vs DB hit savings. Works well for reference data with high read/write ratios.
+<strong>2. Read model separation (CQRS)</strong>: project write-side entity changes into a dedicated read store (Redis, Elasticsearch, materialised views) via domain events. The read side is purpose-built for query patterns, has no entity lifecycle issues, and scales independently of the write store.
+<strong>3. Service-layer cache (<code>@Cacheable</code>)</strong>: explicitly manage a Redis or Caffeine cache for coarse entities using Spring Cache abstraction. Evict via <code>@CacheEvict</code> on write operations. Simpler to reason about than Hibernate L2 but requires manual coordination.
+<strong>4. What NOT to cache</strong>: high-write or tightly consistent data — inventory, financial balances, user sessions. Invalidation complexity outweighs the read savings; tight DB indexes serve these better.
+<strong>Operational concern</strong>: cold cache after a rolling deploy triggers a thundering herd. Mitigate with lazy warming + circuit breakers, or a background cache pre-warming job at startup before the instance enters the load balancer rotation.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('hibernate-jpa','P-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">Production N+1: Order History API Degrading Under Load</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">An e-commerce order history endpoint (<code>GET /users/{id}/orders</code>) returns the last 50 orders with their line items and assigned agent. Response time is 80 ms at 10 RPS but degrades to 2 s at 100 RPS. Database CPU spikes proportionally to request rate. The service uses Spring Boot with JPA and MySQL.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>50 orders per request, avg 5 line items each, plus 1 agent per order</li><li>Default 10-connection HikariCP pool</li><li>Current code: findByUserId() then getLineItems() and getAgent() per order in the serialiser</li><li>Cannot add a caching layer yet — must fix the data access pattern first</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li>Diagnose: enable <code>hibernate.generate_statistics=true</code>, confirm 101+ queries per request (1 orders + 50 lineItems + 50 agents)</li><li>Fix lineItems: <code>SELECT o FROM Order o JOIN FETCH o.lineItems WHERE o.user.id = :uid ORDER BY o.createdAt DESC</code></li><li>Fix agent: add <code>JOIN FETCH o.agent</code> to the same query — but watch for Cartesian product if both are collections; only one collection can be JOIN FETCHed safely</li><li>For the second collection, use <code>@BatchSize(size=50)</code> on the field — batches initialisation via IN clause</li><li>Add <code>spring.jpa.properties.hibernate.default_batch_fetch_size=25</code> as a safety net across the whole app</li><li>Disable OSIV (<code>spring.jpa.open-in-view=false</code>) to prevent the serialiser from firing LAZY queries silently</li><li>Add datasource-proxy integration test asserting total SELECT count ≤ 3 for a 50-order fixture</li><li>Consider a DTO projection if the endpoint only needs 4–5 fields — avoids entity hydration entirely</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Setting <code>@OneToMany(fetch=EAGER)</code> globally — trades N+1 in some queries for always-joining in all</li><li>Enabling OSIV to suppress LazyInitializationException without addressing the root fetch strategy</li><li>Not adding a regression test — N+1 will return with the next entity field or relationship added</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">LazyInitializationException in Async Notification Service</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">An order confirmation service loads an <code>Order</code> entity in a <code>@Transactional</code> method, then passes it to a <code>@Async</code> email method. The email template accesses <code>order.getCustomer().getEmail()</code> and iterates <code>order.getLineItems()</code>. LazyInitializationException is thrown intermittently — and more frequently under load.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Spring Boot 3, Hibernate 6. Order, Customer, LineItems are all LAZY.</li><li>Email sending must be async to avoid blocking the HTTP response thread</li><li>Cannot wrap SMTP inside @Transactional — holds a DB connection for the full send duration</li><li>Entity must not be modified by the async method</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li>Root cause: the @Async method runs on a different thread pool; the @Transactional Session is already closed before the async method executes — the entity is detached</li><li>Solution A (preferred): map the Order entity to a lightweight DTO or record inside the transaction, pass the DTO to the async method — no proxy crosses the boundary</li><li>Solution B: eagerly load all required associations with JOIN FETCH before the transaction closes, then pass the entity</li><li>Adding @Transactional to the async method is NOT the fix — a new Session opens but the detached proxy still references the old closed Session and cannot re-attach automatically</li><li>Domain event approach: publish an <code>OrderConfirmedEvent</code> with the DTO payload inside the transaction; a separate event listener handles async sending — decoupled and testable</li><li>Add an assertion in tests: <code>assertFalse(Hibernate.isInitialized(order.getLineItems()))</code> before the boundary to document the contract</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Enabling OSIV — makes the problem worse in async contexts; OSIV only covers the HTTP thread</li><li>Passing JPA entities across thread boundaries — entities and their proxies are not thread-safe</li><li>Calling Hibernate.initialize() in the async method after the Session is closed — will also throw</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">High-Concurrency Inventory Decrement with Lost Updates</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A flash sale endpoint allows users to purchase an item if stock &gt; 0. Under peak load, multiple users successfully purchase the last item — stock goes negative. The service reads stock, checks &gt; 0, decrements, and saves — a classic read-modify-write race condition.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Up to 10,000 concurrent requests during the sale window</li><li>MySQL, HikariCP pool of 20 connections</li><li>Current code: findById() → check stock → stock-- → save()</li><li>Correctness is required: no over-selling, no inventory going negative</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li>Optimistic locking (@Version): both transactions read stock=1 and version=1, both check &gt; 0, first commits (version becomes 2), second's UPDATE hits <code>WHERE version = 1</code> → 0 rows → OptimisticLockException. Retry the loser. Works well at moderate contention.</li><li>Pessimistic locking (PESSIMISTIC_WRITE): <code>em.find(Product.class, id, LockModeType.PESSIMISTIC_WRITE)</code> issues <code>SELECT ... FOR UPDATE</code>, serialising access. Correct but throughput falls linearly with contention; connection pool exhaustion risk at 10k RPS.</li><li>JPQL atomic decrement (best for this use case): <code>UPDATE Product p SET p.stock = p.stock - 1 WHERE p.id = :id AND p.stock &gt; 0</code> — returns 0 rows if out of stock. Single atomic round-trip, no entity load, no locking overhead.</li><li>Redis DECR on the hot-path counter: decrement in Redis atomically, persist to DB asynchronously. Handles very high throughput but requires reconciliation strategy and Redis HA.</li><li>Rate-limit the endpoint upstream (API gateway token bucket) to cap concurrency before it reaches the DB</li><li>Add a DB-level CHECK constraint (<code>stock &gt;= 0</code>) as a last line of defence regardless of which approach is used</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>No locking strategy at all — stock goes negative; refund and reconciliation cost far exceeds the sale</li><li>Optimistic locking with no retry logic — OptimisticLockException surfaces as 500 to the user</li><li>PESSIMISTIC_WRITE for 10k concurrent requests without upstream throttling — connection pool exhausts in seconds</li><li>Application-level <code>if (stock &gt; 0)</code> as the only guard — race condition is guaranteed under any concurrency</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>// ── Theme (localStorage persistence) ─────────────────────────────────────
+function toggleTheme() {
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  h.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+// ── Tabs (with URL hash sync) ─────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+  history.replaceState(null, '', '#' + name);
+}
+
+// ── Accordion (JS-driven scrollHeight animation) ───────────────────────────
+function setAccOpen(item, open) {
+  const body = item.querySelector('.acc-body');
+  if (open) {
+    item.classList.add('open');
+    const h = body.scrollHeight;
+    body.style.maxHeight = h + 'px';
+    function onEnd(e) {
+      if (e.propertyName !== 'max-height') return;
+      body.removeEventListener('transitionend', onEnd);
+      if (item.classList.contains('open')) body.style.maxHeight = 'none';
+    }
+    body.addEventListener('transitionend', onEnd);
+  } else {
+    if (!body.style.maxHeight || body.style.maxHeight === 'none') {
+      body.style.maxHeight = body.scrollHeight + 'px';
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      item.classList.remove('open');
+      body.style.maxHeight = '0';
+    }));
+  }
+}
+
+function toggleAcc(header) {
+  setAccOpen(header.parentElement, !header.parentElement.classList.contains('open'));
+}
+
+// ── Expand / collapse all Q&A ─────────────────────────────────────────────
+function toggleAllAcc(btn) {
+  const items = [...document.querySelectorAll('#qa .acc-item')].filter(i => i.style.display !== 'none');
+  const allOpen = items.every(i => i.classList.contains('open'));
+  items.forEach(i => setAccOpen(i, !allOpen));
+  btn.textContent = allOpen ? 'Expand All' : 'Collapse All';
+}
+
+// ── Q&A keyword filter ────────────────────────────────────────────────────
+function filterQA(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.acc-item').forEach(item => {
+    const text = item.querySelector('.acc-question').textContent.toLowerCase();
+    item.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+  // Reset expand-all label whenever filter changes
+  const btn = document.querySelector('.expand-all-btn');
+  if (btn) btn.textContent = 'Expand All';
+}
+
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
+// ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
+document.addEventListener('DOMContentLoaded', function () {
+  // Sync toggle label with the actual current theme
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const label = document.getElementById('toggle-label');
+  if (label) label.textContent = isDark ? 'LIGHT MODE' : 'DARK MODE';
+
+  // Restore active tab from URL hash
+  const hash = location.hash.slice(1);
+  const validTabs = ['overview', 'deepdive', 'qa', 'scenarios'];
+  if (hash && validTabs.includes(hash)) {
+    const tab = document.querySelector(`.tab[data-tab="${hash}"]`);
+    if (tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(hash).classList.add('active');
+    }
+  }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
+
+  // Copy-to-clipboard on CLI command blocks
+  document.querySelectorAll('.cmd').forEach(cmd => {
+    cmd.title = 'Click to copy';
+    cmd.addEventListener('click', function () {
+      navigator.clipboard.writeText(this.textContent.trim()).then(() => {
+        const orig = this.style.opacity;
+        this.style.opacity = '0.4';
+        setTimeout(() => { this.style.opacity = orig; }, 600);
+      }).catch(() => {});
+    });
+  });
+});
+</script>
+</body>
+</html>
