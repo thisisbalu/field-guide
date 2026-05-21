@@ -8,6 +8,7 @@ meta:
   title: HashiCorp Vault
   title_short: Vault
   subtitle: "// secrets management · dynamic credentials · PKI · auth methods · policies · senior → principal"
+  description: "Secrets management with dynamic credentials, encryption-as-a-service, and audit logging."
   category: Security
   icon: "🔐"
 

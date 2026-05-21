@@ -108,6 +108,12 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .when-not .when-title{color:var(--red);}
 .when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
 
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
 /* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
 .qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
 .qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
@@ -115,6 +121,14 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .qa-search::placeholder{color:var(--muted);}
 .expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
 .expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
 
 /* ── Accordion ───────────────────────────────────────────────────────────── */
 .accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
@@ -206,10 +220,14 @@ td:last-child{color:var(--cheat-val);}
   h1{font-size:2rem;}
   .back-link span{display:none;}
 }
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
 
 </style>
 </head>
-<body>
+<body data-topic-id="ocp">
 
 <a class="back-link" href="index.html">← <span>Field Guide</span></a>
 
@@ -831,6 +849,11 @@ td:last-child{color:var(--cheat-val);}
 <div class="section" id="qa">
   <div class="section-title">Interview Q &amp; A</div>
 
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
   <div class="qa-controls">
     <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
     <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
@@ -840,7 +863,7 @@ td:last-child{color:var(--cheat-val);}
   <div class="section-sub">Senior Engineer — Execution Depth</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-01</span>
         <span class="acc-question">What is a Security Context Constraint (SCC) and how does it differ from Kubernetes PodSecurityAdmission?</span>
@@ -853,10 +876,13 @@ K8s PodSecurityAdmission (PSA) enforces one of three profiles (privileged, basel
         
         <div class="staff-add">The granularity of SCCs is a double-edged sword. Per-service-account control is powerful, but it means every namespace can accumulate a different security posture over time as teams grant SCCs ad hoc. The risk is SCC sprawl: 50 namespaces each with their own set of service accounts granted <code>anyuid</code>. Govern SCC grants the same way you govern RBAC — audit regularly with <code>oc adm policy who-can use scc anyuid</code>, and automate provisioning rather than allowing manual grants. The question to ask at design time: "what's the minimum SCC this workload needs?" not "what SCC makes it work?"</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','S-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-02</span>
         <span class="acc-question">How does an OCP Route differ from a Kubernetes Ingress, and when would you choose one over the other?</span>
@@ -869,10 +895,13 @@ K8s Ingress is the portable standard and works with any Ingress controller. In O
         
         <div class="staff-add">Passthrough TLS is the mode most teams get wrong. With passthrough, the router forwards the raw TCP stream — it cannot do path-based routing, add headers, or perform health checks at the HTTP level. It's correct for mutual TLS (mTLS) workloads where the application needs to validate client certificates, or for protocols that embed their own TLS. Re-encrypt is better when you need end-to-end encryption but also need the router to inspect traffic for routing decisions. Design TLS termination explicitly per route — letting it default often leads to mismatched security posture across services.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','S-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-03</span>
         <span class="acc-question">What is an ImageStream and what problem does it solve?</span>
@@ -885,10 +914,13 @@ ImageStreams also enable image promotion across environments: <code>oc tag myapp
         
         <div class="staff-add">ImageStream triggers are powerful but dangerous if not understood. An annotation on a Deployment (<code>image.openshift.io/triggers</code>) causes automatic rollouts on any tag update. In production, you often don't want automatic rollouts triggered by image changes — you want GitOps to control rollout timing. Audit your production Deployments for ImageStream trigger annotations and disable them for workloads where rollout timing must be controlled. Use ImageStreams for image promotion (the <code>oc tag</code> workflow) without enabling automatic triggers in sensitive environments.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','S-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-04</span>
         <span class="acc-question">What is the difference between DeploymentConfig and Deployment in OCP, and why is DC deprecated?</span>
@@ -901,10 +933,13 @@ Use K8s <code>Deployment</code> for all new workloads. Migrate existing DCs usin
         
         <div class="staff-add">The deprecation of DeploymentConfig is a signal about OCP's direction: move toward vanilla K8s primitives, not OCP-specific extensions. The same principle applies to other OCP-specific resources — use them only where they genuinely add value over the K8s equivalent. For migration at scale, script the conversion using <code>oc</code> and test in a dev namespace first. The main gap to cover is lifecycle hooks — if your DC uses a mid-lifecycle hook (e.g., running a DB migration between old and new pods), model this as an init container or a pre-upgrade Job in your GitOps pipeline instead.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','S-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-05">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-05</span>
         <span class="acc-question">Walk me through OCP's RBAC model — how do Projects, Roles, RoleBindings, and SCCs work together?</span>
@@ -917,10 +952,13 @@ Use K8s <code>Deployment</code> for all new workloads. Migrate existing DCs usin
         
         <div class="staff-add">The most common misconfiguration is conflating RBAC and SCCs. A developer with <code>edit</code> RBAC who deploys a pod that needs <code>anyuid</code> will get an admission error even though their RBAC is correct — because the pod's service account (not the user) needs the SCC grant. Automate SCC grants as part of namespace provisioning: if a team deploys database workloads that need specific UIDs, grant the appropriate SCC to a dedicated service account via a GitOps-managed RoleBinding, not via one-off <code>oc adm policy</code> commands. This makes the security posture visible, auditable, and reproducible.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','S-05',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-06">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-06</span>
         <span class="acc-question">A pod fails to start with a `forbidden: unable to validate against any security context constraint` error. How do you diagnose and fix it?</span>
@@ -933,10 +971,13 @@ Fix: determine the minimum SCC required. If the image must run as root, grant <c
         
         <div class="staff-add">Before granting <code>anyuid</code>, push back on the image. Many images that appear to need root only need a specific UID range, which can be set with <code>runAsUser</code> in the pod spec — and then a custom SCC (or <code>nonroot</code>) works without full root access. Granting <code>anyuid</code> to the <code>default</code> service account in a namespace is a common shortcut that grants root capability to every pod in that namespace without a service account specified. Use <code>oc adm create-bootstrap-project-template</code> to establish a project template that provisions a dedicated service account per workload class as part of namespace setup.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','S-06',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-07">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-07</span>
         <span class="acc-question">What is Source-to-Image (S2I) and what does it offer over a standard Dockerfile build?</span>
@@ -949,10 +990,13 @@ Advantages over Dockerfile: builder images are maintained by the platform team (
         
         <div class="staff-add">S2I made sense when Dockerfile skills were rare. In most modern engineering orgs, developers know Docker and Dockerfile builds are more flexible and portable. The real value of S2I today is the builder image supply chain — the platform team controls what base images are used, ensuring patched images are used consistently without relying on individual developers to update their FROM line. You get that benefit via Dockerfile + a curated base image catalog too, without S2I constraints. Reserve S2I for orgs with strong central platform ownership and developers who shouldn't need to reason about container internals.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','S-07',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-08">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-08</span>
         <span class="acc-question">How do ResourceQuota and LimitRange work together in an OCP project, and what breaks without them?</span>
@@ -965,10 +1009,13 @@ Without LimitRange defaults, pods without resource requests are BestEffort QoS �
         
         <div class="staff-add">Design quotas from actual usage, not guesses. A common mistake is setting quotas too low at project creation, forcing constant requests for increases — this creates toil for the platform team and friction for developers. A better model: generous initial quota (150% of estimated peak), monitoring on actual vs. quota, and a governance process for quota expansion requests. Also quota the number of Services (LoadBalancer type especially) and PersistentVolumeClaims — teams often exhaust these before CPU or memory.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','S-08',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-09">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-09</span>
         <span class="acc-question">What is a MachineConfig and when would you apply one in production?</span>
@@ -981,10 +1028,13 @@ Common use cases: adding corporate CA certificates to all nodes, kernel tuning f
         
         <div class="staff-add">The reboot requirement is the constraint that drives all design decisions around MachineConfig. In production, every MC change = rolling reboot of the affected MachineConfigPool. For the worker pool, this means nodes drain and restart one by one — workloads reschedule and the cluster temporarily loses capacity. Batch MC changes rather than applying one change per MC object: multiple MachineConfigs are merged into a single rendered config, and the reboot happens once per render cycle. Also: never modify a MachineConfig that's already applied in production without testing in a dev cluster first — a malformed Ignition config can brick a node.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','S-09',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-10">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-10</span>
         <span class="acc-question">Walk me through what happens when you run `oc new-app` with a Git repository URL.</span>
@@ -996,10 +1046,13 @@ Common use cases: adding corporate CA certificates to all nodes, kernel tuning f
         
         <div class="staff-add"><code>oc new-app</code> is great for demos and learning but rarely appropriate for production. It creates opinionated resources with defaults that may not match your org's standards (resource requests, liveness probes, security context, label taxonomy). In production, use Helm charts, Kustomize, or GitOps-managed manifests that you control explicitly. Treat <code>oc new-app</code> as a learning scaffold — run it to see what it creates, then use those manifests as a starting point to customize, not as the final deployment artifact.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','S-10',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-11">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-11</span>
         <span class="acc-question">How does a rolling deployment work in OCP, and how do you ensure zero downtime?</span>
@@ -1011,10 +1064,13 @@ Common use cases: adding corporate CA certificates to all nodes, kernel tuning f
         
         <div class="staff-add">The most common zero-downtime failure is a missing or too-fast readiness probe. If a pod passes readiness before the application is warm (JVM JIT, cache load, etc.), it receives traffic and returns errors for the first N seconds. Test your readiness probe's timing under load, not just in idle conditions. The other gap: PodDisruptionBudgets. Without a PDB, a node drain or cluster upgrade can evict all pods of a Deployment simultaneously. Define PDBs with <code>minAvailable: 1</code> for any Deployment that must be continuously available — this guarantees at least one replica survives any infrastructure event.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','S-11',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-12">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-12</span>
         <span class="acc-question">How do you manage secrets in OCP, and what are the risks of the default approach?</span>
@@ -1027,10 +1083,13 @@ The default approach risks: Secrets stored in etcd are only as secure as your et
         
         <div class="staff-add">Treat OCP's native Secrets as a transport mechanism, not a vault. For production workloads, integrate with an external secret store (HashiCorp Vault, AWS Secrets Manager) via the External Secrets Operator — this keeps the source of truth outside the cluster, enables rotation without pod restarts, and centralizes audit logging for secret access. RBAC on Secrets is often misconfigured: <code>edit</code> role in a namespace includes <code>get secrets</code> by default — review this and use a more restrictive role if developers shouldn't see production secrets. Never store secrets in ConfigMaps (unencrypted by policy).</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','S-12',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-13">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-13</span>
         <span class="acc-question">How do you troubleshoot a pod stuck in `CrashLoopBackOff` in OCP?</span>
@@ -1042,10 +1101,13 @@ The default approach risks: Secrets stored in etcd are only as secure as your et
         
         <div class="staff-add"><code>oc debug pod/&lt;pod&gt;</code> is the most underused OCP troubleshooting tool. It creates a copy of the pod with the command overridden to a shell, using the same image, volumes, env vars, and security context — letting you reproduce the environment exactly without the crash loop. For nodes, <code>oc debug node/&lt;node&gt; -- chroot /host bash</code> gives you a root shell on the host OS, useful for diagnosing kubelet issues, disk pressure, or CNI problems. Build the habit of reaching for <code>oc debug</code> before resorting to exec into a running container — it's safer and doesn't affect production pods.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','S-13',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-14">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-14</span>
         <span class="acc-question">What is etcd in OCP and why is its backup critical?</span>
@@ -1058,6 +1120,9 @@ etcd backup (<code>etcdctl snapshot save</code>) captures a point-in-time snapsh
         
         <div class="staff-add">etcd backup is the minimum; testing restore is the actual requirement. Back up etcd to an external store (S3, NFS) on a schedule — OCP 4.x includes a built-in backup CronJob. But back-of-envelope: can you restore the cluster in your RTO window? A restore from backup restores cluster state but not persistent volume data — your database PVCs are separate. etcd performance also matters for day-to-day operations: slow fsync latency (target &lt;10ms) causes API server slowness. If <code>etcd_disk_wal_fsync_duration_seconds</code> is high, the etcd disk is too slow — use dedicated SSDs for master nodes, never shared NFS.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','S-14',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1068,7 +1133,7 @@ etcd backup (<code>etcdctl snapshot save</code>) captures a point-in-time snapsh
   <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-01</span>
         <span class="acc-question">Design a multi-team OCP cluster with proper isolation, quotas, and RBAC. How do you onboard a new team?</span>
@@ -1080,10 +1145,13 @@ etcd backup (<code>etcdctl snapshot save</code>) captures a point-in-time snapsh
         
         <div class="staff-add">The hard part of multi-team clusters is drift. Teams request quota increases, ad-hoc SCC grants accumulate, and RBAC sprawls over time. Solve this with GitOps-driven namespace management: every namespace's quota, RBAC, and LimitRange is a manifest in a Git repo; changes require PR review; ArgoCD enforces the desired state and alerts on drift. Define what "onboarding a team" means as a reusable template or Helm chart — not a runbook. A team should be fully onboarded in under 15 minutes via automation. The goal is a cluster that's auditable at any moment: who has access to what, at what quota.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','ST-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-02</span>
         <span class="acc-question">How do you implement GitOps on OCP using OpenShift GitOps (ArgoCD)?</span>
@@ -1095,10 +1163,13 @@ etcd backup (<code>etcdctl snapshot save</code>) captures a point-in-time snapsh
         
         <div class="staff-add">The organizational shift is bigger than the tooling change. GitOps requires that every cluster change goes through Git — no <code>oc apply</code> directly in production. Enforce this via ArgoCD's auto-sync + self-heal (ArgoCD reverts manual changes), and remove direct edit access to production namespaces for developers. The transition period is painful: teams resist losing <code>oc</code> access. Invest in developer experience — fast PR-to-deploy pipelines, clear feedback from ArgoCD on sync status, and runbooks for emergency changes (break-glass access with full audit trail). The discipline pays off in auditability and rollback capability.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','ST-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-03</span>
         <span class="acc-question">Explain OCP's networking model — what is OVN-Kubernetes and how does it differ from OpenShift SDN?</span>
@@ -1111,10 +1182,13 @@ etcd backup (<code>etcdctl snapshot save</code>) captures a point-in-time snapsh
         
         <div class="staff-add">OVN-Kubernetes gives you NetworkPolicy with better performance and more features, but also more complexity to troubleshoot. When a pod can't reach another pod and NetworkPolicy is involved, the debugging path changes: <code>oc exec</code> into a pod + <code>curl</code> is still the first step, but the actual policy is programmed into OVS flows that require <code>ovn-nbctl</code> and <code>ovs-ofctl</code> to inspect at the node level. Build familiarity with <code>oc get networkpolicy</code>, <code>oc describe networkpolicy</code>, and the OVN diagnostic tools before you need them in an incident. OVN's egress IP feature (stable IP per namespace for external firewall rules) is worth knowing — it's frequently asked about in network-sensitive enterprises.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','ST-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-04</span>
         <span class="acc-question">Walk me through a zero-downtime OCP minor version upgrade in production.</span>
@@ -1126,10 +1200,13 @@ etcd backup (<code>etcdctl snapshot save</code>) captures a point-in-time snapsh
         
         <div class="staff-add">The upgrade is operator-managed but the risks are workload-specific. Common failure modes: a deprecated API in a running CRD causes the upgrade to stall (check with the API deprecation alert in OCP's monitoring); a workload without a PodDisruptionBudget gets evicted during node drain; the upgrade takes longer than expected because a node fails to drain (a stuck PDB or a non-evictable pod). Monitor the upgrade actively via the web console upgrade progress view, not just trigger-and-forget. Have a rollback plan: OCP does not support in-place rollback of minor versions — rollback means restoring from etcd backup and rebuilding the control plane. That's a significant operation — prevention is the strategy.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','ST-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-05">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-05</span>
         <span class="acc-question">When would you write a custom Operator versus using Helm or plain Kubernetes manifests?</span>
@@ -1142,10 +1219,13 @@ Helm is right for: application deployment packaging where lifecycle is handled b
         
         <div class="staff-add">Writing a custom Operator has a significant upfront cost: you need the Operator SDK or controller-runtime, reconciliation loop design, status condition handling, and the operational knowledge to embed. The payoff only materializes when: (a) the operational knowledge is complex enough to justify it, and (b) the operator will be used by many teams or run many instances. A single stateless service deployed via GitOps Helm chart does not need an Operator. The bar I use: if a human would need a runbook with more than 5 steps to handle day-2 operations, an Operator might pay off. If those 5 steps are just "apply this YAML and run this SQL," a Helm chart + Tekton Pipeline is simpler.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','ST-05',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-06">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-06</span>
         <span class="acc-question">How do you manage secrets at scale in OCP — specifically integrating HashiCorp Vault?</span>
@@ -1157,10 +1237,13 @@ Helm is right for: application deployment packaging where lifecycle is handled b
         
         <div class="staff-add">ESO is generally preferred: simpler to reason about, the Secret is a standard K8s object visible via <code>oc get secret</code> (with appropriate RBAC), and it works with any application without sidecar changes. The trade-off: the Secret is materialized in etcd — a cluster compromise exposes it. Vault Agent Sidecar keeps the secret out of etcd entirely, which is the stronger isolation model for highly sensitive values (private keys, payment credentials). For most workloads, ESO + etcd encryption at rest is sufficient. Regardless of approach: audit Vault policy assignments regularly, use namespaced K8s Auth roles (one Vault role per namespace/service-account pair), and rotate all secrets on a schedule — not just after breaches.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','ST-06',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-07">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-07</span>
         <span class="acc-question">Design an image promotion pipeline across dev, staging, and production environments in OCP.</span>
@@ -1172,10 +1255,13 @@ Helm is right for: application deployment packaging where lifecycle is handled b
         
         <div class="staff-add">The "build once" constraint is violated most often by teams rebuilding for each environment with environment-specific env vars baked into the image. Configuration must be externalized (ConfigMaps, Secrets, env vars at runtime) — not compiled into the image. Enforce this in the build: the CI pipeline should fail if the image changes between promotion stages. For multi-cluster environments, use a central registry (OCP's integrated registry with cross-cluster exposure, or Quay.io) rather than per-cluster registries — it's the single source of truth for what binary is running where, which is essential for incident response and compliance.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','ST-07',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-08">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-08</span>
         <span class="acc-question">How do you observe and monitor OCP cluster health at scale?</span>
@@ -1187,10 +1273,13 @@ Helm is right for: application deployment packaging where lifecycle is handled b
         
         <div class="staff-add">The built-in monitoring stack is comprehensive for cluster health but requires extension for application observability. User Workload Monitoring (UWM) is the right first step — it lets teams deploy ServiceMonitors for their apps without cluster-admin access. The pitfall: UWM uses a separate Prometheus that doesn't share rules or dashboards with the cluster Prometheus. For a unified view, many orgs federate into an external platform (Datadog, Grafana Cloud, Thanos). Also instrument your upgrade process: track upgrade duration, operator degradation events during upgrade, and pod eviction counts — these become inputs to your change management process for future upgrades.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','ST-08',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-09">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-09</span>
         <span class="acc-question">What is Advanced Cluster Management (ACM) and when does it justify the complexity?</span>
@@ -1203,10 +1292,13 @@ ACM justifies its complexity at three or more clusters — below that, per-clust
         
         <div class="staff-add">ACM's policy engine is the most valuable feature for compliance-driven organizations — it can enforce that every cluster has specific NetworkPolicies, LimitRanges, or namespace configurations, and report violations centrally. Without it, you rely on process and audits to maintain consistency. The governance model requires upfront design: what policies are mandatory (enforced + auto-remediated), what are advisory (report only), and who can create exceptions? Get that design right before deploying ACM — the policy engine is powerful enough to break clusters if policies are misconfigured and set to enforce.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','ST-09',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-10">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-10</span>
         <span class="acc-question">How do you enforce security and configuration policies across OCP at scale — OPA/Gatekeeper, Kyverno, or ACM?</span>
@@ -1218,10 +1310,13 @@ ACM justifies its complexity at three or more clusters — below that, per-clust
         
         <div class="staff-add">The enforcement model matters more than the tool choice. Start with warn-only (audit mode) for all policies — this surfaces violations without breaking deployments and builds a baseline. Graduate to enforce after the violation backlog is clear. Never set a new policy to enforce in a production cluster without an audit period — you risk blocking a deployment at the worst possible time. The organizational challenge: whose job is it to fix policy violations on other teams' workloads? Define ownership and escalation paths before policy enforcement creates blockers during incident response.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','ST-10',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-11">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-11</span>
         <span class="acc-question">How do you run stateful workloads (databases) in OCP, and what are the storage considerations?</span>
@@ -1233,10 +1328,13 @@ ACM justifies its complexity at three or more clusters — below that, per-clust
         
         <div class="staff-add">The question to answer before running a database in OCP: is the operational complexity worth it? Self-managed databases in K8s require expertise in both the database and the platform. Operators (PostgreSQL Operator, MongoDB Operator) reduce this — they handle failover, backup, minor upgrades — but add an operator dependency. For a small team, a managed database (RDS, Cloud Spanner) with the application in OCP is often lower total operational cost. Run databases in OCP when: data residency or network latency requires colocation with the application, or when cost at scale justifies it. Never run a database in OCP without a tested backup and restore procedure that doesn't rely on PVC snapshots alone.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','ST-11',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-12">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-12</span>
         <span class="acc-question">How do you design NetworkPolicies for a multi-team OCP cluster?</span>
@@ -1248,10 +1346,13 @@ ACM justifies its complexity at three or more clusters — below that, per-clust
         
         <div class="staff-add">The default-deny baseline catches cross-team pollution early — teams that accidentally expose services broadly are caught immediately rather than discovered in a security audit. The operational burden is managing the policy library as teams change. Use a GitOps namespace template that auto-applies the default-deny policy on project creation, and require peer-reviewed PRs for any cross-namespace ingress rule. At scale, OVN-Kubernetes's AdminNetworkPolicy (cluster-scoped) is valuable: the platform team defines immutable baseline policies that namespace-scoped NetworkPolicy cannot override — the router ingress rule and DNS egress rule can be cluster-wide, removing them from the per-namespace template.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','ST-12',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-13">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-13</span>
         <span class="acc-question">Compare running self-managed OCP on AWS EC2 (IPI) versus ROSA — when do you choose each?</span>
@@ -1264,6 +1365,9 @@ ACM justifies its complexity at three or more clusters — below that, per-clust
         
         <div class="staff-add">The decision turns on operational ownership appetite and compliance requirements. ROSA is the right default if your team doesn't have Kubernetes cluster operators — Red Hat's SRE team handles control plane incidents, etcd backups, and upgrades. The trade-off: less control over master node sizing, network topology constraints (ROSA uses a fixed VPC CIDR structure), and higher per-node cost than raw EC2. IPI is right when: you need to deploy into an existing VPC (common in enterprises with strict network governance), need custom master sizing for large etcd, need air-gapped or GovCloud installs, or require full control over the upgrade schedule. One nuance: ROSA HCP (Hosted Control Plane) is the newer ROSA architecture — control plane runs as pods in a Red Hat-managed cluster rather than dedicated EC2 masters. HCP provisions in under 15 minutes, costs less (no master EC2 bill), and is the direction ROSA is heading. Prefer ROSA HCP over classic ROSA for new deployments.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','ST-13',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1274,7 +1378,7 @@ ACM justifies its complexity at three or more clusters — below that, per-clust
   <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-01</span>
         <span class="acc-question">How would you architect a multi-cluster OCP strategy for a large enterprise — and when does a single cluster break down?</span>
@@ -1286,10 +1390,13 @@ ACM justifies its complexity at three or more clusters — below that, per-clust
         
         <div class="staff-add">Multi-cluster multiplies operational burden by N without tooling. ACM is the prerequisite, not an afterthought — deploy it before your third cluster, not after your tenth. The governance question is harder than the technology: who owns each cluster, what's the upgrade SLA for each, who is on-call, and how does fleet-wide policy change management work? Define a cluster class taxonomy early (dev clusters get relaxed quotas and faster upgrades; prod clusters have strict change management), and enforce the difference via ACM policy sets. The failure mode of multi-cluster without governance: 15 clusters, each slightly different, each managed by a different person, with no audit trail.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','P-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-02</span>
         <span class="acc-question">How do you evaluate OCP versus a managed Kubernetes service (EKS, GKE, AKS) for a new platform initiative?</span>
@@ -1301,10 +1408,13 @@ ACM justifies its complexity at three or more clusters — below that, per-clust
         
         <div class="staff-add">The hidden cost of the managed K8s choice is everything the platform team has to build themselves: multi-tenancy controls, SCC equivalents (PSA is less powerful), integrated CI/CD, a curated operator catalog. OCP ships these. For an org with a dedicated platform engineering team, this is fine — they'll build a better-fit solution for their context. For an org that wants a platform that works on day one with strong security defaults and less assembly, OCP's total cost of ownership may be lower even with the licensing. The worst outcome is choosing a managed K8s service and then rebuilding OCP's features on top. Clarify upfront: what's the minimum viable platform, and does it require features OCP ships that you'd otherwise build?</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','P-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-03</span>
         <span class="acc-question">How would you design a platform engineering practice on top of OCP to serve 20+ product teams?</span>
@@ -1316,10 +1426,13 @@ ACM justifies its complexity at three or more clusters — below that, per-clust
         
         <div class="staff-add">The platform team's failure mode is building features nobody uses because they weren't designed with the consumer in mind. Run the platform like a product: have internal customers (product teams), collect NPS and time-to-deploy metrics, maintain a developer experience team (DX) separate from the infrastructure team. The DX team owns developer tooling, inner loop speed, and documentation. The infrastructure team owns cluster reliability and security. Neither works without the other. Measure platform maturity by how long it takes a new team to go from zero to first deployment in production — if it's more than a day, there's a platform gap to close.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','P-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-04</span>
         <span class="acc-question">What are the trade-offs of the Operator-first philosophy at org scale?</span>
@@ -1331,10 +1444,13 @@ ACM justifies its complexity at three or more clusters — below that, per-clust
         
         <div class="staff-add">The proliferation problem: in a large org with 30+ teams writing operators, the fleet accumulates controllers that nobody understands, CRDs with unclear ownership, and operators that were written for one use case and never maintained. Govern the operator portfolio: require approval for new cluster-scoped operators, define an operator lifecycle policy (who maintains it, what's the SLA for CVE patching), and audit the operator catalog annually. The alternative — Helm charts for everything — is often underestimated. For stateless workloads with predictable lifecycles, Helm + GitOps is simpler and more portable than an Operator. Reserve Operators for genuinely complex stateful applications where the operational knowledge justifies the investment.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','P-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-05">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-05</span>
         <span class="acc-question">Design a disaster recovery strategy for OCP clusters with defined RPO and RTO targets.</span>
@@ -1347,10 +1463,13 @@ RPO drives backup frequency; RTO drives automation. A 1-hour RTO requires automa
         
         <div class="staff-add">DR strategy is as much about practicing as designing. The plan on paper is not the plan — the plan is what actually happens during a restore drill. Test the full DR scenario annually: intentionally take down a cluster, restore from backup, and measure actual RTO and RPO. The gaps revealed by the drill (a stale backup, an undocumented dependency, a manual step that took 45 minutes) are the inputs to the next iteration. For multi-cluster DR: active-passive with ACM managing failover is the pattern. Define what "declared a disaster" means explicitly — who makes the call, what evidence is required, and who initiates the failover. Ambiguity here is a DR failure mode.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','P-05',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-06">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-06</span>
         <span class="acc-question">How do you approach OCP licensing, cost optimization, and capacity planning at scale?</span>
@@ -1362,10 +1481,13 @@ RPO drives backup frequency; RTO drives automation. A 1-hour RTO requires automa
         
         <div class="staff-add">License cost creates pressure to under-provision nodes, which leads to noisy-neighbor and eviction problems. The better optimization path is reducing idle capacity (autoscaling, smaller workloads) rather than reducing node count below the cluster's workload needs. Also: evaluate ROSA (managed OCP on AWS) and similar managed offerings at scale. At high node counts, Red Hat's managed service can be cheaper than self-managed OCP when you account for the platform engineering FTE cost — the break-even point varies by org. Run the TCO comparison annually: self-managed vs. ROSA, including the engineering time cost of upgrade management, incident response, and capacity planning.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','P-06',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-07">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-07</span>
         <span class="acc-question">How does Conway's Law apply to OCP cluster and namespace design?</span>
@@ -1377,6 +1499,9 @@ RPO drives backup frequency; RTO drives automation. A 1-hour RTO requires automa
         
         <div class="staff-add">Use namespace and cluster design as a forcing function for getting team boundaries right — not just a technical exercise. When two teams need to share a namespace because their services are tightly coupled, that's a signal about the team boundary, not just the deployment architecture. When a team needs cluster-admin on their namespace because they can't trust platform team turnaround time, that's a platform team responsiveness problem, not a security problem. The Platform Engineering function should participate in team topology design (Team Topologies by Skelton/Pais is the reference). OCP is a reflection of org design — build the org you want the platform to look like.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('ocp','P-07',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1558,6 +1683,44 @@ function filterQA(query) {
   if (btn) btn.textContent = 'Expand All';
 }
 
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
 // ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
 document.addEventListener('DOMContentLoaded', function () {
   // Sync toggle label with the actual current theme
@@ -1577,6 +1740,10 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById(hash).classList.add('active');
     }
   }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
 
   // Copy-to-clipboard on CLI command blocks
   document.querySelectorAll('.cmd').forEach(cmd => {

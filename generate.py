@@ -53,10 +53,12 @@ def build_index(topics: list[dict]) -> str:
             m = t["meta"]
             c = t["colors"]
             file_name = f"{m['id']}.html"
-            cards_html += f"""
+            desc = m.get('description', '')
+        desc_html = f'\n  <div class="card-desc">{desc}</div>' if desc else ''
+        cards_html += f"""
 <a class="card" href="{file_name}" style="--card-accent:{c['toggle_light']}">
   <div class="card-icon">{m.get('icon','📄')}</div>
-  <div class="card-name">{m['title']}</div>
+  <div class="card-name">{m['title']}</div>{desc_html}
   <div class="card-badge">{cat}</div>
 </a>"""
         cards_html += "</div>"
@@ -88,6 +90,7 @@ def build_index(topics: list[dict]) -> str:
   .card-icon{{font-size:1.5rem;line-height:1;}}
   .card-name{{font-size:.95rem;font-weight:700;margin-top:.2rem;}}
   .card-badge{{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;padding:.15rem .5rem;border-radius:2px;background:var(--badge-bg);color:var(--muted);text-transform:uppercase;letter-spacing:.1em;width:fit-content;}}
+  .card-desc{{font-size:.72rem;color:var(--muted);line-height:1.45;margin-top:.1rem;}}
 </style>
 </head>
 <body>

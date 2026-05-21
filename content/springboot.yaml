@@ -8,6 +8,7 @@ meta:
   title: Spring Boot
   title_short: Spring Boot
   subtitle: "// auto-configuration · starters · actuator · JPA · embedded server · senior → principal"
+  description: "Opinionated Java framework for production-ready microservices and REST APIs."
   category: Backend
   icon: "🌱"
 

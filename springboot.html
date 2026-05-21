@@ -108,6 +108,12 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .when-not .when-title{color:var(--red);}
 .when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
 
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
 /* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
 .qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
 .qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
@@ -115,6 +121,14 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .qa-search::placeholder{color:var(--muted);}
 .expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
 .expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
 
 /* ── Accordion ───────────────────────────────────────────────────────────── */
 .accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
@@ -206,10 +220,14 @@ td:last-child{color:var(--cheat-val);}
   h1{font-size:2rem;}
   .back-link span{display:none;}
 }
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
 
 </style>
 </head>
-<body>
+<body data-topic-id="springboot">
 
 <a class="back-link" href="index.html">← <span>Field Guide</span></a>
 
@@ -789,6 +807,11 @@ Default: only <code>/health</code> and <code>/info</code> exposed. Expose others
 <div class="section" id="qa">
   <div class="section-title">Interview Q &amp; A</div>
 
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
   <div class="qa-controls">
     <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
     <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
@@ -798,7 +821,7 @@ Default: only <code>/health</code> and <code>/info</code> exposed. Expose others
   <div class="section-sub">Senior Engineer — Execution Depth</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-01</span>
         <span class="acc-question">How does Spring Boot auto-configuration work? Walk through from @SpringBootApplication to a bean being created.</span>
@@ -828,10 +851,13 @@ Default: only <code>/health</code> and <code>/info</code> exposed. Expose others
         <div class="staff-add">The Conditions Evaluation Report (<code>--debug</code> or <code>/actuator/conditions</code>) is the diagnostic tool. It shows positive matches (applied), negative matches (skipped and why), and unconditional classes. When a bean you expect is missing, the negative matches section tells you exactly which <code>@ConditionalOn*</code> failed.
 When writing a shared library: always guard auto-configuration beans with <code>@ConditionalOnMissingBean</code> so downstream apps can override your defaults. This is the same pattern all Spring Boot starters follow — downstream override without touching the library code.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','S-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-02</span>
         <span class="acc-question">How does @Transactional work, and what are its two most common silent failure modes?</span>
@@ -852,10 +878,13 @@ Other pitfalls: <code>@Transactional</code> on <code>private</code> methods (pro
   must bypass the transaction manager.</p>
 <p>Isolation levels: <code>READ_COMMITTED</code> is the PostgreSQL default and correct for most OLTP. Move to <code>REPEATABLE_READ</code> only when you need consistent reads across multiple statements in one transaction. <code>SERIALIZABLE</code> for strong consistency — rare, expensive.</p></div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','S-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-03</span>
         <span class="acc-question">What is the difference between @Value and @ConfigurationProperties? When do you use each?</span>
@@ -869,10 +898,13 @@ Rule: <code>@Value</code> for a single one-off property. <code>@ConfigurationPro
         
         <div class="staff-add">Expose <code>@ConfigurationProperties</code> beans through auto-configuration with <code>@ConditionalOnMissingBean</code>. Downstream applications override your library's defaults by defining their own <code>@ConfigurationProperties</code> bean — no fork required. Pair with a <code>spring-configuration-metadata-annotation-processor</code> dependency to generate IDE metadata, so users get auto-completion and documentation in <code>application.yml</code> for your library's config prefix.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','S-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-04</span>
         <span class="acc-question">Explain @SpringBootTest, @WebMvcTest, and @DataJpaTest. When do you use each?</span>
@@ -888,10 +920,13 @@ Rule: <code>@Value</code> for a single one-off property. <code>@ConfigurationPro
         <div class="staff-add">A common anti-pattern: every test uses <code>@SpringBootTest</code>, context starts in 20s, CI takes 15 minutes. Fix: slice-first. <code>@WebMvcTest</code> for controller logic, <code>@DataJpaTest</code> for queries, plain unit tests (no Spring) for business logic. Only use <code>@SpringBootTest</code> when testing cross-layer integration that can't be verified in slices.
 Testcontainers + <code>@DataJpaTest</code> with real Postgres catches database-specific behavior H2 silently ignores: window functions, JSON column types, index usage differences. The cost is a Docker dependency in CI — worth it for data-heavy services.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','S-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-05">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-05</span>
         <span class="acc-question">How does HikariCP connection pool work in Spring Boot, and which settings matter most?</span>
@@ -910,10 +945,13 @@ Monitor <code>hikaricp.connections.pending</code> (connections waiting on a pool
         <div class="staff-add">Pool sizing: more connections is not better. Each DB connection holds server-side resources. A 200-connection Postgres shared by 10 services = 20 connections max per service. The HikariCP team's guidance: <code>(cpu_cores × 2) + effective_disk_spindles</code> is the right size for most OLTP — typically 10–20, not 100.
 If <code>hikaricp.connections.pending</code> is non-zero, the first fix is query optimization, not a bigger pool. Slow queries hold connections longer. A query that takes 500ms under load instead of 50ms reduces effective pool capacity by 10x.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','S-05',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-06">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-06</span>
         <span class="acc-question">How do you build a global exception handler in Spring Boot, and what should it always include?</span>
@@ -945,10 +983,13 @@ If <code>hikaricp.connections.pending</code> is non-zero, the first fix is query
         
         <div class="staff-add">Two production concerns beyond basic exception mapping: <strong>observability</strong> and <strong>client contract</strong>. Every 5xx must log the full stack trace with a correlation ID from MDC. 4xx responses should not log stack traces — they're client errors, not yours. The error response body must be structured and consistent so client teams can parse it reliably. Use <code>ProblemDetail</code> (RFC 7807, built into Spring Boot 3) rather than a custom error DTO — it's a standard format, tools understand it, and it's extensible. Never expose internal exception messages or stack traces in the response body — it leaks implementation details and is a security risk.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','S-06',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-07">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-07</span>
         <span class="acc-question">How does Spring Boot's embedded Tomcat thread pool work, and how do you diagnose thread pool exhaustion?</span>
@@ -964,10 +1005,13 @@ If <code>hikaricp.connections.pending</code> is non-zero, the first fix is query
         <div class="staff-add">Raising <code>server.tomcat.threads.max</code> is the wrong first move. More threads that are all waiting on a slow database just means more threads waiting. The root cause is almost always slow downstream I/O — optimize queries, add caches, tune the connection pool.
 The architectural fix for consistently I/O-heavy workloads is Spring WebFlux on Netty. A handful of event-loop threads handle thousands of concurrent connections via non-blocking I/O. But WebFlux requires reactive programming end-to-end — any blocking call (JDBC, <code>RestTemplate</code>) blocks an event-loop thread and degrades everything. Choose the model at design time, not after a production incident.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','S-07',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-08">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-08</span>
         <span class="acc-question">How do Spring Boot Actuator health probes integrate with Kubernetes liveness and readiness?</span>
@@ -986,10 +1030,13 @@ The architectural fix for consistently I/O-heavy workloads is Spring WebFlux on 
         
         <div class="staff-add">The most common mistake: putting external dependency health in the liveness probe. A transient DB outage fails the liveness probe, K8s restarts the pod — which doesn't fix the DB, just adds a slow pod startup to the incident. Liveness = the pod can't recover by itself. Readiness = the pod shouldn't receive traffic right now. These are different decisions. Add custom health indicators for readiness by implementing <code>HealthIndicator</code> and publishing <code>AvailabilityChangeEvent</code> from application code to signal state transitions.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','S-08',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-09">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-09</span>
         <span class="acc-question">How do you detect and fix the N+1 query problem in Spring Data JPA?</span>
@@ -1003,10 +1050,13 @@ The architectural fix for consistently I/O-heavy workloads is Spring WebFlux on 
         
         <div class="staff-add">The deeper fix is questioning whether to load entities at all for read operations. A DTO projection fetches only needed columns, avoids the lazy-load trap entirely, and is faster. Reserve full entity loading for write operations where you need the full object graph to enforce invariants. For list/search endpoints, always use projections. This is the principle behind CQRS at the persistence layer: separate the read model (projection) from the write model (entity).</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','S-09',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-10">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-10</span>
         <span class="acc-question">How does graceful shutdown work in Spring Boot, and what do you need to configure in Kubernetes?</span>
@@ -1022,6 +1072,9 @@ In Kubernetes: <code>terminationGracePeriodSeconds</code> in the pod spec must b
         
         <div class="staff-add">Bean destruction order matters during shutdown. Spring closes beans in reverse creation order by default. The web server (Tomcat) must drain requests before the DataSource closes — otherwise in-flight requests lose their DB connections mid-flight. Spring Boot 2.3+ handles this correctly with <code>SmartLifecycle</code> phase ordering. If you define custom beans with shutdown logic, implement <code>SmartLifecycle</code> and set appropriate <code>getPhase()</code> values to ensure they close in the right order. Test graceful shutdown under load: send requests during shutdown and verify zero 500s with the <code>--debug</code> log level to observe the shutdown sequence.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','S-10',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1032,7 +1085,7 @@ In Kubernetes: <code>terminationGracePeriodSeconds</code> in the pod spec must b
   <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-01</span>
         <span class="acc-question">A Spring Boot service returns intermittent 503s under load spikes. Thread pool exhaustion is suspected. Walk through your full diagnosis and fix.</span>
@@ -1055,10 +1108,13 @@ In Kubernetes: <code>terminationGracePeriodSeconds</code> in the pod spec must b
         
         <div class="staff-add">Thread pool exhaustion cascades. If Service A is saturated, responses slow. Service B calls A with no timeout — B's threads pile up waiting, saturating B's pool too. A cascade that takes down multiple services from one slow dependency. Prevention: timeouts everywhere (every outbound call), circuit breakers (Resilience4j), and bulkheads (<code>@Bulkhead</code> to limit concurrent calls into a specific dependency). These three patterns together prevent cascade failures. Add <code>management.health.circuitbreakers.enabled=true</code> to expose Resilience4j circuit state in <code>/actuator/health</code>.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','ST-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-02</span>
         <span class="acc-question">Walk through the major breaking changes in a Spring Boot 2 → Spring Boot 3 migration.</span>
@@ -1075,10 +1131,13 @@ In Kubernetes: <code>terminationGracePeriodSeconds</code> in the pod spec must b
         
         <div class="staff-add">The hidden risk: transitive dependencies shipping both <code>javax</code> and <code>jakarta</code> classes cause <code>ClassCastException</code> at runtime when objects cross the namespace boundary. Use <code>mvn dependency:tree | grep javax</code> to audit before upgrading. Libraries not yet on Jakarta (some enterprise libs, older generated clients) must be replaced or wrapped. The migration is also an opportunity: Boot 3 + GraalVM native image becomes first-class. If startup time or memory is a concern, plan native compilation as part of the migration, not a separate future project.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','ST-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-03</span>
         <span class="acc-question">How do you implement idempotent POST endpoints in Spring Boot?</span>
@@ -1096,10 +1155,13 @@ The atomicity requirement: writing the idempotency record and the main operation
         
         <div class="staff-add">When the operation spans external systems (DB write + third-party API call), true atomicity is impossible without two-phase commit. The practical pattern: write a "pending" idempotency record before the external call, execute the call, mark it "complete." A background job retries stuck "pending" records. The external API must itself be idempotent (send an idempotency key on the API call) or you must accept that the external call may execute twice on retry. Documenting this constraint explicitly in the API contract is part of the design.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','ST-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-04</span>
         <span class="acc-question">How do you implement distributed tracing in Spring Boot 3 with Micrometer Tracing?</span>
@@ -1121,6 +1183,9 @@ Log/trace correlation: the <code>traceId</code> in MDC appears in every log line
         
         <div class="staff-add">Sampling strategy is the operationally critical decision. Head-based sampling (decide at the first service) with <code>probability=0.01</code> misses rare slow requests. Use adaptive tail-based sampling (Jaeger's remote sampling, or OpenTelemetry Collector with tail sampling processor): sample 100% of error traces and slow traces (&gt;500ms), 1% of everything else. This captures failures without drowning the backend. Without log correlation, distributed tracing tells you <em>where</em> time was spent but not <em>why</em> it failed — ship <code>traceId</code> into your log aggregation system and ensure it's indexed for queries.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','ST-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1131,7 +1196,7 @@ Log/trace correlation: the <code>traceId</code> in MDC appears in every log line
   <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-01</span>
         <span class="acc-question">At 100+ Spring Boot microservices, what platform and governance concerns emerge that don't exist at 10 services?</span>
@@ -1146,10 +1211,13 @@ Log/trace correlation: the <code>traceId</code> in MDC appears in every log line
         
         <div class="staff-add">At 100 services, the marginal cost of a new service determines whether teams resist splitting. If creating a new service requires 3 tickets, 2 platform team approvals, and manual Kubernetes config setup, teams build larger services. The platform team's job is the Golden Path: scaffold from a template (one command), CI/CD wired automatically, service registered in the catalog, observability configured out of the box. When the right thing is also the easy thing, Conway's Law works for you instead of against you.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','P-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-02</span>
         <span class="acc-question">Evaluate Spring Boot with GraalVM native image for a high-scale deployment. What changes, what breaks, and when is it the right call?</span>
@@ -1170,6 +1238,9 @@ Log/trace correlation: the <code>traceId</code> in MDC appears in every log line
         
         <div class="staff-add">Evaluate on your specific workload. Cold-start latency (native wins decisively) is different from steady-state throughput (JIT often wins). Run a load test on both: ramp up traffic over 5 minutes and measure p99 at steady state. The native image CI pipeline is also a separate concern — <code>mvn -Pnative test</code> must run independently from JVM tests; a JVM test pass does not mean native passes. This doubles test time. Factor the CI cost into the decision. If startup time matters but not enough to justify native, <code>spring.main.lazy-initialization=true</code> is a 5–15s improvement with no compilation overhead.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('springboot','P-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1351,6 +1422,44 @@ function filterQA(query) {
   if (btn) btn.textContent = 'Expand All';
 }
 
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
 // ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
 document.addEventListener('DOMContentLoaded', function () {
   // Sync toggle label with the actual current theme
@@ -1370,6 +1479,10 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById(hash).classList.add('active');
     }
   }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
 
   // Copy-to-clipboard on CLI command blocks
   document.querySelectorAll('.cmd').forEach(cmd => {

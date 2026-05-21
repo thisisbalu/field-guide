@@ -8,6 +8,7 @@ meta:
   title: OAuth 2.0
   title_short: OAuth2
   subtitle: "// authorization framework · flows · tokens · scopes · OIDC · zero trust · senior → principal"
+  description: "Industry-standard authorization framework for delegated, scoped API access."
   category: Security
   icon: "🔑"
 

@@ -108,6 +108,12 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .when-not .when-title{color:var(--red);}
 .when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
 
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
 /* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
 .qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
 .qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
@@ -115,6 +121,14 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .qa-search::placeholder{color:var(--muted);}
 .expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
 .expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
 
 /* ── Accordion ───────────────────────────────────────────────────────────── */
 .accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
@@ -206,10 +220,14 @@ td:last-child{color:var(--cheat-val);}
   h1{font-size:2rem;}
   .back-link span{display:none;}
 }
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
 
 </style>
 </head>
-<body>
+<body data-topic-id="postgresql">
 
 <a class="back-link" href="index.html">← <span>Field Guide</span></a>
 
@@ -864,6 +882,11 @@ Partitioning adds overhead: the planner must evaluate each partition, <code>INSE
 <div class="section" id="qa">
   <div class="section-title">Interview Q &amp; A</div>
 
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
   <div class="qa-controls">
     <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
     <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
@@ -873,7 +896,7 @@ Partitioning adds overhead: the planner must evaluate each partition, <code>INSE
   <div class="section-sub">Senior Engineer — Execution Depth</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-01</span>
         <span class="acc-question">Explain MVCC in PostgreSQL. What is a dead tuple, and how does VACUUM reclaim it?</span>
@@ -888,10 +911,13 @@ Readers use a <strong>snapshot</strong> — a list of transaction IDs visible to
         
         <div class="staff-add">The critical subtlety is the <strong>oldest active transaction pin</strong>. Autovacuum cannot remove dead tuples that are newer than the oldest snapshot any active transaction holds. A single long-running or <code>idle in transaction</code> connection can pin the horizon for hours, causing unbounded bloat. Monitor <code>pg_stat_activity</code> for sessions in <code>idle in transaction</code> state with old <code>xact_start</code>. Set <code>idle_in_transaction_session_timeout</code> (PG9.6+) to automatically terminate these sessions. For analytical queries that legitimately run for hours, run them on a read replica, not the primary.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('postgresql','S-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-02</span>
         <span class="acc-question">What are the four transaction isolation levels in PostgreSQL and what anomalies does each prevent?</span>
@@ -907,10 +933,13 @@ Readers use a <strong>snapshot</strong> — a list of transaction IDs visible to
         
         <div class="staff-add"><strong>Write skew</strong> is the anomaly that catches teams off guard with REPEATABLE READ. Classic example: two doctors both read that at least one other doctor is on call and both decide to go off call — the constraint "at least one doctor must be on call" is violated. REPEATABLE READ doesn't prevent this; SERIALIZABLE does. For simpler cases, <code>SELECT FOR UPDATE</code> (pessimistic locking) can prevent write skew without SERIALIZABLE isolation — it serializes the specific rows being checked. The right tool depends on contention level and retry tolerance.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('postgresql','S-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-03</span>
         <span class="acc-question">How does PostgreSQL's query planner decide between a Seq Scan and an Index Scan? What can cause it to choose wrong?</span>
@@ -929,10 +958,13 @@ Readers use a <strong>snapshot</strong> — a list of transaction IDs visible to
         
         <div class="staff-add">The best tool to diagnose planner decisions is <code>EXPLAIN (ANALYZE, BUFFERS)</code>. Look at <code>rows=N</code> (estimated) vs <code>actual rows=M</code> (actual). A factor of 10× or more mismatch means statistics are stale or the planner's model doesn't fit the data. For JSONB or array columns with complex access patterns, the planner has no statistics — consider partial indexes or expression indexes that mirror your query predicates. For tables with millions of rows and highly selective queries, the planner rarely makes the wrong call with good statistics; bad plans on large tables almost always trace back to stale stats or a wrong <code>random_page_cost</code> on SSDs.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('postgresql','S-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-04</span>
         <span class="acc-question">When would you choose a GIN index over a B-tree? Walk through a full-text search setup.</span>
@@ -951,10 +983,13 @@ GIN builds an inverted index: for each lexeme, it stores all row IDs containing 
         
         <div class="staff-add">GIN is powerful but comes with operational trade-offs. Index builds on large tables are slow and memory-hungry — set <code>maintenance_work_mem</code> high and build during low traffic. The pending list (<code>gin_pending_list_limit</code>, default 4 MB) buffers writes before merging into the main index structure; heavy write rates can trigger frequent merges. If you're doing JSONB querying and your documents are large and varied, profile whether GIN index size stays manageable — GIN indexes can be 2–5× the size of the data for high-cardinality JSONB. For simple key lookup in JSONB (<code>data-&gt;&gt;'user_id'</code>), a B-tree expression index is smaller and faster than GIN.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('postgresql','S-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-05">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-05</span>
         <span class="acc-question">What is WAL and how does it enable both crash recovery and replication?</span>
@@ -969,10 +1004,13 @@ GIN builds an inverted index: for each lexeme, it stores all row IDs containing 
         
         <div class="staff-add">WAL is also the foundation for <strong>point-in-time recovery (PITR)</strong>. Take a base backup (<code>pg_basebackup</code>), then continuously archive WAL segments to object storage (S3). To recover to any point in time, restore the base backup and replay WAL up to the desired LSN or timestamp. This gives you a RPO measured in seconds (WAL archive interval) rather than the backup frequency. For any production database, PITR should be the baseline DR strategy — not just nightly backups. Test your restore procedure regularly; untested PITR is not recovery, it's hope.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('postgresql','S-05',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-06">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-06</span>
         <span class="acc-question">What is autovacuum and what happens when it falls behind? How do you tune it?</span>
@@ -991,10 +1029,13 @@ GIN builds an inverted index: for each lexeme, it stores all row IDs containing 
         
         <div class="staff-add">Autovacuum is not a fire-and-forget setting. As your tables grow and write rates increase, the default thresholds — designed for small databases — become wildly inadequate. A table with 100M rows and a 20% scale factor means autovacuum waits until 20M dead tuples accumulate before running. By then, bloat is severe and the vacuum run takes hours, during which it holds a share lock that blocks DDL. Set per-table autovacuum settings for your largest and most write-intensive tables. Monitor <code>pg_stat_user_tables.n_dead_tup</code>, <code>last_autovacuum</code>, and <code>last_autoanalyze</code> — these are your first line of observability. If <code>n_dead_tup</code> consistently grows between autovacuum runs, the tuning is still wrong.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('postgresql','S-06',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-07">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-07</span>
         <span class="acc-question">What is transaction ID wraparound and how do you prevent it from becoming an emergency?</span>
@@ -1009,6 +1050,9 @@ GIN builds an inverted index: for each lexeme, it stores all row IDs containing 
         
         <div class="staff-add">Wraparound emergencies are a known failure mode with a known prevention — yet they still cause production outages because teams disable autovacuum on large tables to avoid I/O overhead, or run long OLAP queries that hold an ancient transaction snapshot. The <code>age()</code> metric should be on every PostgreSQL dashboard. When the age approaches 1.8–2.0 billion, the situation is urgent: run <code>VACUUM FREEZE</code> manually on the table with the oldest <code>relfrozenxid</code> (check <code>pg_class</code>). In extreme cases with hours to wraparound, you can temporarily increase <code>autovacuum_vacuum_cost_delay = 0</code> at the database level to let autovacuum run at full speed at the cost of I/O impact on other workloads.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('postgresql','S-07',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1019,7 +1063,7 @@ GIN builds an inverted index: for each lexeme, it stores all row IDs containing 
   <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-01</span>
         <span class="acc-question">How do you approach designing indexes for a table that has multiple different query patterns?</span>
@@ -1043,10 +1087,13 @@ GIN builds an inverted index: for each lexeme, it stores all row IDs containing 
         
         <div class="staff-add">Index design is an iterative process driven by <code>EXPLAIN ANALYZE</code> output and query workload telemetry, not intuition. For existing production systems, use <code>pg_stat_statements</code> to identify your top N queries by total time (not just per-call — a fast query called millions of times per day may dominate). Then run EXPLAIN ANALYZE for each and look for Seq Scans on large tables and sort steps that could be eliminated by an index. The most impactful single change for most OLTP systems is adding a covering index for the 3–5 most-called queries. In Postgres 15+, <code>pg_store_plans</code> (extension) stores actual plans, not just queries — helpful for finding plan regressions after autovacuum or ANALYZE.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('postgresql','ST-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-02</span>
         <span class="acc-question">When and how do you partition a PostgreSQL table? What are the operational trade-offs?</span>
@@ -1064,10 +1111,13 @@ CREATE TABLE events_2024_01 PARTITION OF events
         
         <div class="staff-add">Partitioning solves data lifecycle problems, not performance problems — that's a common misconception. If your bottleneck is query speed on a 10 GB table, partitioning won't help and may hurt (planner overhead per partition, larger planning time). Where partitioning genuinely transforms operations is data retention: detaching and dropping a monthly partition for data older than 12 months takes milliseconds and generates no bloat. Compare this to <code>DELETE WHERE created_at &lt; '2023-01-01'</code> on 500M rows, which runs for hours, generates massive WAL, bloats the table, and spikes replication lag. Always ask "do I need the data lifecycle management benefit?" before committing to partitioning — it carries significant schema constraints.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('postgresql','ST-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-03</span>
         <span class="acc-question">How does PostgreSQL replication work? When do you choose streaming replication vs logical replication?</span>
@@ -1082,10 +1132,13 @@ CREATE TABLE events_2024_01 PARTITION OF events
         
         <div class="staff-add"><strong>Patroni</strong> is the standard tool for managing streaming replication with automatic failover. It uses a DCS (etcd, Consul, ZooKeeper) as the consensus layer to avoid split-brain — only one node can acquire the leader lock and accept writes. Without a tool like Patroni, manual failover is error-prone and slow. The second operational decision is <strong>synchronous vs asynchronous replication</strong>. Async (default) means committed transactions may not yet be on the standby when the primary fails — potential data loss. Sync (<code>synchronous_commit = on</code>) means the primary waits for at least one standby to acknowledge before returning to the client. RPO = 0, but latency increases by one round-trip to the standby. For financial or audit data, sync replication is usually worth the latency cost.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('postgresql','ST-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-04</span>
         <span class="acc-question">Walk through diagnosing a slow query in production without taking the database offline.</span>
@@ -1102,6 +1155,9 @@ CREATE TABLE events_2024_01 PARTITION OF events
         
         <div class="staff-add">The most common mistake in query optimization is skipping directly to adding an index without running EXPLAIN ANALYZE first. An index may not help at all if the query is slow due to a poor join order (wrong statistics), lock contention, or a sequential scan that's actually appropriate for the data volume. A second mistake is running EXPLAIN (without ANALYZE) and making decisions from estimated rows — estimates can be off by orders of magnitude. Always use EXPLAIN ANALYZE on a representative dataset. For production, use <code>auto_explain</code> (extension) to log execution plans for slow queries automatically: <code>auto_explain.log_min_duration = 1000</code> logs plans for any query taking over 1 second, without requiring manual EXPLAIN runs.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('postgresql','ST-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1112,7 +1168,7 @@ CREATE TABLE events_2024_01 PARTITION OF events
   <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-01</span>
         <span class="acc-question">How do you design a PostgreSQL HA architecture for a service with an RPO of 0 and RTO of 30 seconds?</span>
@@ -1137,10 +1193,13 @@ CREATE TABLE events_2024_01 PARTITION OF events
         
         <div class="staff-add">Synchronous replication's cost is write latency — every commit waits for a network round trip to the standby. For a primary and standby in the same AZ, that's ~0.5 ms. Across AZs in the same region, ~2–5 ms. Across regions, unacceptable for OLTP (tens of ms per commit). If the application is in the same region, synchronous replication is almost always worth it for critical data. The architectural trap to avoid: using <code>synchronous_standby_names = '*'</code> (all standbys must confirm). If any standby is lagging or unreachable, all writes block. Use <code>ANY 1 (standby1, standby2)</code> to require only one of the named standbys — writes continue as long as one is healthy. Design for partial standby failure, not just primary failure.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('postgresql','P-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-02</span>
         <span class="acc-question">You need to add a NOT NULL column with a default to a table with 500 million rows. The service cannot have downtime. Walk through your approach.</span>
@@ -1160,6 +1219,9 @@ CREATE TABLE events_2024_01 PARTITION OF events
         
         <div class="staff-add">This pattern generalizes to all large table DDL: <strong>separate the structural change from the data backfill, and separate the backfill from the constraint enforcement</strong>. Each step is either fast (DDL with a brief lock) or concurrent (backfill or VALIDATE). The most common mistake is attempting the whole migration in a single transaction or a single <code>ALTER TABLE</code> statement that combines column add + backfill — usually discovered at 3 AM when the migration has been running for 4 hours on the wrong environment. For index creation on large tables, always use <code>CREATE INDEX CONCURRENTLY</code> — it takes longer but doesn't lock. The tooling ecosystem (Flyway, Liquibase, golang-migrate) does not prevent you from writing locking migrations — the discipline is the engineer's responsibility. Make zero-downtime migration patterns part of your team's standard library.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('postgresql','P-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1341,6 +1403,44 @@ function filterQA(query) {
   if (btn) btn.textContent = 'Expand All';
 }
 
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
 // ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
 document.addEventListener('DOMContentLoaded', function () {
   // Sync toggle label with the actual current theme
@@ -1360,6 +1460,10 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById(hash).classList.add('active');
     }
   }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
 
   // Copy-to-clipboard on CLI command blocks
   document.querySelectorAll('.cmd').forEach(cmd => {

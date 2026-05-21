@@ -8,6 +8,7 @@ meta:
   title: Spring Security
   title_short: Spring Security
   subtitle: "// filter chain · authentication · authorization · OAuth2 resource server · JWT · method security · senior → principal"
+  description: "Authentication and authorization framework for securing Spring-based applications."
   category: Security
   icon: "🛡️"
 

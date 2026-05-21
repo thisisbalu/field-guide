@@ -108,6 +108,12 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .when-not .when-title{color:var(--red);}
 .when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
 
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
 /* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
 .qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
 .qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
@@ -115,6 +121,14 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .qa-search::placeholder{color:var(--muted);}
 .expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
 .expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
 
 /* ── Accordion ───────────────────────────────────────────────────────────── */
 .accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
@@ -206,10 +220,14 @@ td:last-child{color:var(--cheat-val);}
   h1{font-size:2rem;}
   .back-link span{display:none;}
 }
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
 
 </style>
 </head>
-<body>
+<body data-topic-id="kafka">
 
 <a class="back-link" href="index.html">← <span>Field Guide</span></a>
 
@@ -739,6 +757,11 @@ td:last-child{color:var(--cheat-val);}
 <div class="section" id="qa">
   <div class="section-title">Interview Q &amp; A</div>
 
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
   <div class="qa-controls">
     <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
     <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
@@ -748,7 +771,7 @@ td:last-child{color:var(--cheat-val);}
   <div class="section-sub">Senior Engineer — Execution Depth</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-01</span>
         <span class="acc-question">How does Kafka guarantee message ordering, and what breaks it?</span>
@@ -761,10 +784,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">Cross-partition ordering is your domain's responsibility, not Kafka's. The key design question is: do you actually need global ordering across all entities, or just ordering per entity? Almost always it's the latter — and that's exactly what key-based partitioning gives you. If you think you need global order, push back: a single partition caps your throughput to one consumer and one leader broker. Model the domain so ordering is required only within a natural key boundary.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','S-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-02</span>
         <span class="acc-question">What is consumer group rebalancing, when does it happen, and how do you minimize its impact?</span>
@@ -776,10 +802,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">Frequent rebalancing is a consumer stability problem, not a Kafka problem. At scale, a group of 50 consumers rebalancing takes several seconds — during which consumer lag grows. Design for it: make consumers idempotent (rebalances cause re-processing of uncommitted offsets), and monitor rebalance frequency as a first-class metric. If rebalances are triggered by <code>max.poll.interval.ms</code>, the real fix is reducing batch size or moving slow processing off the poll loop — not raising the timeout.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','S-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-03</span>
         <span class="acc-question">What is an idempotent producer, and how does Kafka prevent duplicate messages from retries?</span>
@@ -791,10 +820,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">Idempotent producer only covers the producer-to-broker hop. It doesn't help when a consumer processes a message, writes to a database, and crashes before committing its offset — on restart it re-reads and re-processes the same message. Covering that gap requires either Kafka transactions (for Kafka-to-Kafka flows) or an idempotent sink — upsert by event ID, conditional writes, or a deduplication table. Most production systems use at-least-once + idempotent sinks. Kafka transactions add latency and operational complexity that's rarely justified outside Kafka Streams topologies.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','S-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-04</span>
         <span class="acc-question">What is ISR, and what happens when a replica falls out of ISR?</span>
@@ -806,10 +838,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">The triangle of <code>replication.factor</code>, <code>min.insync.replicas</code>, and <code>acks=all</code> is how you tune the availability vs. durability dial. Standard production setup: RF=3, <code>min.insync.replicas=2</code>, <code>acks=all</code> — you tolerate one broker failure while still requiring two replicas to ack every write. You lose write availability before you lose data. Setting <code>min.insync.replicas=1</code> restores availability but loses the durability guarantee. Know this triangle cold — it comes up in every Kafka reliability discussion.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','S-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-05">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-05</span>
         <span class="acc-question">How do you choose partition count for a topic, and what are the tradeoffs?</span>
@@ -821,10 +856,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">Partition count is a capacity decision that also sets your parallelism ceiling. If you have 12 partitions, a consumer group can have at most 12 active members. Over-partitioning has real costs: Confluent benchmarks show significant metadata overhead past ~4000 partitions per broker. If you must repartition a critical live topic, the safest approach is a new topic with a migration period, not in-place resize.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','S-05',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-06">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-06</span>
         <span class="acc-question">What is log compaction, how does it work internally, and when do you choose it over time-based retention?</span>
@@ -836,10 +874,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">Compaction has subtleties that matter in production. Compaction doesn't run continuously — it waits until the dirty ratio (<code>log.cleaner.min.dirty.ratio</code>, default 0.5) is reached, so the active segment is never compacted and can still contain duplicates. Tombstones are retained after compaction for <code>delete.retention.ms</code> — consumers must read them or they'll miss deletes during bootstrap. If you're using a compacted topic to rebuild state (Kafka Streams, cache reload), test the bootstrap path explicitly — it's where compaction-based systems quietly lose data.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','S-06',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-07">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-07</span>
         <span class="acc-question">What causes consumer lag, and how do you diagnose and address it?</span>
@@ -851,10 +892,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">Lag is a leading indicator — alert on it before it becomes an incident. Response depends on root cause: burst → temporary, monitor for recovery; slow consumer → scale out (up to partition count), optimize processing, or profile the bottleneck; stuck on poison pill → implement a DLQ pattern so the consumer can skip and continue; systematic growth over days → capacity problem. Design your lag SLA per topic: "payments lag must not exceed 30s" is meaningful. Set alert thresholds derived from business impact, not arbitrary numbers.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','S-07',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-08">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-08</span>
         <span class="acc-question">What is a Dead Letter Queue in a Kafka context, and how do you implement one correctly?</span>
@@ -866,10 +910,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">DLQ design deserves the same rigor as the main path. Decisions to make explicitly: which exceptions go to DLQ vs. retry? (Transient network errors should retry; deserialization errors are poison pills that should DLQ immediately.) How long is DLQ retention? Who monitors it and gets alerted? How does reprocessing work? For financial or compliance events, a message silently sitting in DLQ with no action is a data integrity risk, not just technical debt.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','S-08',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-09">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-09</span>
         <span class="acc-question">A consumer is being repeatedly kicked out of the group due to max.poll.interval.ms. What causes this and how do you fix it?</span>
@@ -881,10 +928,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">This is a design smell. Kafka consumers are designed for fast, lightweight processing. If processing routinely takes seconds per record, the consumer model is wrong. Fix patterns: reduce <code>max.poll.records</code>; move slow downstream I/O to an async worker with careful offset management; or redesign the pipeline — consume fast into an internal queue, let a thread pool process, commit after confirmed completion. If the bottleneck is an external API with rate limits, consider whether a task queue is better suited than Kafka for this consumer.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','S-09',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-10">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-10</span>
         <span class="acc-question">Walk through acks=0, acks=1, and acks=all — what you gain and lose at each.</span>
@@ -898,10 +948,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add"><code>acks=all</code> means "durable as long as ISR is healthy." If ISR shrinks below <code>min.insync.replicas</code>, producers block with <code>NotEnoughReplicasException</code> — this is intended behavior, trading availability for safety. Design your producer error handling for this: should producers block and retry (tolerate backpressure), circuit-break and write to a local buffer, or fail fast to the caller? The answer depends on whether availability or consistency is the stronger requirement for that topic. Make it an explicit decision.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','S-10',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-11">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-11</span>
         <span class="acc-question">What does enable.auto.commit=false force you to think about? What are the failure modes of manual offset management?</span>
@@ -913,10 +966,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">Manual offset management is a contract with your sink. Once you commit, you're telling Kafka "this was handled." If your sink write fails after a commit, you have a gap with no retry mechanism. The canonical pattern: write to sink (idempotently) → then commit offset. There's no way to make this transactional without Kafka transactions — and even then, only for Kafka-to-Kafka. Teams that get into trouble here treat offset commits as a progress marker rather than a durability contract.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','S-11',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-12">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-12</span>
         <span class="acc-question">What is a Kafka transaction — what does it guarantee, and what does it not cover?</span>
@@ -928,10 +984,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">Transactions are expensive and operationally complex. They add latency (coordinator round-trips), and aborted transactions occupy log space until cleanup. More critically: Kafka transactions do not cover external sinks. If your consumer writes to PostgreSQL or calls an HTTP API, that write is not inside the transaction boundary. The practical answer for most systems is at-least-once + idempotent sink — simpler to reason about and operate. Use transactions when you need atomic multi-partition writes and all sinks are Kafka topics.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','S-12',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-13">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-13</span>
         <span class="acc-question">What happens when you increase partition count on a live topic?</span>
@@ -943,10 +1002,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">The safest approach to repartitioning a critical topic: create a new topic with the target partition count, run a dual-write period (produce to both simultaneously), cutover consumers once they've caught up, then decommission the old topic. For Kafka Streams stateful applications, you must rebuild all state stores after a repartition — plan for that rebuild time in your migration window. Never resize a high-value production topic without a documented rollback plan.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','S-13',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-14">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-14</span>
         <span class="acc-question">How does auto.offset.reset interact with consumer groups, and what are the dangerous failure scenarios?</span>
@@ -958,6 +1020,9 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add"><code>auto.offset.reset=latest</code> is the default in many framework setups and is a footgun for teams building event-sourced or stateful systems. For any consumer that builds state from the event history, always use <code>earliest</code> and test the bootstrap path explicitly. Operationally: before deploying a new consumer group to production, verify committed offsets exist with <code>kafka-consumer-groups.sh --describe</code>; if they don't, seed them with <code>--reset-offsets --to-earliest</code> before starting the consumer. Make this a deployment checklist item.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','S-14',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -968,7 +1033,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
   <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-01</span>
         <span class="acc-question">Design exactly-once semantics end-to-end from producer through to a relational database sink.</span>
@@ -980,10 +1045,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">The cleanest approach beyond upserts is the transactional outbox pattern: the consumer writes to the database in a transaction that also records a <code>processed_event_id</code>. On restart, the consumer queries this table before processing — if the event ID is already there, skip and commit the offset. This moves deduplication into the database layer, which is transactionally consistent. For high-throughput sinks, bloom filters or in-memory deduplication windows can replace the database check for recent events.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','ST-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-02</span>
         <span class="acc-question">How do you handle schema evolution across producers and consumers in production without downtime?</span>
@@ -995,10 +1063,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">Schema governance is an organizational problem as much as a technical one. In a system with dozens of producers and consumers, schema changes become a cross-team coordination event. The schema registry enforces compatibility at registration time, but teams still need a process: who approves schema changes, how are breaking changes communicated, and what's the migration path? For complex evolutions (rename a field, change a type), the cleanest pattern is a new topic version with a migration consumer that reads the old schema and re-publishes with the new one — avoiding in-place schema migration entirely.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','ST-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-03</span>
         <span class="acc-question">Design a multi-region Kafka topology. What are the options and what breaks first?</span>
@@ -1010,10 +1081,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">What breaks first in multi-region Kafka: offset translation during failover. MirrorMaker 2 maintains offset mapping topics, but failover requires redirecting consumers to translated offsets — operationally complex and easy to get wrong under pressure. Test failover regularly, not just in theory. Active-active's real complexity is ordering: if a user's events are split between regions, rebuilding their state requires merging two ordered streams. For most use cases, active-passive with a well-tested failover runbook is the right answer.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','ST-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-04</span>
         <span class="acc-question">What is your Kafka observability strategy — which metrics matter and what do you alert on first?</span>
@@ -1025,10 +1099,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">Lag is a leading indicator; under-replicated partitions are a fire alarm. Build alerting in that order. Add ISR shrink/expand as a broker health signal (frequent shrink = broker instability) and consumer rebalance rate as a leading indicator of consumer instability. For capacity planning, track bytes in/out per broker over 30-day windows — clusters at 60%+ utilization on a single broker are one traffic spike away from a partition leadership cascade. Instrument your consumers to emit processing time and error rate alongside the Kafka client metrics.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','ST-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-05">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-05</span>
         <span class="acc-question">Your consumer must process Kafka events and call an external HTTP API exactly once. The API isn't idempotent. How do you design this?</span>
@@ -1040,10 +1117,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">This is a fundamental distributed systems problem: you cannot have exactly-once across two systems without a shared transaction boundary or idempotency. The honest answer is: negotiate idempotency into the API design. If the API is internal, add an idempotency key header and implement deduplication on the server side. If it's a third-party API, document the at-least-once semantics and build a reconciliation process to detect and handle duplicates. "Exactly-once to a non-idempotent API" is not achievable without some form of deduplication — the question is where that deduplication lives and who owns it.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','ST-05',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-06">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-06</span>
         <span class="acc-question">Design a retry and DLQ strategy for a consumer processing critical financial events.</span>
@@ -1055,10 +1135,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">For financial events, the DLQ is not the end of the road — it's a queue requiring human or automated action. Design the operational path explicitly: who is alerted when records land in DLQ, what's the SLA for investigation, and how does reprocessing work? The retry topic pattern keeps ordering within a key intact during retry — but note that during the backoff window, newer records for the same key on the main topic have already been processed. If ordering across a key's lifecycle is critical, your retry design must account for this gap. Document the ordering guarantee you offer explicitly.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','ST-06',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-07">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-07</span>
         <span class="acc-question">Kafka Streams vs Apache Flink vs Spark Streaming — how do you decide?</span>
@@ -1072,10 +1155,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">The decision is as much organizational as technical. Kafka Streams requires no new infrastructure and integrates naturally with existing Kafka expertise — the right choice for 80% of stateful streaming use cases. Reach for Flink when: your state exceeds what Kafka Streams can manage locally, you need complex event time semantics with late data handling, or you're building a data platform that serves multiple teams. Spark Streaming is rarely the right greenfield choice if you can tolerate any latency overhead of micro-batching.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','ST-07',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-08">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-08</span>
         <span class="acc-question">When would you NOT use Kafka for a problem that looks like a fit?</span>
@@ -1087,10 +1173,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">The "use Kafka for everything" instinct is common in organizations that have invested in a cluster. Push back when appropriate. The outbox pattern (write events to a database table, tail with CDC or a poller) often replaces a Kafka topic for intra-service coordination with fewer moving parts. Redis Streams cover low-volume real-time fan-out without a full Kafka cluster. The question to ask: do I need replay, high throughput, or multiple independent consumer groups? If the answer to all three is no, something simpler probably fits. Kafka's value comes from durability, replayability, and fan-out — if you're not using those properties, you're paying the operational cost without the benefit.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','ST-08',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-09">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-09</span>
         <span class="acc-question">Walk me through capacity planning for a Kafka cluster. What inputs do you need?</span>
@@ -1102,10 +1191,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">The tricky part is accounting for all consumer groups — teams add them informally and each one multiplies your egress. Establish a catalog of consumer groups per topic as part of your capacity model. Also model for the worst case: a consumer group that falls behind and catches up at maximum speed will consume your full retained history in a burst — that burst throughput must fit within your broker's disk read and network capacity. Run this calculation for your highest-retention, highest-throughput topics to surface wrong capacity assumptions.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','ST-09',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-10">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-10</span>
         <span class="acc-question">One broker in your cluster is consistently hot while others are idle. How do you diagnose and fix it without downtime?</span>
@@ -1117,10 +1209,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">Preferred leader election is the zero-risk fix when the hot broker holds too many leaders. Partition reassignment (moving replicas) requires data replication — generates significant network traffic and can itself become a performance event. Throttle reassignment with <code>--throttle</code> to avoid impacting producers and consumers. Longer-term: enable <code>auto.leader.rebalance</code> so leaders redistribute automatically after broker restarts. The root cause of persistent hot brokers is usually initial topic creation without considering broker distribution — address this in your topic provisioning process.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','ST-10',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-11">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-11</span>
         <span class="acc-question">How do you implement multi-tenancy on a shared Kafka cluster — and where does it break down at org scale?</span>
@@ -1132,10 +1227,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">Multi-tenancy breaks down at org scale in predictable ways: ACL management becomes unmanageable without automation; quota tuning is a constant negotiation; a single cluster means every cluster upgrade and incident blast radius affects all tenants. The mature answer at large scale is cluster-per-team or cluster-per-domain. Multi-tenancy on a shared cluster is a reasonable starting point — define the scale at which you'll federate to multiple clusters before you hit that wall.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','ST-11',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-12">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-12</span>
         <span class="acc-question">Describe a production-grade Kafka security model — authentication, authorization, and encryption.</span>
@@ -1149,6 +1247,9 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">Security configuration is easy to get wrong and hard to audit. Common gaps: brokers with a plaintext listener alongside TLS — clients that don't specify TLS silently fall back. Require TLS-only listeners and remove plaintext in production. ACL sprawl: teams create service accounts with wildcard permissions to avoid ACL provisioning friction — enforce least-privilege via automation. Certificate rotation: mTLS requires a certificate rotation process; design for it from day one or you'll have an expiry incident. Kafka has no built-in audit log for data access — ship access logs to your SIEM if you have compliance requirements.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','ST-12',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1159,7 +1260,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
   <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-01</span>
         <span class="acc-question">How do you evaluate whether to run self-managed Kafka vs. migrate to a managed service (Confluent Cloud, MSK, Aiven)?</span>
@@ -1171,10 +1272,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">The hidden cost of self-managed Kafka is incident response. A cluster degradation at 2am requires engineers with deep Kafka operational knowledge — a rare skill set. Managed services shift that cost to a SLA contract. The calculation changes at very high scale: at hundreds of TB/day, the per-GB cost of Confluent Cloud may exceed self-managed infrastructure cost significantly. But below that threshold — which is most organizations — the operational savings from managed services usually outweigh the cost premium. Re-evaluate the decision annually; managed service cost curves have been dropping consistently.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','P-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-02</span>
         <span class="acc-question">Kafka is becoming the central data bus for your org — 50 teams, 400 topics. What governance model do you put in place?</span>
@@ -1186,10 +1290,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">The organizational failure mode is treating Kafka as shared infrastructure with no clear contracts between teams. A data catalog (Schema Registry + DataHub or Amundsen) makes contracts visible. More importantly: establish architectural review for topics that cross team boundaries — a "public" topic that other teams consume is a public API and should be treated with the same rigor as an HTTP endpoint. Conway's Law applies: your topic ownership map will reflect your team structure whether you design it that way or not.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','P-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-03</span>
         <span class="acc-question">Design a disaster recovery strategy for Kafka with an RPO of 30 seconds and RTO of 5 minutes.</span>
@@ -1201,10 +1308,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">The 5-minute RTO will be violated the first time you run failover in production without rehearsal. Treat DR runbooks as code: version-controlled, tested quarterly with real traffic in staging, owned by the on-call rotation. The most common DR failures: offset translation doesn't work for compacted topics; producers can't redirect quickly due to hardcoded broker addresses; secondary consumers haven't been tested at production throughput and can't catch up within the RTO. RPO and RTO are commitments to your business — price them against the cost of the DR infrastructure and the test cadence required to actually achieve them.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','P-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-04</span>
         <span class="acc-question">Your event-sourced system has been in production 3 years. The log is 2TB, replay takes 4 hours, and teams are coupling directly to internal event schemas. What do you do?</span>
@@ -1216,10 +1326,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">This is the natural aging failure mode of event sourcing at scale: the log becomes a liability. The snapshot pattern solves replay without changing the event model. The public/private topic boundary solves coupling without a big-bang migration. Neither is quick — both are multi-quarter initiatives. Prioritize based on risk: if schema coupling is blocking feature development, that's higher priority. The deeper lesson for new event-sourced systems: design for snapshot-based bootstrap from day one, treat public event schemas as APIs from the first external consumer, and define retention policy as a first-class decision.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','P-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-05">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-05</span>
         <span class="acc-question">How does Conway's Law apply to Kafka topic design?</span>
@@ -1231,10 +1344,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">Use topic design as an architectural diagnostic. When two teams are producing to and consuming from each other's topics in a complex web, it reveals a team boundary problem. When a topic has 20 consumer groups from 15 different teams, it's a de facto platform API and should be treated as one — with a versioning policy, deprecation process, and SLA. The worst pattern is a "God topic" that carries events from multiple domains because it was convenient — it creates a coupling point that makes every schema change a cross-org event. Many small, domain-aligned topics are better than a few large, multi-purpose ones.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','P-05',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-06">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-06</span>
         <span class="acc-question">An upstream service starts producing at 5x normal volume. Consumer lag cascades across unrelated consumer groups. How do you contain blast radius and prevent recurrence?</span>
@@ -1246,10 +1362,13 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">The architectural fix is isolation. Topics with different throughput profiles and SLAs should not share brokers or compete for the same disk and network budget. A burstable analytics topic on the same cluster as a payment processing topic means a sudden analytics workload can degrade payment consumer latency — this is a blast radius design failure. Long-term: quota enforcement on all producers by default (not retroactively applied), capacity buffers per cluster accounting for burst behavior, and separate clusters for topics with different reliability tiers. Ask "what's the blast radius if this topic surges?" at topic creation time, not after an incident.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','P-06',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-07">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-07</span>
         <span class="acc-question">A team wants to use Kafka for request/reply RPC between services. How do you respond — technically and organizationally?</span>
@@ -1261,6 +1380,9 @@ What breaks it: sending without a key causes round-robin routing across partitio
         
         <div class="staff-add">The organizational response matters as much as the technical one. "We already have Kafka so let's use it for everything" is a common attractor. The principled answer: match the communication pattern to the tool. Kafka is for async event streaming where the producer doesn't need to know the outcome. Request/reply is synchronous by nature — use a synchronous protocol. Document this as an architectural decision record: Kafka for events, gRPC/HTTP for queries. Enforce it in architecture reviews, not one-off conversations.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('kafka','P-07',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1442,6 +1564,44 @@ function filterQA(query) {
   if (btn) btn.textContent = 'Expand All';
 }
 
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
 // ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
 document.addEventListener('DOMContentLoaded', function () {
   // Sync toggle label with the actual current theme
@@ -1461,6 +1621,10 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById(hash).classList.add('active');
     }
   }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
 
   // Copy-to-clipboard on CLI command blocks
   document.querySelectorAll('.cmd').forEach(cmd => {

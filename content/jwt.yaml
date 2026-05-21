@@ -8,6 +8,7 @@ meta:
   title: JSON Web Tokens
   title_short: JWT
   subtitle: "// structure · signing algorithms · validation · attacks · refresh tokens · JWKS · senior → principal"
+  description: "Compact self-contained tokens for stateless authentication and claims exchange."
   category: Security
   icon: "🎟️"
 

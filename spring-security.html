@@ -108,6 +108,12 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .when-not .when-title{color:var(--red);}
 .when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
 
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
 /* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
 .qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
 .qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
@@ -115,6 +121,14 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .qa-search::placeholder{color:var(--muted);}
 .expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
 .expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
 
 /* ── Accordion ───────────────────────────────────────────────────────────── */
 .accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
@@ -206,10 +220,14 @@ td:last-child{color:var(--cheat-val);}
   h1{font-size:2rem;}
   .back-link span{display:none;}
 }
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
 
 </style>
 </head>
-<body>
+<body data-topic-id="spring-security">
 
 <a class="back-link" href="index.html">← <span>Field Guide</span></a>
 
@@ -735,6 +753,11 @@ Spring Security auto-configures <code>BearerTokenAuthenticationFilter</code> whi
 <div class="section" id="qa">
   <div class="section-title">Interview Q &amp; A</div>
 
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
   <div class="qa-controls">
     <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
     <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
@@ -744,7 +767,7 @@ Spring Security auto-configures <code>BearerTokenAuthenticationFilter</code> whi
   <div class="section-sub">Senior Engineer — Execution Depth</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-01</span>
         <span class="acc-question">How does the Spring Security filter chain process a request? Walk through from HTTP request to controller.</span>
@@ -764,10 +787,13 @@ For a JWT-secured API, the key filters in order: 1. <code>SecurityContextHolderF
         
         <div class="staff-add">The filter chain is ordered by integer priority. When you add a custom filter, its position in the chain relative to the authentication and authorization filters determines what context it can access. A filter before <code>BearerTokenAuthenticationFilter</code> sees no authentication. A filter after <code>AuthorizationFilter</code> only runs on authorized requests. Multiple <code>SecurityFilterChain</code> beans can match different URL patterns with different configurations — e.g., one chain for <code>/api/**</code> (stateless JWT) and another for <code>/admin/**</code> (form login with sessions). <code>FilterChainProxy</code> uses the first matching chain per request.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('spring-security','S-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-02</span>
         <span class="acc-question">How do you configure Spring Security as an OAuth2 Resource Server to validate JWT tokens?</span>
@@ -805,10 +831,13 @@ To map JWT claims to authorities (e.g., a <code>roles</code> claim): <code>java 
         <div class="staff-add">The <code>issuer-uri</code> auto-discovery approach is clean for production but requires network access at startup. For environments where the auth server isn't reachable during service startup (cold environments, CI), configure <code>jwk-set-uri</code> directly: <code>spring.security.oauth2.resourceserver.jwt.jwk-set-uri: https://auth.example.com/.well-known/jwks.json</code>. This skips the discovery call.
 For multi-issuer setups (tokens from multiple auth servers), implement a custom <code>AuthenticationManagerResolver&lt;HttpServletRequest&gt;</code> that selects the appropriate <code>JwtDecoder</code> based on the token's <code>iss</code> claim or a request header.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('spring-security','S-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-03</span>
         <span class="acc-question">What is CSRF, when should you disable it, and what is the correct CORS configuration for a REST API?</span>
@@ -833,10 +862,13 @@ For multi-issuer setups (tokens from multiple auth servers), implement a custom 
         
         <div class="staff-add">CORS is a browser security feature — it does not protect server-to-server communication. A permissive CORS configuration (<code>allowedOrigins("*")</code>) doesn't expose you to CSRF because CSRF requires a browser. But it does allow any browser-based JavaScript on any site to make authenticated requests to your API — which is a different risk if your API uses cookies. For JWT Bearer APIs with no cookies, <code>allowedOrigins("*")</code> is acceptable for truly public APIs. For anything that should only be called from your own frontend, restrict to your domain explicitly.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('spring-security','S-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-04</span>
         <span class="acc-question">How does @PreAuthorize work, and what are its limitations?</span>
@@ -854,10 +886,13 @@ Available in the SpEL context: - <code>authentication</code> — the current <co
 <code>java @PostAuthorize("returnObject.ownerId == authentication.name") public Order getOrder(Long orderId) { ... }</code>
 The method loads the order from DB, then the expression checks if the current user owns it — avoids a separate ownership query. The cost: the DB query runs even if access is denied. For high-frequency endpoints, pre-check ownership with a specialized query in the service layer instead. <code>@PostFilter</code> filters returned collections — but loading 10,000 records to filter down to 10 is wasteful; use <code>@PreAuthorize</code> with a query that incorporates the ownership clause.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('spring-security','S-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-05">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-05</span>
         <span class="acc-question">How do you test Spring Security configurations? What tools does Spring provide?</span>
@@ -878,10 +913,13 @@ The method loads the order from DB, then the expression checks if the current us
         
         <div class="staff-add">Test the security configuration itself, not just the happy path. For each secured endpoint, write: (1) authenticated with correct role → 200, (2) authenticated with wrong role → 403, (3) unauthenticated → 401. This is a security regression test that catches accidentally permissive changes. Use a parameterized test for coverage without boilerplate. For <code>@PreAuthorize</code> method security, the same principle applies — test that the check fires, not just that the method works when authorized.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('spring-security','S-05',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-06">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-06</span>
         <span class="acc-question">How do you implement a stateless JWT-based API with Spring Security? Walk through the full configuration.</span>
@@ -924,10 +962,13 @@ The method loads the order from DB, then the expression checks if the current us
         
         <div class="staff-add">Two production concerns this configuration doesn't show: <strong>token expiry granularity</strong> and <strong>structured error responses</strong>. The custom <code>authenticationEntryPoint</code> above returns a raw JSON string — better to return a proper <code>ProblemDetail</code> object serialized via Jackson. For token expiry: <code>JwtDecoder</code> rejects expired tokens with a <code>JwtValidationException</code>. Distinguish between "token expired" (the client should refresh) and "token invalid" (the client must re-authenticate) in your 401 response body so clients can react differently. Add <code>error_code: TOKEN_EXPIRED</code> vs <code>error_code: INVALID_TOKEN</code> to the response.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('spring-security','S-06',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-07">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-07</span>
         <span class="acc-question">What is the difference between hasRole and hasAuthority in Spring Security?</span>
@@ -944,10 +985,13 @@ When to use which: - Use <code>hasRole("ADMIN")</code> for role-based access fol
         
         <div class="staff-add">At the Staff level, the question is really about your authority model design. Role-based (<code>ROLE_ADMIN</code>) vs permission-based (<code>orders:write</code>) vs scope-based (<code>read:orders</code> from OAuth2) are three different models. Permission-based is more granular but more complex to manage. For a mature authorization model, consider: roles aggregate permissions, permissions map to specific operations. Spring Security's <code>GrantedAuthority</code> is just a string — the semantics are entirely yours to define. Make the convention explicit and documented so every service interprets authorities consistently.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('spring-security','S-07',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-08">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-08</span>
         <span class="acc-question">A service returns 401 for all requests after deploying a security config change. How do you diagnose it?</span>
@@ -983,10 +1027,13 @@ When to use which: - Use <code>hasRole("ADMIN")</code> for role-based access fol
         
         <div class="staff-add">Security debug logging is verbose but indispensable for diagnosing access issues. In production, keep it off (it logs every request including headers). Use structured logging with a correlation ID that you can filter on: enable <code>DEBUG</code> temporarily for a specific session or IP via the <code>/actuator/loggers</code> endpoint, reproduce the issue, then restore. Add a security audit log (via <code>ApplicationEventPublisher</code> + <code>AuthenticationSuccessEvent</code>, <code>AbstractAuthorizationEvent</code>) that logs authentication events to your SIEM — this is separate from the debug filter chain output and always on.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('spring-security','S-08',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-09">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-09</span>
         <span class="acc-question">How do you configure CORS correctly in Spring Security for a REST API called by a browser frontend?</span>
@@ -1012,6 +1059,9 @@ Why Spring Security must handle CORS (not just <code>@CrossOrigin</code>): OPTIO
         
         <div class="staff-add"><code>allowedOrigins("*")</code> and <code>allowCredentials(true)</code> cannot be combined — browsers reject responses that send both. If you need <code>allowCredentials(true)</code> (for session cookies or <code>Authorization</code> header via fetch <code>credentials: 'include'</code>), you must explicitly list allowed origins. For development, use a profile-specific CORS config that allows <code>localhost:3000</code> in <code>dev</code> profile only — never merge a wildcard CORS config into production.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('spring-security','S-09',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1022,7 +1072,7 @@ Why Spring Security must handle CORS (not just <code>@CrossOrigin</code>): OPTIO
   <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-01</span>
         <span class="acc-question">How do you design a multi-tenant authorization model with Spring Security where tenants have different role hierarchies?</span>
@@ -1043,10 +1093,13 @@ Why Spring Security must handle CORS (not just <code>@CrossOrigin</code>): OPTIO
         
         <div class="staff-add">The hardest part of multi-tenant authorization is preventing tenant A from accessing tenant B's data through a path that looks authorized. HTTP-level rules check roles but not data ownership. Method-level <code>@PreAuthorize</code> checks must always include tenant context. A missing tenant check is a tenant isolation failure — not just a permissions bug. Consider a custom <code>AccessDeniedHandler</code> that logs cross-tenant access attempts explicitly as a security event to your SIEM. Test tenant isolation explicitly: create two tenants with the same role, confirm tenant A cannot access tenant B's resources even with a valid token.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('spring-security','ST-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-02</span>
         <span class="acc-question">How does Spring Security handle SecurityContext propagation in reactive (WebFlux) and async contexts?</span>
@@ -1067,10 +1120,13 @@ Access in WebFlux: <code>java ReactiveSecurityContextHolder.getContext()
         
         <div class="staff-add">The common mistake when migrating from MVC to WebFlux: any code that calls <code>SecurityContextHolder.getContext()</code> directly (utility classes, legacy helpers, Hibernate interceptors) fails silently in WebFlux — it returns an empty context. Audit all security context access patterns before migrating. Replace <code>SecurityContextHolder</code> calls with <code>ReactiveSecurityContextHolder</code> and propagate via the reactive chain. This is a larger refactor than it appears — security context access tends to be scattered through service and utility code.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('spring-security','ST-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-03</span>
         <span class="acc-question">How do you implement rate limiting and brute-force protection in Spring Security?</span>
@@ -1096,10 +1152,13 @@ Access in WebFlux: <code>java ReactiveSecurityContextHolder.getContext()
         
         <div class="staff-add">Brute-force protection has a subtle failure mode: locking accounts on authentication failure enables a denial-of-service attack. An attacker can lock any user's account by failing their login N times intentionally. Mitigate: add an exponential backoff delay per username rather than full lockout; rate limit the login endpoint by IP (attacker's IP); alert on lockout events. For APIs, prefer per-client-token or per-IP rate limiting over per-account — the attack surface is different from user-facing login forms.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('spring-security','ST-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-04</span>
         <span class="acc-question">A legacy Spring Boot service uses form login with sessions. You need to migrate it to OAuth2/JWT without downtime. How do you design the migration?</span>
@@ -1115,6 +1174,9 @@ Access in WebFlux: <code>java ReactiveSecurityContextHolder.getContext()
         
         <div class="staff-add">The risk in dual-chain migration is authorization divergence — the two chains may have different access rules that get out of sync as features are added. Minimize divergence by sharing access rule definitions: extract rules into a shared method called by both chain configurations. Monitor for access rule differences in security tests that run the same request against both chains. Plan the transition timeline in weeks, not months — dual auth chains are temporary infrastructure with a maintenance cost.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('spring-security','ST-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1125,7 +1187,7 @@ Access in WebFlux: <code>java ReactiveSecurityContextHolder.getContext()
   <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-01</span>
         <span class="acc-question">At scale with 50+ microservices, where should authentication and authorization logic live — in each service or centralized?</span>
@@ -1140,10 +1202,13 @@ Risk: services must trust that the gateway enforces authentication. A path that 
         
         <div class="staff-add">The real question is blast radius and complexity tradeoff. A centralized gateway is a shared component — a config bug in auth rules affects all 50 services simultaneously. Distributed validation isolates failures — a misconfigured service affects only that service. At 50+ services, a shared Spring Security starter that encodes the JWT validation configuration and authority mapping is the platform team's responsibility. Services consume the starter without configuring auth mechanics themselves. This gives centralized consistency with distributed execution. The starter version becomes a security artifact that must be bumped when the JWT validation logic changes — treat it with the same rigor as a database schema migration.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('spring-security','P-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-02</span>
         <span class="acc-question">How do you design a zero-trust service-to-service authentication model in a Spring Boot microservices architecture?</span>
@@ -1163,6 +1228,9 @@ Spring Security 6 + Spring WebClient: <code>java @Bean public WebClient serviceC
         
         <div class="staff-add">The operational cost of zero-trust service auth is certificate or token lifecycle management. Client credentials secrets rotate on a schedule — coordinate rotation without downtime (dual-secret validity window). mTLS certificates expire — automate renewal via cert-manager + Vault PKI before human intervention is needed. The failure mode that kills zero-trust programs is the secret that couldn't be rotated because the rotation process was manual and the team was mid-sprint — so it stays unchanged for 2 years. Build rotation automation before you mandate zero-trust, not after. The policy is only as strong as the automation that enforces it.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('spring-security','P-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1344,6 +1412,44 @@ function filterQA(query) {
   if (btn) btn.textContent = 'Expand All';
 }
 
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
 // ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
 document.addEventListener('DOMContentLoaded', function () {
   // Sync toggle label with the actual current theme
@@ -1363,6 +1469,10 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById(hash).classList.add('active');
     }
   }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
 
   // Copy-to-clipboard on CLI command blocks
   document.querySelectorAll('.cmd').forEach(cmd => {

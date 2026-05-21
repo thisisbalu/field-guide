@@ -8,6 +8,7 @@ meta:
   title: OpenShift (OCP)
   title_short: OCP
   subtitle: "// enterprise kubernetes · projects · SCCs · operators · imagestreams · gitops · senior → principal"
+  description: "Enterprise Kubernetes with integrated CI/CD, image registry, and security controls."
   category: Infrastructure
   icon: "🔴"
 

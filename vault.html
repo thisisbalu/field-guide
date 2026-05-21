@@ -108,6 +108,12 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .when-not .when-title{color:var(--red);}
 .when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
 
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
 /* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
 .qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
 .qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
@@ -115,6 +121,14 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .qa-search::placeholder{color:var(--muted);}
 .expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
 .expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
 
 /* ── Accordion ───────────────────────────────────────────────────────────── */
 .accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
@@ -206,10 +220,14 @@ td:last-child{color:var(--cheat-val);}
   h1{font-size:2rem;}
   .back-link span{display:none;}
 }
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
 
 </style>
 </head>
-<body>
+<body data-topic-id="vault">
 
 <a class="back-link" href="index.html">← <span>Field Guide</span></a>
 
@@ -869,6 +887,11 @@ Lease expiry without renewal causes <strong>app outages</strong> — the credent
 <div class="section" id="qa">
   <div class="section-title">Interview Q &amp; A</div>
 
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
   <div class="qa-controls">
     <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
     <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
@@ -878,7 +901,7 @@ Lease expiry without renewal causes <strong>app outages</strong> — the credent
   <div class="section-sub">Senior Engineer — Execution Depth</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-01</span>
         <span class="acc-question">Walk through the complete flow when a Kubernetes pod authenticates to Vault and reads a secret.</span>
@@ -916,10 +939,13 @@ Lease expiry without renewal causes <strong>app outages</strong> — the credent
         
         <div class="staff-add">The Kubernetes auth flow depends on Vault being able to reach the K8s API server. In private clusters or multi-cluster setups, network policy must allow Vault to call the K8s API. The projected service account token has its own TTL (default 1 h in most distros) — Vault Agent must re-login before it expires. The cleanest operational pattern is Vault Agent as a sidecar: it handles re-login, token renewal, and template rendering, so the application is completely decoupled from Vault's protocol. For high-security workloads, also pin the Kubernetes role to a specific namespace and service account to minimize blast radius.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('vault','S-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-02</span>
         <span class="acc-question">What is the difference between KV v1 and KV v2? What are CAS and soft delete?</span>
@@ -934,10 +960,13 @@ Lease expiry without renewal causes <strong>app outages</strong> — the credent
         
         <div class="staff-add">The path difference between v1 and v2 is the most common migration footgun. When upgrading a mount from KV v1 to v2, every policy and every application API call must be updated. Vault's CLI and UI abstract this away, but if applications use the HTTP API directly or have Vault Agent templates using the API path, they will silently fail or get 403s after the upgrade. Audit all consumers before migrating. In new deployments, always use KV v2 — the soft delete and versioning make secret lifecycle management significantly safer.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('vault','S-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-03</span>
         <span class="acc-question">Explain Vault's seal/unseal mechanism. What is Shamir's Secret Sharing and why does it matter?</span>
@@ -952,10 +981,13 @@ Lease expiry without renewal causes <strong>app outages</strong> — the credent
         
         <div class="staff-add">Manual unseal is operationally untenable for production. Requiring 3 key holders to be online at 3 AM after an unexpected crash is a reliability problem, not just an inconvenience. Auto-unseal is the standard for production deployments. The recovery keys (replacing unseal keys with auto-unseal) are for disaster recovery — breaking the glass when the KMS is unreachable. Store them in a physically separate, offline location (separate from the KMS IAM credentials). The seal status is your primary health signal: a sealed Vault node is dead from the application's perspective regardless of whether the process is running.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('vault','S-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-04</span>
         <span class="acc-question">How do dynamic database credentials work, and why are they better than static credentials?</span>
@@ -969,10 +1001,13 @@ Lease expiry without renewal causes <strong>app outages</strong> — the credent
         
         <div class="staff-add">Dynamic credentials change the failure mode of credential exposure from "rotate everything, identify all consumers, coordinate cutover" to "wait for TTL, done." This is why TTL choice matters: a 24-hour TTL provides much weaker protection than a 1-hour TTL. Set TTL based on how long you can tolerate a compromised credential being valid. For highly sensitive systems, 15–30 minute TTLs with Vault Agent auto-renewal are appropriate. The one operational complexity is connection pool behavior — if your connection pool holds connections with credentials that expire, the pool must detect and re-establish connections with new credentials. Most modern connection pool libraries support this via health-check callbacks.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('vault','S-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-05">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-05</span>
         <span class="acc-question">How does Vault's policy evaluation work? Walk through the evaluation order and the role of deny.</span>
@@ -995,10 +1030,13 @@ Lease expiry without renewal causes <strong>app outages</strong> — the credent
         
         <div class="staff-add">Policy design at scale becomes its own governance problem. Without a pattern, you end up with hundreds of ad-hoc policies that nobody fully understands. A scalable approach: parameterize policies using <strong>Vault identity templating</strong> (<code>{{identity.entity.name}}</code>) so a single policy template governs many entities without duplicating policy documents. Use <strong>namespaces</strong> (Enterprise) to isolate teams — each team gets a namespace with its own auth methods, secret engines, and policies, governed by the platform team's root namespace. Treat policies as code — version them in Git, review changes, and apply with Terraform (<code>hashicorp/vault</code> provider).</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('vault','S-05',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-06">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-06</span>
         <span class="acc-question">How does AppRole authentication work? How do you deliver the secret ID securely?</span>
@@ -1020,10 +1058,13 @@ Lease expiry without renewal causes <strong>app outages</strong> — the credent
         
         <div class="staff-add">AppRole was the dominant service auth pattern before cloud-native deployments. In Kubernetes, AWS, GCP, or Azure, you almost always have a better option — the platform provides identity (K8s service account, EC2 instance profile) that doesn't require delivering a secret to bootstrap. Use AppRole when the service runs on-prem or in an environment without platform identity. The wrapped secret ID pattern solves the bootstrapping problem but adds complexity. If you're designing a new system on a cloud or Kubernetes platform, default to the platform's native auth method.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('vault','S-06',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-07">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-07</span>
         <span class="acc-question">A service is getting 403 errors reading from Vault after working fine for weeks. What's your diagnostic approach?</span>
@@ -1060,6 +1101,9 @@ Lease expiry without renewal causes <strong>app outages</strong> — the credent
         
         <div class="staff-add">The most operationally mature teams make Vault's audit log their first stop, not their last. Configure structured JSON audit logging shipped to your log aggregation platform (Splunk, Datadog, Elastic). A saved search for <code>"type":"response" "error":"*"</code> filtered to your service's token accessor gives you an instant view of every denied request with its path — which tells you exactly which policy capability is missing. Without this, you're guessing. Add a runbook for "403 from Vault" to your service's ops docs — it's a predictable and recurring incident type.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('vault','S-07',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1070,7 +1114,7 @@ Lease expiry without renewal causes <strong>app outages</strong> — the credent
   <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-01</span>
         <span class="acc-question">How do you design Vault's path hierarchy and policy structure for a large organization with many teams?</span>
@@ -1088,10 +1132,13 @@ Lease expiry without renewal causes <strong>app outages</strong> — the credent
         
         <div class="staff-add">The hardest part of path hierarchy design is anticipating future needs. A flat <code>secret/{service}/*</code> structure works for 10 services but fails at 100 when you add staging environments and want to isolate prod from non-prod. Build environment and team into the hierarchy from day one. Managing Vault config with Terraform (<code>vault_policy</code>, <code>vault_auth_backend</code>, <code>vault_generic_secret</code>) is non-negotiable at scale — clicking through the UI doesn't scale to hundreds of services and creates configuration drift. Treat Vault configuration exactly like infrastructure code.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('vault','ST-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-02</span>
         <span class="acc-question">How do you handle zero-downtime secret rotation for a service using a static KV secret (e.g., an API key)?</span>
@@ -1106,10 +1153,13 @@ Lease expiry without renewal causes <strong>app outages</strong> — the credent
         
         <div class="staff-add">Zero-downtime rotation is a systems design problem that spans Vault, the upstream provider, and your service. The overlap window length must exceed the time for all instances to reload — in a large deployment, that could be minutes. Design the application to retry on auth failure and re-read credentials from Vault on retry — this makes the service self-healing under rotation rather than dependent on a perfect orchestration sequence. If the upstream provider doesn't support dual-key validity, the rotation will have a brief outage window by design, and the runbook must reflect that.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('vault','ST-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-03</span>
         <span class="acc-question">Vault Agent vs direct SDK integration — how do you decide which approach to use for a service?</span>
@@ -1127,10 +1177,13 @@ In Kubernetes, Agent as a sidecar with Kubernetes auth is the standard pattern f
         
         <div class="staff-add">The sidecar model separates concerns cleanly: the platform team owns the Vault Agent configuration (injected via a mutating admission webhook, e.g., Vault Agent Injector or Vault Secrets Operator), and the application team owns the application. This is the operational model that scales — app teams don't need to understand Vault internals, and the platform team can update Vault Agent versions independently. The Vault Secrets Operator (VSO) takes this further: it syncs Vault secrets into Kubernetes Secrets and handles rotation, so the application just reads from a K8s Secret or env var. VSO is the preferred pattern for Kubernetes-native workloads in Vault 1.12+.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('vault','ST-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-04</span>
         <span class="acc-question">How do you design Vault HA with Raft integrated storage? What are the failure modes?</span>
@@ -1150,6 +1203,9 @@ In Kubernetes, Agent as a sidecar with Kubernetes auth is the standard pattern f
         
         <div class="staff-add">The most dangerous Raft failure mode is the one nobody tests: quorum loss during an incident. Losing 2 of 3 nodes simultaneously leaves you in a hard state — Raft cannot elect a leader, Vault stops serving, and recovery requires a manual peer removal (<code>vault operator raft remove-peer</code>) and snapshot restore. Run a "Vault DR drill" annually: simulate 2-node failure, practice restore from snapshot, measure RTO. The operations runbook for "Vault unavailable" must be rehearsed before the first production incident. The second failure mode to test is auto-unseal KMS unavailability — if AWS KMS is down during a Vault restart, Vault cannot unseal. Have a procedure for providing Shamir recovery keys in that scenario.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('vault','ST-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1160,7 +1216,7 @@ In Kubernetes, Agent as a sidecar with Kubernetes auth is the standard pattern f
   <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-01</span>
         <span class="acc-question">How do you architect a Vault platform that serves 50+ engineering teams with different trust boundaries, compliance requirements, and deployment targets (Kubernetes, VMs, on-prem)?</span>
@@ -1184,10 +1240,13 @@ In Kubernetes, Agent as a sidecar with Kubernetes auth is the standard pattern f
         
         <div class="staff-add">The organizational challenge is more complex than the technical one. Vault naturally becomes critical infrastructure — when it goes down, every service that needs a credential is affected. This means the platform team must treat Vault with the same SRE rigor as a database or message broker: runbooks, on-call rotations, incident playbooks, annual DR drills. The second organizational challenge is secrets sprawl audit. Without regular access reviews, policies accumulate stale grants, services hold tokens that were never revoked, and you lose confidence in the least-privilege model. Build a quarterly review process into the platform: token accessor inventory, policy entitlement report, lease age distribution. The Vault audit log makes this tractable — it's all there, you just need the tooling to surface it.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('vault','P-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-02</span>
         <span class="acc-question">A Vault cluster has been compromised — an attacker accessed the root token. What is your incident response plan?</span>
@@ -1220,6 +1279,9 @@ In Kubernetes, Agent as a sidecar with Kubernetes auth is the standard pattern f
         
         <div class="staff-add">A Vault compromise is a Tier-1 incident that cascades into every connected system. The audit log is your most valuable forensic asset — but only if it's been shipped to an immutable external system before the compromise. An attacker with root access could disable audit logging or overwrite local log files. Ship audit logs to a separate, read-only SIEM in real time. This is non-negotiable for any Vault deployment in a regulated environment. The second lesson from Vault compromises is that the "we'll create a root token when we need it" policy is not a policy — it's a gap. Define the break-glass procedure for root access, store it in a physical safe, test it annually, and alert on every use automatically.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('vault','P-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1401,6 +1463,44 @@ function filterQA(query) {
   if (btn) btn.textContent = 'Expand All';
 }
 
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
 // ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
 document.addEventListener('DOMContentLoaded', function () {
   // Sync toggle label with the actual current theme
@@ -1420,6 +1520,10 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById(hash).classList.add('active');
     }
   }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
 
   // Copy-to-clipboard on CLI command blocks
   document.querySelectorAll('.cmd').forEach(cmd => {

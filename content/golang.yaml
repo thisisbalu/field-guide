@@ -8,6 +8,7 @@ meta:
   title: Go (Golang)
   title_short: Go
   subtitle: "// goroutines · channels · interfaces · GC · concurrency patterns · senior → principal"
+  description: "Compiled, statically typed language built for concurrency and cloud-native workloads."
   category: Backend
   icon: "🐹"
 

@@ -8,6 +8,7 @@ meta:
   title: Kubernetes
   title_short: Kubernetes
   subtitle: "// pods · scheduling · networking · storage · RBAC · autoscaling · operators · senior → principal"
+  description: "Container orchestration for automated deployment, scaling, and self-healing services."
   category: Infrastructure
   icon: "⎈"
 

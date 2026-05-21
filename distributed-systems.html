@@ -108,6 +108,12 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .when-not .when-title{color:var(--red);}
 .when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
 
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
 /* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
 .qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
 .qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
@@ -115,6 +121,14 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .qa-search::placeholder{color:var(--muted);}
 .expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
 .expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
 
 /* ── Accordion ───────────────────────────────────────────────────────────── */
 .accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
@@ -206,10 +220,14 @@ td:last-child{color:var(--cheat-val);}
   h1{font-size:2rem;}
   .back-link span{display:none;}
 }
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
 
 </style>
 </head>
-<body>
+<body data-topic-id="distributed-systems">
 
 <a class="back-link" href="index.html">← <span>Field Guide</span></a>
 
@@ -815,6 +833,11 @@ Network partitions are not optional in real distributed systems — they happen.
 <div class="section" id="qa">
   <div class="section-title">Interview Q &amp; A</div>
 
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
   <div class="qa-controls">
     <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
     <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
@@ -824,7 +847,7 @@ Network partitions are not optional in real distributed systems — they happen.
   <div class="section-sub">Senior Engineer — Execution Depth</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-01</span>
         <span class="acc-question">Explain the CAP theorem. What does it actually mean for practical system design — and what does it not mean?</span>
@@ -846,10 +869,13 @@ Network partitions are not optional in real distributed systems — they happen.
         
         <div class="staff-add">The CAP theorem is often misapplied as a binary framework. In reality, most systems make nuanced trade-offs: Cassandra lets you choose quorum level per operation, so the same cluster can be CP for critical writes (<code>ALL</code>) and AP for non-critical reads (<code>ONE</code>). A more useful mental model is the <strong>consistency spectrum</strong>: what is the maximum staleness you can tolerate, and what is the cost (in latency, availability, and complexity) to reduce it? Strong consistency across a WAN link costs 100ms+ round trips per write — often unacceptable for user-facing writes. For those cases, design for causal consistency with conflict resolution rather than linearizability.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('distributed-systems','S-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-02</span>
         <span class="acc-question">What is the difference between linearizability, causal consistency, and eventual consistency? Give a concrete example where the wrong choice causes a bug.</span>
@@ -865,10 +891,13 @@ The root cause: the privacy check and the post read must be causally ordered —
         
         <div class="staff-add">The correct consistency model is determined by the business invariant, not by what's easy to implement. Map your invariants first: "a user can never see data they're not authorized to see" requires consistency between the authorization check and the data read. "Show the user's shopping cart total" can tolerate eventual consistency — a 100ms stale total is acceptable. Many teams default to eventual consistency cluster-wide and then add ad-hoc fixes for violations, resulting in a patchwork of inconsistent workarounds. A deliberate consistency model per data type (using a consistent store for auth/permissions, eventually consistent for counters and feeds) is cleaner and more auditable.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('distributed-systems','S-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-03</span>
         <span class="acc-question">How does the Raft consensus algorithm work? Walk through leader election and log replication.</span>
@@ -884,10 +913,13 @@ Raft is not Byzantine-fault-tolerant — it assumes nodes are honest but may cra
         
         <div class="staff-add">Raft's linearizability guarantee requires that every read also goes through the leader (or that the leader confirms it's still the leader via a heartbeat quorum before serving a read). If followers serve reads directly without this check, a partitioned follower may serve stale data while the rest of the cluster has moved on. This is the subtle difference between "Raft cluster" (linearizable) and "Raft cluster with follower reads" (potentially stale). etcd, for example, provides a <code>--consistency=linearizable</code> flag that sends reads through the leader and a <code>--consistency=serializable</code> flag for fast follower reads with possible staleness. Know which mode your system uses.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('distributed-systems','S-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-04</span>
         <span class="acc-question">What is two-phase commit (2PC) and what are its failure modes? Why is it rarely used in microservices?</span>
@@ -910,10 +942,13 @@ Raft is not Byzantine-fault-tolerant — it assumes nodes are honest but may cra
         
         <div class="staff-add">2PC is not inherently wrong — it's used extensively within single database systems (most databases use an internal 2PC-like protocol for distributed indexes or partitions). Its problems emerge across service boundaries, where the coordinator is a network-separated orchestrator rather than the same process as the storage engine. The three-phase commit (3PC) was designed to resolve 2PC's blocking problem by adding a pre-commit phase that allows participants to infer the coordinator's decision — but 3PC is almost never used in practice because it's more complex and still not fully non-blocking under partition. The practical answer for cross-service atomicity is SAGA + idempotent compensations.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('distributed-systems','S-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-05">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-05</span>
         <span class="acc-question">What is the SAGA pattern? Compare choreography vs orchestration SAGAs. What makes compensations tricky?</span>
@@ -933,10 +968,13 @@ Raft is not Byzantine-fault-tolerant — it assumes nodes are honest but may cra
         
         <div class="staff-add">Sagas introduce <strong>ACI</strong> (no Isolation) — other transactions can observe intermediate saga states. A customer's order goes through: pending → payment captured → inventory reserved → shipped. Another query during this sequence may see the order in an in-between state. Mitigate with semantic locks (a status field that marks the record as "in-progress"), countermeasures (fail queries that see in-progress records), or by designing the domain model so partial states are meaningful and visible (pending is a valid, displayable order state). Don't promise isolation the saga pattern cannot deliver — design the domain to tolerate visible intermediate states.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('distributed-systems','S-05',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-06">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-06</span>
         <span class="acc-question">What is the dual-write problem and how does the outbox pattern solve it?</span>
@@ -958,10 +996,13 @@ The relay publishes <strong>at-least-once</strong> — retries on failure mean t
         
         <div class="staff-add">The relay process can be implemented two ways: <strong>polling</strong> (a loop that queries the outbox table for unprocessed rows at an interval) or <strong>CDC</strong> (Change Data Capture with Debezium reading the database's transaction log). Polling is simple but adds latency (up to the poll interval) and database load. CDC is real-time and zero-polling-overhead but requires the database to have logical replication enabled (<code>wal_level = logical</code> for PostgreSQL) and adds operational complexity (Kafka Connect + Debezium). For most teams, polling with a short interval (1 s) is sufficient and simpler to operate. CDC is worth the complexity when sub-second event latency is required or when the outbox table grows very large.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('distributed-systems','S-06',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-07">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-07</span>
         <span class="acc-question">How do logical clocks (Lamport timestamps) and vector clocks work? When do you need them?</span>
@@ -978,6 +1019,9 @@ The relay publishes <strong>at-least-once</strong> — retries on failure mean t
         
         <div class="staff-add">Version vectors (a variant of vector clocks tracked per key rather than per node) are the practical implementation in systems like Dynamo. When two replicas disagree on a value, the version vectors tell you whether one causally supersedes the other (take the newer one) or whether they're concurrent (a conflict that needs application-level resolution — last write wins, merge, or present both to the user). The cost of vector clocks grows with the number of writers — in a system with thousands of clients all writing to the same key, the vector grows unboundedly. Dotted version vectors solve this by tracking writes per server rather than per client. Understanding this trade-off matters when designing high-write leaderless systems.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('distributed-systems','S-07',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -988,7 +1032,7 @@ The relay publishes <strong>at-least-once</strong> — retries on failure mean t
   <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-01</span>
         <span class="acc-question">How do you design an idempotent payment API? What makes idempotency hard in distributed systems?</span>
@@ -1018,10 +1062,13 @@ The relay publishes <strong>at-least-once</strong> — retries on failure mean t
         
         <div class="staff-add">Idempotency keys have a finite retention window — typically 24 hours to 7 days. After that, the same key may be reused safely (original request is long expired). Don't retain keys forever — it's a slow-growing table that eventually becomes a performance problem. A more subtle issue: idempotency at the API layer doesn't automatically make downstream calls idempotent. If the payment API calls a card processor, the processor call must also be idempotent — pass the idempotency key through to the processor. Stripe's API, for example, accepts <code>Idempotency-Key</code> headers that are propagated to their internal payment engine. Design idempotency end-to-end through every hop, not just at the entry point.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('distributed-systems','ST-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-02</span>
         <span class="acc-question">How do you design a distributed rate limiter that works across multiple service instances?</span>
@@ -1046,10 +1093,13 @@ end redis.call('INCR', KEYS[1]) redis.call('EXPIRE', KEYS[1], ARGV[2]) return 1 
         
         <div class="staff-add">Rate limiting decisions reveal your consistency-vs-availability trade-offs in microcosm. A strict rate limit (exactly N requests per second, no more) requires linearizable counter updates — expensive. An approximate rate limit (N ± ε requests per second, with ε proportional to instance count and sync frequency) is available and fast. For most rate limiting use cases (bot protection, cost control, fairness between tenants), approximate is entirely acceptable. For billing-critical rate limits (API tiers where overage is charged differently), exact counting with Redis is worth the cost. Make the precision requirement explicit rather than defaulting to exact counting everywhere.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('distributed-systems','ST-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-03</span>
         <span class="acc-question">How do you handle and recover from split-brain in a distributed system with leader election?</span>
@@ -1065,10 +1115,13 @@ end redis.call('INCR', KEYS[1]) redis.call('EXPIRE', KEYS[1], ARGV[2]) return 1 
         
         <div class="staff-add">Fencing tokens are not universally implemented — many systems rely only on quorum without storage-layer enforcement. This is a risk: a GC-paused leader that resumes after a new leader is elected may succeed in writing to the storage layer if the storage layer doesn't enforce fencing. The result is silent data corruption that may not be detected until a read compares diverged states. When designing systems on top of distributed databases, verify whether the database provides fencing (etcd's lease mechanism does; a plain Redis SET does not). For systems using Redis for distributed locking, the Redlock algorithm's safety properties are contested — Martin Kleppmann's critique is worth reading before depending on it for critical coordination.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('distributed-systems','ST-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-04</span>
         <span class="acc-question">How does consistent hashing work and why do systems like Cassandra and DynamoDB use it?</span>
@@ -1085,6 +1138,9 @@ end redis.call('INCR', KEYS[1]) redis.call('EXPIRE', KEYS[1], ARGV[2]) return 1 
         
         <div class="staff-add">Consistent hashing elegantly solves data distribution at the cost of uneven load under skewed key distributions. If many requests hit the same key range (a hot partition), the node responsible for that range is overwhelmed regardless of how many other nodes exist. DynamoDB's adaptive capacity and Cassandra's <code>ByteOrderedPartitioner</code> (BOP) vs <code>Murmur3Partitioner</code> represent two different answers to this: BOP allows range scans but causes hot partitions on sequential keys; Murmur3 distributes randomly (no range scans) but prevents hot partitions. Choosing a partition key that distributes load evenly is a data modeling discipline, not just a configuration choice.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('distributed-systems','ST-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1095,7 +1151,7 @@ end redis.call('INCR', KEYS[1]) redis.call('EXPIRE', KEYS[1], ARGV[2]) return 1 
   <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-01</span>
         <span class="acc-question">How do you design a globally distributed data system that serves users in multiple regions with low latency reads, strong consistency for financial data, and high availability?</span>
@@ -1122,10 +1178,13 @@ end redis.call('INCR', KEYS[1]) redis.call('EXPIRE', KEYS[1], ARGV[2]) return 1 
         
         <div class="staff-add">The hardest part of this design is not the technology — it's defining the consistency requirement per data type precisely enough to make technology choices. "Financial data must be strongly consistent" sounds clear, but what about the user's transaction history display? Must it be linearizable, or is 10-second bounded staleness acceptable? The answer changes the architecture significantly: linearizable history reads require routing to the Spanner leader; bounded-stale reads can be served from a local replica. Map out every read and write operation, its consistency requirement, and its expected frequency. The resulting matrix drives the data tier placement. Teams that skip this mapping and apply uniform strong consistency to everything pay the latency cost for operations that didn't need it.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('distributed-systems','P-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-02</span>
         <span class="acc-question">How do you approach chaos engineering for a complex distributed system? What failure modes are most commonly missed?</span>
@@ -1154,6 +1213,9 @@ end redis.call('INCR', KEYS[1]) redis.call('EXPIRE', KEYS[1], ARGV[2]) return 1 
         
         <div class="staff-add">The organizational challenge of chaos engineering is greater than the technical one. Engineers are reluctant to break production. Leaders are reluctant to authorize it. The path forward is making the risk explicit: "we are going to experience these failures — the question is whether we discover them in a controlled experiment or during an incident at 2 AM." Start with low-risk experiments (kill one pod behind an HPA, inject 50ms latency to a non-critical service). Build confidence gradually. Establish a chaos experiment review process: proposed experiment → hypothesis → approval → execution → results → blameless post-mortem if something unexpected happens. Tools: Chaos Mesh (Kubernetes), Toxiproxy (network faults), Gremlin (managed chaos), AWS Fault Injection Simulator. The tools are secondary — the discipline of forming hypotheses and measuring outcomes is what makes chaos engineering valuable.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('distributed-systems','P-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1335,6 +1397,44 @@ function filterQA(query) {
   if (btn) btn.textContent = 'Expand All';
 }
 
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
 // ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
 document.addEventListener('DOMContentLoaded', function () {
   // Sync toggle label with the actual current theme
@@ -1354,6 +1454,10 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById(hash).classList.add('active');
     }
   }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
 
   // Copy-to-clipboard on CLI command blocks
   document.querySelectorAll('.cmd').forEach(cmd => {

@@ -108,6 +108,12 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .when-not .when-title{color:var(--red);}
 .when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
 
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
 /* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
 .qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
 .qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
@@ -115,6 +121,14 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .qa-search::placeholder{color:var(--muted);}
 .expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
 .expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
 
 /* ── Accordion ───────────────────────────────────────────────────────────── */
 .accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
@@ -206,10 +220,14 @@ td:last-child{color:var(--cheat-val);}
   h1{font-size:2rem;}
   .back-link span{display:none;}
 }
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
 
 </style>
 </head>
-<body>
+<body data-topic-id="golang">
 
 <a class="back-link" href="index.html">← <span>Field Guide</span></a>
 
@@ -792,6 +810,11 @@ td:last-child{color:var(--cheat-val);}
 <div class="section" id="qa">
   <div class="section-title">Interview Q &amp; A</div>
 
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
   <div class="qa-controls">
     <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
     <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
@@ -801,7 +824,7 @@ td:last-child{color:var(--cheat-val);}
   <div class="section-sub">Senior Engineer — Execution Depth</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-01</span>
         <span class="acc-question">How does Go's goroutine scheduler work? What is GOMAXPROCS and how does work-stealing fit in?</span>
@@ -816,10 +839,13 @@ Setting <code>GOMAXPROCS</code> below CPU count can help in environments that ch
         
         <div class="staff-add">In containerized environments, Go historically read CPU count from the host, not the cgroup limit. If your pod has a 2-CPU limit on a 64-core node, Go defaults <code>GOMAXPROCS</code> to 64 — causing massive context-switching and throttling. Fix with <code>GOMAXPROCS=2</code> explicitly or the <code>go.uber.org/automaxprocs</code> library, which reads cgroup quotas at startup. This is a frequent and impactful production footgun.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('golang','S-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-02</span>
         <span class="acc-question">Explain buffered vs unbuffered channels. When does each block?</span>
@@ -834,10 +860,13 @@ Common patterns: - Unbuffered for signaling/synchronization (done channels, sema
         
         <div class="staff-add">Buffer size is a design decision with observable consequences. A buffer that's too small causes the producer to block frequently (backpressure, which is sometimes intentional). Too large and you lose the signal that a downstream is slow — the buffer absorbs the problem until it's suddenly full. Make buffer sizes explicit and derived from expected throughput and latency SLAs. Monitor channel saturation in production — if a buffered channel is consistently full, it's a signal the consumer can't keep up.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('golang','S-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-03</span>
         <span class="acc-question">What causes goroutine leaks and how do you detect and fix them?</span>
@@ -851,10 +880,13 @@ Common patterns: - Unbuffered for signaling/synchronization (done channels, sema
         
         <div class="staff-add">Goroutine leaks compound over time. A service handling 1000 req/s that leaks one goroutine per request exceeding a timeout will accumulate 60K goroutines per minute under incidents — exactly when you're already under pressure. Structured concurrency patterns help: wrap related goroutines in an <code>errgroup.Group</code> (golang.org/x/sync/errgroup) so the group's context cancels all members on first error. This makes goroutine lifetime scoped to a logical unit of work rather than spread across the codebase.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('golang','S-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-04</span>
         <span class="acc-question">Value receivers vs pointer receivers — how do you decide which to use?</span>
@@ -871,10 +903,13 @@ Common patterns: - Unbuffered for signaling/synchronization (done channels, sema
         
         <div class="staff-add">The interface satisfaction rule is the subtle one. If <code>*T</code> has a method defined with a pointer receiver, you cannot pass a plain <code>T</code> value where the interface is expected — only <code>*T</code> satisfies it. This means if you ever want to satisfy an interface with your type, decide early whether it'll be <code>T</code> or <code>*T</code> that implements it, and stay consistent. In practice, use pointer receivers as the default for non-trivial structs.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('golang','S-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-05">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-05</span>
         <span class="acc-question">Walk through how defer works, including LIFO order, argument evaluation, and named return interactions.</span>
@@ -893,10 +928,13 @@ Common patterns: - Unbuffered for signaling/synchronization (done channels, sema
         
         <div class="staff-add">Defer has a small but real overhead — each deferred call allocates a <code>_defer</code> record on the heap (or stack in modern Go with stack-allocated defers). In hot paths called millions of times per second, explicit <code>Close()</code> calls can be meaningfully faster. Profile before optimizing; for most code the clarity of defer outweighs the cost.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('golang','S-05',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-06">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-06</span>
         <span class="acc-question">Explain Go's error wrapping with %w, errors.Is, and errors.As. When do you use each?</span>
@@ -912,10 +950,13 @@ Common patterns: - Unbuffered for signaling/synchronization (done channels, sema
         
         <div class="staff-add">Define your error taxonomy at package boundaries. Public errors (those callers will check) should be either exported sentinels or exported types. Internal errors you don't expect callers to inspect can be plain <code>fmt.Errorf</code>. Adding context to errors (<code>fmt.Errorf("parsing config: %w", err)</code>) creates a traceable chain from API boundary down to root cause — equivalent to a stack trace in prose form. Avoid stripping the error chain (<code>errors.New(err.Error())</code>) — it loses the chain and makes debugging production issues significantly harder.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('golang','S-06',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-07">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-07</span>
         <span class="acc-question">How do you use context.Context correctly? What are the most common misuses?</span>
@@ -930,6 +971,9 @@ Common patterns: - Unbuffered for signaling/synchronization (done channels, sema
         
         <div class="staff-add">Context propagation is where Go service meshes and observability hook in. OpenTelemetry, gRPC interceptors, and middleware all propagate trace spans via context. If your functions accept and pass <code>ctx</code> correctly, adding distributed tracing later is a near-zero-code-change. If you bypassed context propagation early, retrofitting it means touching every layer. Treat context propagation as infrastructure, not application code.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('golang','S-07',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -940,7 +984,7 @@ Common patterns: - Unbuffered for signaling/synchronization (done channels, sema
   <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-01</span>
         <span class="acc-question">How does Go's GC work, and how do you tune and diagnose GC problems in production?</span>
@@ -957,10 +1001,13 @@ Common patterns: - Unbuffered for signaling/synchronization (done channels, sema
         
         <div class="staff-add">In containerized services, GC tuning is often more impactful than algorithmic optimization. A service with 512 MB limit, GOGC=100, and 200 MB live heap will GC every time it grows to 400 MB — burning CPU at exactly the worst time (load spike). Setting <code>GOMEMLIMIT=460MiB</code> and <code>GOGC=off</code> delegates control entirely to the memory limit, reducing CPU waste and eliminating the "GC death spiral" pattern where GC overhead exceeds useful work under load. Benchmark the tradeoff for your workload's allocation rate and latency profile.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('golang','ST-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-02</span>
         <span class="acc-question">Describe the common concurrency patterns in Go: worker pool, fan-out/fan-in, pipeline. When do you choose each?</span>
@@ -975,10 +1022,13 @@ Common patterns: - Unbuffered for signaling/synchronization (done channels, sema
         
         <div class="staff-add">The patterns compose. A real service might have: an HTTP handler that fan-outs to 3 downstream service calls (fan-out) → results merged (fan-in) → each result fed through a normalization pipeline (pipeline) → written by a worker pool to a DB. The power of channels is that each stage is independently testable with fake channels, and context cancellation flows through without explicit wiring. For complex orchestration, <code>golang.org/x/sync/errgroup</code> with a shared context is almost always the right primitive over raw goroutines + WaitGroup.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('golang','ST-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-03</span>
         <span class="acc-question">How do you design Go code for testability? What are the patterns for dependency injection and mocking interfaces?</span>
@@ -995,10 +1045,13 @@ Common patterns: - Unbuffered for signaling/synchronization (done channels, sema
         
         <div class="staff-add">Interface design is where testability and architecture intersect. Define interfaces at the point of use (not in the package that implements them) — a <code>storage</code> package exporting a <code>Repository</code> interface for its users, not for itself. Small, focused interfaces are easier to satisfy in tests and easier to change. If your mock needs 20 methods, your interface is probably too large. When teams struggle with testing, the root cause is almost always dependency injection not being applied at the design phase — retrofitting it later is expensive.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('golang','ST-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-04</span>
         <span class="acc-question">What are the trade-offs of using sync.Map vs a sync.RWMutex-protected map?</span>
@@ -1011,6 +1064,9 @@ It uses an internal read-only snapshot + dirty map with a mutex only for dirty r
 <strong><code>sync.RWMutex + map</code></strong>: more flexible, type-safe (with generics: <code>map[K]V</code> protected by mutex), simpler to reason about. <code>RLock/RUnlock</code> for reads allows multiple concurrent readers. Better when write rate is non-trivial, keys change frequently, or you need atomic read-modify-write operations (Lock → read → modify → write → Unlock as a unit).
 <strong>Rule of thumb</strong>: start with <code>RWMutex + map</code>. Profile before considering <code>sync.Map</code>. The <code>sync.Map</code> optimization only pays off when the map is read-dominated and the key set is stable — benchmarks show it underperforms a plain mutex+map for write-heavy workloads.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('golang','ST-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1021,7 +1077,7 @@ It uses an internal read-only snapshot + dirty map with a mutex only for dirty r
   <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-01</span>
         <span class="acc-question">How do you structure a large Go service for long-term maintainability? What's your approach to package layout?</span>
@@ -1041,10 +1097,13 @@ The <code>internal/</code> directory is Go's only compiler-enforced encapsulatio
         
         <div class="staff-add">Package boundaries are load-bearing architecture decisions. Getting them wrong is expensive to fix later — a circular import means two packages are too coupled. When reviewing a new service design, I look at the import graph: does <code>domain</code> import <code>storage</code>? That's a red flag (business logic depending on infrastructure, not the other way around). The dependency rule (domain doesn't depend on adapters) makes the service replaceable — swap the DB from Postgres to DynamoDB by writing a new adapter, not by modifying business logic.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('golang','P-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-02</span>
         <span class="acc-question">How do you instrument a Go service for production observability? Walk through your approach from day one.</span>
@@ -1060,6 +1119,9 @@ The <code>internal/</code> directory is Go's only compiler-enforced encapsulatio
         
         <div class="staff-add">The most expensive observability mistake is adding it after the fact to a service that doesn't propagate context. Retrofitting trace IDs across 40 functions that take concrete types and no context is weeks of work. The second mistake is logging at DEBUG level for everything in production — when you're in an incident at 3am and your Elasticsearch query times out filtering 10B log lines, you learn to be selective. Define your logging contract up front: WARN for recoverable anomalies that need attention, ERROR for failures that affect users, and be ruthless about INFO volume.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('golang','P-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1241,6 +1303,44 @@ function filterQA(query) {
   if (btn) btn.textContent = 'Expand All';
 }
 
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
 // ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
 document.addEventListener('DOMContentLoaded', function () {
   // Sync toggle label with the actual current theme
@@ -1260,6 +1360,10 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById(hash).classList.add('active');
     }
   }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
 
   // Copy-to-clipboard on CLI command blocks
   document.querySelectorAll('.cmd').forEach(cmd => {

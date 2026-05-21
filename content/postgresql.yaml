@@ -8,6 +8,7 @@ meta:
   title: PostgreSQL
   title_short: PostgreSQL
   subtitle: "// MVCC · indexes · query planner · isolation levels · WAL · replication · partitioning · senior → principal"
+  description: "Advanced relational database with rich indexing, JSONB, and extensible type system."
   category: Data
   icon: "🐘"
 

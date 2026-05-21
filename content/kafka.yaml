@@ -9,6 +9,7 @@ meta:
   title_short: Kafka
   badge: "Interview Prep · Distributed Systems"
   subtitle: "// event streaming · partitions · consumer groups · delivery semantics · stream processing · senior → principal"
+  description: "High-throughput distributed event streaming for real-time data pipelines and fault-tolerant messaging."
   category: Backend
   icon: "📨"
 

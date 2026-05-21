@@ -18,7 +18,7 @@
   {{ shared_css }}
 </style>
 </head>
-<body>
+<body data-topic-id="{{ meta.id }}">
 
 <a class="back-link" href="index.html">← <span>Field Guide</span></a>
 
@@ -161,6 +161,11 @@
 <div class="section" id="qa">
   <div class="section-title">Interview Q &amp; A</div>
 
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
   <div class="qa-controls">
     <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
     <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
@@ -170,7 +175,7 @@
   <div class="section-sub">Senior Engineer — Execution Depth</div>
   <div class="accordion">
     {% for q in qa.senior %}
-    <div class="acc-item">
+    <div class="acc-item" data-qid="{{ q.id }}">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">{{ q.id }}</span>
         <span class="acc-question">{{ q.question }}</span>
@@ -182,6 +187,9 @@
         {% if q.staff_add %}
         <div class="staff-add">{{ q.staff_add | md }}</div>
         {% endif %}
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('{{ meta.id }}','{{ q.id }}',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     {% endfor %}
@@ -192,7 +200,7 @@
   <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
   <div class="accordion">
     {% for q in qa.staff %}
-    <div class="acc-item">
+    <div class="acc-item" data-qid="{{ q.id }}">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">{{ q.id }}</span>
         <span class="acc-question">{{ q.question }}</span>
@@ -204,6 +212,9 @@
         {% if q.staff_add %}
         <div class="staff-add">{{ q.staff_add | md }}</div>
         {% endif %}
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('{{ meta.id }}','{{ q.id }}',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     {% endfor %}
@@ -214,7 +225,7 @@
   <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
   <div class="accordion">
     {% for q in qa.principal %}
-    <div class="acc-item">
+    <div class="acc-item" data-qid="{{ q.id }}">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">{{ q.id }}</span>
         <span class="acc-question">{{ q.question }}</span>
@@ -226,6 +237,9 @@
         {% if q.staff_add %}
         <div class="staff-add">{{ q.staff_add | md }}</div>
         {% endif %}
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('{{ meta.id }}','{{ q.id }}',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     {% endfor %}

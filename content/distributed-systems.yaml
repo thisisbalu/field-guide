@@ -8,6 +8,7 @@ meta:
   title: Distributed Systems
   title_short: Distributed Systems
   subtitle: "// CAP · consistency models · consensus · replication · distributed transactions · fault tolerance · senior → principal"
+  description: "Core patterns and tradeoffs behind reliable, scalable distributed architectures."
   category: Backend
   icon: "🌐"
 

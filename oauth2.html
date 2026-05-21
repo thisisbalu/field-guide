@@ -108,6 +108,12 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .when-not .when-title{color:var(--red);}
 .when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
 
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
 /* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
 .qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
 .qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
@@ -115,6 +121,14 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .qa-search::placeholder{color:var(--muted);}
 .expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
 .expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
 
 /* ── Accordion ───────────────────────────────────────────────────────────── */
 .accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
@@ -206,10 +220,14 @@ td:last-child{color:var(--cheat-val);}
   h1{font-size:2rem;}
   .back-link span{display:none;}
 }
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
 
 </style>
 </head>
-<body>
+<body data-topic-id="oauth2">
 
 <a class="back-link" href="index.html">← <span>Field Guide</span></a>
 
@@ -795,6 +813,11 @@ td:last-child{color:var(--cheat-val);}
 <div class="section" id="qa">
   <div class="section-title">Interview Q &amp; A</div>
 
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
   <div class="qa-controls">
     <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
     <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
@@ -804,7 +827,7 @@ td:last-child{color:var(--cheat-val);}
   <div class="section-sub">Senior Engineer — Execution Depth</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-01</span>
         <span class="acc-question">Walk me through the Authorization Code flow with PKCE step by step.</span>
@@ -821,10 +844,13 @@ td:last-child{color:var(--cheat-val);}
         
         <div class="staff-add">The code_verifier/challenge is the critical security mechanism for public clients. A browser or mobile app cannot keep a client_secret — any secret bundled in the app binary can be extracted. PKCE solves this: the challenge is sent upfront (public); the verifier is held in memory and never leaves the client. Intercepting the authorization code is now useless without the verifier. For confidential clients (server-side apps), both client_secret AND PKCE should be used — defense in depth, and OAuth 2.1 will require PKCE for all clients regardless of type.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','S-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-02</span>
         <span class="acc-question">What is the difference between an access token and a refresh token — why do we need both?</span>
@@ -837,10 +863,13 @@ Refresh tokens solve this: they live server-side (or in a secure httpOnly cookie
         
         <div class="staff-add">Refresh token rotation is the key security control. Without it, a stolen refresh token grants indefinite access. With rotation: every refresh token use issues a new RT and invalidates the old one. If an attacker uses a stolen RT while the legitimate client holds a newer one, the next legitimate use will fail — the AS detects that an already-invalidated token was used (replay), signals a compromise, and can revoke the entire token family. This forces the user to re-authenticate. The design requires the AS to maintain a token family graph — not all AS implementations do this correctly. Verify your AS supports reuse detection before relying on rotation as a security control.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','S-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-03</span>
         <span class="acc-question">How does a resource server validate a JWT access token?</span>
@@ -856,10 +885,13 @@ Refresh tokens solve this: they live server-side (or in a secure httpOnly cookie
         
         <div class="staff-add">The <code>alg=none</code> vulnerability is historical but worth knowing: early JWT libraries would accept unsigned tokens if the header declared <code>alg: none</code>. Also watch for algorithm confusion attacks — a RS256-signed token where the attacker changes the header to HS256 and signs with the RS's public key (which is, confusingly, treated as the HMAC secret by vulnerable libraries). Always validate the <code>alg</code> header against an explicit allowlist before selecting the verification key. Never let the token dictate the algorithm — your application dictates it.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','S-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-04</span>
         <span class="acc-question">What is the difference between OAuth2 and OpenID Connect?</span>
@@ -872,10 +904,13 @@ Rule: use the ID token to know <em>who</em> the user is. Use the access token to
         
         <div class="staff-add">The distinction matters in system design. An API gateway that validates the access token and enforces scopes does not need OIDC — it only cares about authorization. A service that needs to personalize a response ("Hello, Alice") or apply user-level data access control needs the user's identity from the ID token or UserInfo. In microservices, a common pattern: the gateway validates the access token, extracts claims, and forwards user identity as a trusted header (e.g., <code>X-User-ID</code>) to downstream services. Services trust the gateway's header rather than re-validating the full token on every hop — simpler, but requires network-level trust between the gateway and services.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','S-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-05">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-05</span>
         <span class="acc-question">Why is the Implicit flow deprecated and what replaced it?</span>
@@ -888,10 +923,13 @@ Replacement: <strong>Authorization Code + PKCE</strong>. Tokens are never in the
         
         <div class="staff-add">ROPC (Resource Owner Password Credentials) is also deprecated and more commonly misused. Teams reach for it because it "feels simple" — just pass username/password to an endpoint and get a token. But ROPC requires the client to handle user credentials directly, breaking the core OAuth2 trust model. The AS can't distinguish a legitimate ROPC request from a phishing attack. ROPC also prevents the AS from enforcing MFA (there's no interactive step where MFA could be inserted). If you see ROPC in a codebase, it's almost always a sign that the OAuth2 integration was done for compliance theatre rather than security — the threat model that OAuth2 addresses is not being realized.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','S-05',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-06">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-06</span>
         <span class="acc-question">How should you design scopes for a large API surface?</span>
@@ -904,10 +942,13 @@ Separate read and write — a reporting client needs <code>read</code> only; a w
         
         <div class="staff-add">Scope design is an API design problem, not just a security problem. Once scopes are in production and clients are relying on them, renaming or splitting them becomes a migration event. Design your scope vocabulary deliberately upfront and treat it as a public API contract. Consider grouping scopes into "scope bundles" for common use cases — a client can request the bundle (<code>reporting</code>) which maps to a set of granular scopes internally. The consent screen shows the bundle name and description; the AS expands it. This keeps the user-facing consent simple while maintaining granular enforcement on the resource server.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','S-06',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-07">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-07</span>
         <span class="acc-question">How do you handle token expiry and silent renewal in a client application?</span>
@@ -920,10 +961,13 @@ For SPAs using the BFF pattern: the backend handles refresh invisibly; the SPA n
         
         <div class="staff-add">The refresh mutex is easy to overlook and causes race conditions in high-concurrency clients. Without it: 10 concurrent API calls all get 401, all try to refresh, all succeed (using different refresh tokens), all but the last store a now-invalid refresh token, and the client is silently broken until the next restart. Use a shared lock or a single in-flight refresh promise that all waiters attach to. For distributed systems (multiple instances of a service all sharing one client credential), coordinate token refresh via a shared cache (Redis) — only one instance refreshes; others read the cached token. Avoid refresh storms on token expiry.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','S-07',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-08">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-08</span>
         <span class="acc-question">What is the state parameter in OAuth2 and what attack does it prevent?</span>
@@ -936,10 +980,13 @@ This prevents <strong>OAuth CSRF</strong> (Cross-Site Request Forgery): an attac
         
         <div class="staff-add">PKCE protects the authorization code from being used by an interceptor. State protects against CSRF on the redirect. They solve different attacks and both are required. In practice, many OAuth2 libraries generate and validate state automatically — but not all, and "framework handles it" is not the same as "we verified it handles it correctly in our setup." Always audit the state validation path explicitly in security reviews.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','S-08',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-09">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-09</span>
         <span class="acc-question">What is token introspection and when do you use it over local JWT validation?</span>
@@ -952,10 +999,13 @@ Use local JWT validation (JWKS) for high-throughput APIs where the AS call laten
         
         <div class="staff-add">The revocation gap is the real trade-off. A JWT with a 15-minute lifetime can be used for 15 minutes after the user logs out, revokes access, or is terminated — local validation cannot know. For most use cases, 15 minutes is acceptable. For high-security contexts (financial transactions, admin actions, post-termination access), short access token lifetimes alone aren't enough. Either use introspection with caching (accepting some revocation lag equal to the cache TTL) or use a token binding approach where each access token is single-use and short-lived enough that the revocation window is negligible.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','S-09',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-10">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-10</span>
         <span class="acc-question">How does the Client Credentials flow work and how do you secure the client secret?</span>
@@ -968,10 +1018,13 @@ Securing the client secret: never hardcode in source or config files in version 
         
         <div class="staff-add">In Kubernetes environments, use Workload Identity where available instead of client secrets: the platform issues a short-lived, auto-rotated service account token (AWS IRSA, GCP Workload Identity, OCP STS) that the AS validates against the cloud provider's JWKS. No secret to manage, no rotation to schedule, no credential to leak. This is the direction the industry is moving for M2M auth in cloud environments. Where Workload Identity isn't available, <code>private_key_jwt</code> is the next-best option — the private key never leaves the service, only the signed assertion is sent.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','S-10',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-11">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-11</span>
         <span class="acc-question">What is the Device Authorization flow and when is it appropriate?</span>
@@ -983,10 +1036,13 @@ Securing the client secret: never hardcode in source or config files in version 
         
         <div class="staff-add">The polling behavior is the most commonly misimplemented part. The AS specifies a minimum polling interval (e.g., 5 seconds). If the device polls faster, the AS returns <code>slow_down</code> — the device must then increase its interval by 5 seconds and maintain that for the rest of the flow. Respecting this is required by the spec and avoids being rate-limited or blocked. Also: device codes expire (typically 15–30 minutes). Design the user experience to make it clear what to do if the code expires — display a refresh button, not just a confusing error. The Device flow is correct for CLIs like <code>kubectl</code> login or <code>aws sso login</code> — it's the only flow that doesn't require a callback URL.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','S-11',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-12">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-12</span>
         <span class="acc-question">How do you handle OAuth2 in a Single Page Application (SPA) securely?</span>
@@ -999,10 +1055,13 @@ Without BFF: use Authorization Code + PKCE (no client secret, PKCE only for publ
         
         <div class="staff-add">The BFF pattern adds an infrastructure component but provides significantly better security properties: tokens are not in the browser, XSS cannot steal them, and the session is revocable at the BFF layer. The trade-off is the BFF is a new service to operate. For high-security applications (banking, healthcare), BFF is the correct choice. For low-security public-facing apps, PKCE with in-memory tokens is acceptable. The worst option — and still common — is Authorization Code + PKCE with refresh tokens stored in localStorage. This survives a library audit ("we use PKCE!") while being insecure in practice.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','S-12',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-13">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-13</span>
         <span class="acc-question">What is refresh token rotation and how does reuse detection work?</span>
@@ -1015,10 +1074,13 @@ Reuse detection: the AS maintains which refresh token is the current valid one i
         
         <div class="staff-add">Rotation without reuse detection gives false security — if a token is stolen and used before the legitimate client does, the attacker rotates it and the legitimate client's next refresh attempt fails. The user gets logged out, which is visible but not catastrophic. With reuse detection, when the legitimate client uses the rotated token, the AS sees the old (attacker-used) token was already rotated, detects the family compromise, and revokes everything — forcing both the attacker and the user to re-authenticate. The user is prompted to log in again; ideally they also see a security alert. Not all authorization servers implement family-based reuse detection — verify this capability before relying on rotation as your primary theft mitigation.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','S-13',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="S-14">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-14</span>
         <span class="acc-question">How do you securely store and transmit tokens in different client types?</span>
@@ -1033,6 +1095,9 @@ Reuse detection: the AS maintains which refresh token is the current valid one i
         
         <div class="staff-add">The common thread: the refresh token (long-lived, high-value) is always stored in the most secure location available for that client type. The access token (short-lived, lower consequence) can be held in faster, less secure storage. "Secure storage" on mobile is not just a code choice — it depends on device configuration. An unencrypted Android device with developer mode enabled has a weakened Keystore. On iOS, Keychain items must use <code>kSecAttrAccessible</code> values that require device unlock. Audit the specific API calls in your mobile OAuth2 library to confirm it's using hardware-backed secure storage, not just writing to a shared preferences file labeled "secure."</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','S-14',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1043,7 +1108,7 @@ Reuse detection: the AS maintains which refresh token is the current valid one i
   <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-01</span>
         <span class="acc-question">Design the key components of an OAuth2 authorization server. What does each component do?</span>
@@ -1060,10 +1125,13 @@ Reuse detection: the AS maintains which refresh token is the current valid one i
         
         <div class="staff-add">The hardest part to get right is the token store. Every issued token, every refresh token family, every revocation must be persisted durably and retrieved at low latency. This is a high-read, low-write store with specific query patterns (lookup by token value, lookup by client, lookup by user). Redis works well for access and refresh token state; a relational DB for client registrations and audit logs. The AS is also a high-value target — it issues credentials for your entire system. Harden it separately from the applications it protects: separate network segment, dedicated DB user with minimal permissions, extensive audit logging of every token issuance and revocation.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','ST-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-02</span>
         <span class="acc-question">How do you design OAuth2 for a multi-tenant SaaS platform where each tenant has its own users and resource servers?</span>
@@ -1075,10 +1143,13 @@ Reuse detection: the AS maintains which refresh token is the current valid one i
         
         <div class="staff-add">The per-tenant realm model is correct when tenants have different identity providers (tenant A uses Azure AD SAML, tenant B uses Google Workspace, tenant C uses local accounts). Each realm can federate to a different external IdP without affecting others. The operational overhead is manageable with a platform layer that provisions realms via API on tenant onboarding. The harder design question is how clients discover the correct AS. A common pattern: <code>https://as.example.com/realms/{tenant_id}/.well-known/openid-configuration</code>. The client derives the tenant from the user's login domain or a pre-configured tenant identifier. Ensure your client libraries support dynamic AS discovery per tenant.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','ST-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-03</span>
         <span class="acc-question">How do you implement the Backend for Frontend (BFF) pattern for a SPA?</span>
@@ -1090,10 +1161,13 @@ Reuse detection: the AS maintains which refresh token is the current valid one i
         
         <div class="staff-add">The BFF becomes a critical, stateful infrastructure component — it holds all active sessions and tokens. Design it for high availability and correct session handling (distributed sessions via Redis, not in-memory). The BFF should also handle: token refresh (transparently, with the mutex pattern), logout (revoke the refresh token at the AS, clear the session), and token validation errors (propagate meaningful 4xx to the SPA). One nuance: the BFF cookie must be scoped correctly — <code>SameSite=Strict</code> prevents CSRF but breaks some cross-origin scenarios; <code>SameSite=Lax</code> is a reasonable default for most SPAs. The BFF is also where you add rate limiting, logging, and request tracing for auth flows — easier to centralize here than in every SPA page.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','ST-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-04</span>
         <span class="acc-question">How do you handle token validation at scale in a high-traffic microservices system?</span>
@@ -1105,10 +1179,13 @@ Reuse detection: the AS maintains which refresh token is the current valid one i
         
         <div class="staff-add">The API gateway pattern centralizes auth but creates a single point of failure. Design the gateway for high availability (multiple instances, stateless JWT validation). The trust model for downstream headers (<code>X-User-ID</code>, <code>X-Scopes</code>) requires network-level controls — services must only accept these headers from the gateway, not from external clients. Implement this via mTLS between the gateway and services, or network policy (only the gateway's IP range can reach internal services on the trusted port). At extreme scale (millions of tokens/second), pre-compute scope claims into a compact bitmap or set at issuance time so scope checking is a bitwise operation, not a string scan.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','ST-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-05">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-05</span>
         <span class="acc-question">What is Token Exchange (RFC 8693) and how does it solve the delegation problem in microservices?</span>
@@ -1121,10 +1198,13 @@ With Token Exchange: Service A calls the AS's token endpoint with <code>grant_ty
         
         <div class="staff-add">Token Exchange is the correct solution for delegation chains where you need both the original user identity and the acting service identity preserved in the token. The <code>act</code> claim creates an audit trail: "Service A, acting as User X, called Service B." Without this, audit logs for downstream services show only the user — you lose visibility into which service made the call. The implementation complexity is real: your AS must support RFC 8693 (not all do), every service in the chain must participate, and the scope design must work across service boundaries. For simpler use cases where you just need to propagate user identity, passing a validated user claim as a trusted header from the API gateway is often sufficient — and dramatically simpler than implementing full token exchange.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','ST-05',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-06">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-06</span>
         <span class="acc-question">How do you design and enforce scopes across a large API surface with multiple teams?</span>
@@ -1137,10 +1217,13 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
         
         <div class="staff-add">The hardest scope problem at scale is cross-team API access. Team A's service needs to call Team B's API. Team B's AS-registered client for Team A's service needs the correct scopes granted. Without a governance process, this becomes: Team A requests <code>admin</code> scope because it's easier than asking for the specific scopes they need; Team B grants it to unblock Team A; <code>admin</code> is now granted to 15 clients that don't need it. Solve this with a scope request process (PR to the scope registry), automatic detection of clients holding more scopes than they've exercised (based on AS and RS audit logs), and quarterly scope reviews. Unused scopes on production clients are a standing vulnerability.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','ST-06',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-07">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-07</span>
         <span class="acc-question">How do you integrate an OAuth2-protected API with a legacy system that only supports API keys or Basic Auth?</span>
@@ -1153,10 +1236,13 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
         
         <div class="staff-add">The credential broker pattern is especially useful for migration — you're adding OAuth2 without modifying the legacy system. The broker also centralizes audit: every legacy credential use is logged at the broker with the OAuth2 identity that triggered it. Plan the exit: the broker should be temporary. Define a migration timeline for the legacy system to support OAuth2 natively, or to be replaced. Brokers that were "temporary" in 2019 are still running in 2025 because nobody owns the migration. Assign an owner and a target decommission date at the time the broker is deployed.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','ST-07',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-08">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-08</span>
         <span class="acc-question">How do you implement step-up authentication in an OAuth2 system?</span>
@@ -1168,10 +1254,13 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
         
         <div class="staff-add">Step-up is the correct pattern for sensitive operations (payment authorization, account deletion, admin actions) that occur within an otherwise normal session. The alternative — requiring MFA at every login — creates friction for routine actions. Step-up applies friction precisely where it's needed. Implementation challenges: the client must detect the 401+acr_values response and know to re-initiate auth (not just retry the request). Most OAuth2 clients don't handle this out of the box. Design this flow explicitly, including the UX: "For security, please confirm your identity to proceed." The step-up token (with elevated acr) should be short-lived and scoped — avoid it propagating to unrelated API calls.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','ST-08',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-09">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-09</span>
         <span class="acc-question">How do you audit and monitor OAuth2 flows in production?</span>
@@ -1183,10 +1272,13 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
         
         <div class="staff-add">The gap in most OAuth2 audit implementations is the resource server side. The AS knows what tokens were issued; the RS knows how they were used. Correlating these (using <code>jti</code> as a correlation key) gives you the full picture: token issued at 14:03, used to access <code>/admin/users</code> 47 times, by IP 203.0.113.5 — an anomaly the AS logs alone would miss. Build this correlation into your observability platform. For compliance requirements (SOC2, PCI-DSS), the AS audit log is required evidence: every privileged access token issuance must be traceable to a user, a client, and a set of scopes. Treat AS logs with the same retention and integrity requirements as financial audit logs.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','ST-09',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-10">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-10</span>
         <span class="acc-question">How do you handle OAuth2 for mobile applications — what are the specific security considerations?</span>
@@ -1198,10 +1290,13 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
         
         <div class="staff-add">The redirect URI is a common attack surface on mobile. Custom URL scheme hijacking: any app can register the same custom scheme and intercept the callback with the authorization code. Mitigate with universal links (iOS) or app links (Android) — these are bound to your domain via an HTTPS association file, so only your app can handle them. PKCE provides a defense-in-depth backup: even if the code is intercepted, it's useless without the verifier. On Android, also verify the App Identity (SHA-256 certificate fingerprint) is registered at the AS for your app, so the AS can detect if a different app's build certificate signed the request — this catches sideloaded malicious clones of your app.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','ST-10',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-11">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-11</span>
         <span class="acc-question">How do you secure a public-facing OAuth2 authorization server against abuse?</span>
@@ -1213,10 +1308,13 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
         
         <div class="staff-add">Open redirect vulnerabilities in the authorization endpoint are high-severity. If the AS allows redirect_uri values with wildcards (<code>https://app.example.com/*</code>) or partial matches, an attacker can register a client with a redirect pointing to an attacker-controlled URL (<code>https://app.example.com.evil.com/callback</code>). The authorization code lands at the attacker. Validate redirect URIs with exact string comparison against the registered values — no prefix matching, no wildcard, no subdomain matching unless explicitly required and carefully scoped. Also: dynamic client registration (RFC 7591) is powerful but dangerous in public environments — anyone can register a client. Restrict it to authenticated requests from admin users or internal services, or disable it entirely if you don't need it.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','ST-11',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="ST-12">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-12</span>
         <span class="acc-question">How do you migrate a system from API keys to OAuth2 without a big-bang cutover?</span>
@@ -1228,6 +1326,9 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
         
         <div class="staff-add">The migration's hardest part is consumers who don't respond. Define what happens to silent API key users at the cutover date: do you break them (forces response) or extend (never migrates)? Breaking them on a published date is the only way to actually complete the migration — extend-on-request creates a long tail. Also: API keys often carry coarse permissions ("full access to the API") that don't map cleanly to OAuth2 scopes. Use the migration as an opportunity to right-size permissions — issue OAuth2 tokens with the minimum scopes the consumer actually uses (audit their API call patterns first). Migrating auth systems is one of the highest-risk API changes you can make; run parallel validation (both auth methods accepted) for at least one billing cycle before cutover to catch edge cases your integration tests missed.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','ST-12',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1238,7 +1339,7 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
   <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
   <div class="accordion">
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-01">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-01</span>
         <span class="acc-question">How would you design an org-wide identity and authorization platform to serve 50+ teams and 200+ services?</span>
@@ -1250,10 +1351,13 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
         
         <div class="staff-add">The platform's success is measured by how easy it is for a new service to onboard correctly. If onboarding OAuth2 correctly takes a team a week of research, they'll implement it wrong to ship faster. Invest in developer experience: a self-service client registration portal, a "getting started" SDK that works out of the box with correct defaults, and runbooks for common patterns (BFF for SPAs, M2M for services, device flow for CLIs). Measure adoption by tracking the ratio of OAuth2-protected services to API-key-protected services. Define a target (100% OAuth2 for all new services by Q4) and track it. The platform team's primary job is reducing the friction to do the secure thing — not policing the insecure thing.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','P-01',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-02">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-02</span>
         <span class="acc-question">OAuth2 vs API keys vs mTLS — how do you decide which to use for a given integration?</span>
@@ -1267,10 +1371,13 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
         
         <div class="staff-add">At scale, these aren't mutually exclusive — you combine them. mTLS at the network level (service mesh, zero trust network) ensures only authenticated services can talk to each other. OAuth2 at the application level enforces which scopes a service can use. API keys at the edge for external consumers who can't do OAuth2. The zero-trust principle applies: don't trust the network; validate identity at every layer. The failure mode is choosing one mechanism and applying it everywhere — API keys for internal service-to-service because "it's internal" is how lateral movement after a breach becomes easy. Design each integration with the right tool for its threat model.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','P-02',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-03">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-03</span>
         <span class="acc-question">How do you incorporate OAuth2 into a zero-trust architecture?</span>
@@ -1282,10 +1389,13 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
         
         <div class="staff-add">The gap between OAuth2 and full zero trust is continuous authorization. OAuth2 tokens are issued at authentication time and valid until expiry — a user's access doesn't change mid-session even if their device becomes compromised or their employment is terminated. Continuous authorization addresses this: the resource server calls a policy engine on every request (or periodically) to re-evaluate whether the subject should still have access. Google's BeyondCorp and NIST SP 800-207 describe this model. Implementing it requires a policy decision point that can be called at low latency — caching is essential. The implementation complexity is significant; start with short access token lifetimes (5 minutes) as a practical first step toward continuous verification.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','P-03',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-04">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-04</span>
         <span class="acc-question">How do you design federated OAuth2 across organizational boundaries for B2B integrations?</span>
@@ -1297,10 +1407,13 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
         
         <div class="staff-add">The trust model in B2B federation is the critical design. Who decides what scopes Org A's users get in Org B's system? Who controls when that trust is revoked? Define this contractually before technically. Common failure: Org A's admin grants their users broad scopes in Org B's system; Org B's team doesn't notice; over time Org A's users have more access than they should. The platform answer is automated scope governance: every cross-org scope grant is reviewed by Org B's security team, has an expiry, and triggers a re-review on expiry. Treat cross-org token trust with the same rigor as a third-party vendor security review.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','P-04',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-05">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-05</span>
         <span class="acc-question">Build the threat model for an OAuth2 authorization server. What are the highest-risk attack surfaces?</span>
@@ -1312,10 +1425,13 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
         
         <div class="staff-add">The AS signing private key is the most sensitive secret in the entire system — whoever holds it can issue valid tokens for any user, any scope, with any claims. Protect it with hardware security modules (HSMs) or cloud KMS (AWS CloudHSM, Azure Dedicated HSM). Key rotation must be planned: publish the new public key in JWKS before rotating the private key (allow resource servers time to refresh their JWKS cache), rotate, then remove the old public key after the old tokens expire. An unplanned key rotation causes all resource servers to reject valid tokens until they refresh their JWKS cache — a self-inflicted auth outage. Document and test the rotation procedure before you need to execute it under incident pressure.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','P-05',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
-    <div class="acc-item">
+    <div class="acc-item" data-qid="P-06">
       <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-06</span>
         <span class="acc-question">How does Conway's Law apply to OAuth2 and authorization system design?</span>
@@ -1327,6 +1443,9 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
         
         <div class="staff-add">Use the authorization design as an organizational forcing function. A shared scope registry requires teams to agree on a common vocabulary — the same organizational work that should drive API design and service boundaries. When two teams cannot agree on scope names, it's a signal about domain ownership ambiguity, not just a naming preference. The identity platform team should own the scope governance process and the registry tooling; domain teams own the scope definitions within their domain. The centralized scope registry is the authorization equivalent of an API catalog — it makes the org's permission model visible and auditable, which is both a security control and an organizational clarity tool.</div>
         
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('oauth2','P-06',this)">Mark reviewed</button>
+        </div>
       </div>
     </div>
     
@@ -1508,6 +1627,44 @@ function filterQA(query) {
   if (btn) btn.textContent = 'Expand All';
 }
 
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
 // ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
 document.addEventListener('DOMContentLoaded', function () {
   // Sync toggle label with the actual current theme
@@ -1527,6 +1684,10 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById(hash).classList.add('active');
     }
   }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
 
   // Copy-to-clipboard on CLI command blocks
   document.querySelectorAll('.cmd').forEach(cmd => {
