@@ -130,6 +130,35 @@ overview:
         Use for real-time aggregations, enrichment, and event-driven pipelines. Not for
         heavy ML inference or complex batch workloads — use Flink or Spark there.
 
+    - title: "📋 Schema Registry & Avro"
+      body: >
+        Kafka messages are opaque bytes — producers and consumers must agree on the format.
+        **Schema Registry** (Confluent or Apicurio) is a centralized schema repository that
+        enforces schema evolution compatibility and resolves schemas at runtime.
+
+        **Apache Avro** is the dominant serialization format for Kafka:
+        - Binary format — compact, fast; no field names repeated per record (unlike JSON)
+        - Schema defined in JSON: `{"type":"record","fields":[{"name":"id","type":"long"}]}`
+        - Each Avro message is prefixed with a **magic byte + schema ID** (5 bytes total).
+          The consumer reads the schema ID, fetches the schema from the registry, and deserializes.
+
+        **Schema evolution compatibility modes** (enforced by the registry on each new schema version):
+        - **BACKWARD**: new schema can read data written by the previous schema. Rule: only add
+          optional fields with defaults, never remove or rename required fields.
+        - **FORWARD**: previous schema can read data written by the new schema. Rule: only remove
+          optional fields, never add required fields without defaults.
+        - **FULL**: both backward and forward compatible — safest, most restrictive.
+
+        **Why it matters**: without Schema Registry, a schema change in the producer immediately
+        breaks all consumers. With it, consumers fetch the exact schema used to write each message —
+        producers and consumers can deploy independently and evolve schemas gradually.
+      flows:
+        - ["Producer serializes (schema ID prefix)", "Publishes to Kafka", "Consumer reads magic byte + schema ID", "Fetches schema from registry", "Deserializes correctly"]
+      tags:
+        - {text: "schema ID per message (5 bytes)", color: green}
+        - {text: "BACKWARD = add fields with defaults", color: orange}
+        - {text: "Avro = binary, no field names in wire format", color: purple}
+
   gotchas:
     - title: "Ordering is per-partition only"
       body: >

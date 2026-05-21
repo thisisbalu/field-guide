@@ -382,6 +382,50 @@ Lease expiry without renewal causes <strong>app outages</strong> — the credent
       </div>
     </div>
     
+    <div class="concept-card">
+      <div class="concept-title">⚡ Dynamic Secrets: Under the Hood</div>
+      <div class="concept-body">
+        <p>Dynamic secrets are <strong>generated on demand</strong> — not stored and retrieved. Vault holds a privileged connection to the target system and creates short-lived credentials on request.
+<strong>Database engine flow</strong>: 1. <code>vault read database/creds/&lt;role&gt;</code> triggers Vault to connect to the database. 2. Vault executes the role's <strong>creation SQL</strong> with a generated username/password:
+   <code>CREATE USER "{{name}}" WITH PASSWORD '{{password}}' VALID UNTIL '{{expiration}}';</code>
+3. Vault returns the credentials and starts tracking the lease TTL. 4. At TTL expiry (or on <code>vault lease revoke</code>), Vault runs the <strong>revocation SQL</strong>:
+   <code>DROP USER "{{name}}";</code> — the credential disappears from the database entirely.</p>
+<p><strong>Why dynamic credentials matter</strong>: - Each service instance gets a <strong>unique database user</strong> — one compromised credential
+  doesn't expose others and the blast radius is bounded to the TTL.
+- No rotation ceremony — rotation is continuous; short TTLs (15–60 min) replace
+  the quarterly "rotate all passwords" process.
+- Full audit trail: each lease maps to the Vault token (and thus the K8s pod, AppRole,
+  or CI job) that requested it — you know exactly who created each credential.</p>
+<p><strong>Connection pool behavior</strong>: pools hold connections authenticated as the generated user. When the credential's TTL expires, the database drops the user — existing connections fail. The pool must detect this and reconnect with a new credential. Use Vault Agent template mode (writes creds to a file, atomically refreshes) + pool <code>BeforeAcquire</code> callback.</p>
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">vault read database/creds/role</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Vault runs CREATE USER SQL</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Returns creds + lease TTL</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">TTL expires → DROP USER SQL</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">unique user per lease</span>
+          
+          <span class="tag orange">auto-revoke on TTL expiry</span>
+          
+          <span class="tag red">connection pool must handle expiry</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
   </div>
 
   <div class="section-sub">Gotchas &amp; Failure Modes</div>

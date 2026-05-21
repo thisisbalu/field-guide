@@ -378,6 +378,56 @@ td:last-child{color:var(--cheat-val);}
       </div>
     </div>
     
+    <div class="concept-card">
+      <div class="concept-title">🔣 Generics & Type Constraints</div>
+      <div class="concept-body">
+        Go 1.18 introduced <strong>type parameters</strong> — functions and types can be parameterized over types bounded by an interface (the constraint).
+<code>go func Map[S, T any](slice []S, f func(S) T) []T {
+    result := make([]T, len(slice))
+    for i, v := range slice { result[i] = f(v) }
+    return result
+}</code>
+<strong>Built-in constraints</strong>: <code>any</code> (no constraint, alias for <code>interface{}</code>), <code>comparable</code> (supports <code>==</code> and <code>!=</code>, required for map keys). Custom constraints use union types: <code>type Number interface { int | int64 | float64 }</code>.
+<strong>When to use generics</strong>: - Utility functions that work identically over many types (<code>Map</code>, <code>Filter</code>, <code>Min</code>, <code>Max</code>) - Type-safe data structures (<code>Stack[T]</code>, <code>Set[T]</code>, <code>Result[T]</code>) - Functions over any numeric type (sum, clamp, abs)
+<strong>When NOT to use</strong>: when an interface suffices — <code>io.Reader</code> is simpler than <code>Reader[byte]</code>. Go generics use dictionary-based dispatch (not per-type specialization), so performance is similar to interface dispatch. Don't add generics for the sake of it — prefer the simplest type that solves the problem.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">type parameters since Go 1.18</span>
+          
+          <span class="tag orange">comparable = map keys</span>
+          
+          <span class="tag purple">no specialization — dictionary dispatch</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🧪 Testing Patterns</div>
+      <div class="concept-body">
+        <strong>Table-driven tests</strong>: the Go standard. A slice of struct test cases, ranged with <code>t.Run(tc.name, ...)</code>. Each subtest is independently runnable (<code>-run TestFoo/case_name</code>), parallelizable (<code>t.Parallel()</code>), and cleanly reports which case failed.
+<strong><code>httptest</code></strong>: <code>httptest.NewRecorder()</code> for unit-testing HTTP handlers without a server. <code>httptest.NewServer(handler)</code> for testing HTTP clients against a real in-process server — no network required.
+<strong><code>t.Parallel()</code></strong>: marks a test safe to run concurrently with other parallel tests. Dramatically speeds up I/O-bound test suites. Remember: parallel tests in the same package share process memory — guard shared state.
+<strong>Race detector</strong> (<code>go test -race</code>): non-negotiable in CI. Catches concurrent map writes and unsynchronized access at runtime with minimal overhead. A test suite that doesn't run with <code>-race</code> will ship data races.
+<strong>Fakes vs mocks</strong>: prefer hand-written fakes (a struct implementing an interface with simple in-memory logic) for complex behavior — they're readable and refactor well. Use generated mocks (<code>gomock</code>, <code>mockgen</code>) for simple call-count or argument assertions. A mock-heavy test suite is usually a sign interfaces are too large.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">table-driven = Go standard</span>
+          
+          <span class="tag red">-race in CI always</span>
+          
+          <span class="tag orange">httptest for HTTP without network</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
   </div>
 
   <div class="section-sub">Gotchas &amp; Failure Modes</div>

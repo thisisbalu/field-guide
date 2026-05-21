@@ -125,6 +125,64 @@ overview:
         - {text: "defer cancel()", color: orange}
         - {text: "goroutine tree cancellation", color: purple}
 
+    - title: "🔣 Generics & Type Constraints"
+      body: >
+        Go 1.18 introduced **type parameters** — functions and types can be parameterized over
+        types bounded by an interface (the constraint).
+
+        ```go
+        func Map[S, T any](slice []S, f func(S) T) []T {
+            result := make([]T, len(slice))
+            for i, v := range slice { result[i] = f(v) }
+            return result
+        }
+        ```
+
+        **Built-in constraints**: `any` (no constraint, alias for `interface{}`), `comparable`
+        (supports `==` and `!=`, required for map keys). Custom constraints use union types:
+        `type Number interface { int | int64 | float64 }`.
+
+        **When to use generics**:
+        - Utility functions that work identically over many types (`Map`, `Filter`, `Min`, `Max`)
+        - Type-safe data structures (`Stack[T]`, `Set[T]`, `Result[T]`)
+        - Functions over any numeric type (sum, clamp, abs)
+
+        **When NOT to use**: when an interface suffices — `io.Reader` is simpler than `Reader[byte]`.
+        Go generics use dictionary-based dispatch (not per-type specialization), so performance
+        is similar to interface dispatch. Don't add generics for the sake of it — prefer the
+        simplest type that solves the problem.
+      tags:
+        - {text: "type parameters since Go 1.18", color: green}
+        - {text: "comparable = map keys", color: orange}
+        - {text: "no specialization — dictionary dispatch", color: purple}
+
+    - title: "🧪 Testing Patterns"
+      body: >
+        **Table-driven tests**: the Go standard. A slice of struct test cases, ranged with
+        `t.Run(tc.name, ...)`. Each subtest is independently runnable (`-run TestFoo/case_name`),
+        parallelizable (`t.Parallel()`), and cleanly reports which case failed.
+
+        **`httptest`**: `httptest.NewRecorder()` for unit-testing HTTP handlers without a server.
+        `httptest.NewServer(handler)` for testing HTTP clients against a real in-process server
+        — no network required.
+
+        **`t.Parallel()`**: marks a test safe to run concurrently with other parallel tests.
+        Dramatically speeds up I/O-bound test suites. Remember: parallel tests in the same
+        package share process memory — guard shared state.
+
+        **Race detector** (`go test -race`): non-negotiable in CI. Catches concurrent map writes
+        and unsynchronized access at runtime with minimal overhead. A test suite that doesn't
+        run with `-race` will ship data races.
+
+        **Fakes vs mocks**: prefer hand-written fakes (a struct implementing an interface with
+        simple in-memory logic) for complex behavior — they're readable and refactor well.
+        Use generated mocks (`gomock`, `mockgen`) for simple call-count or argument assertions.
+        A mock-heavy test suite is usually a sign interfaces are too large.
+      tags:
+        - {text: "table-driven = Go standard", color: green}
+        - {text: "-race in CI always", color: red}
+        - {text: "httptest for HTTP without network", color: orange}
+
   gotchas:
     - title: "Goroutine leaks — the silent memory drain"
       body: >

@@ -386,6 +386,42 @@ Network partitions are not optional in real distributed systems — they happen.
       </div>
     </div>
     
+    <div class="concept-card">
+      <div class="concept-title">🕰️ Vector Clocks & Hybrid Logical Clocks</div>
+      <div class="concept-body">
+        <strong>The problem</strong>: wall clocks on different machines drift by milliseconds to seconds even with NTP. NTP corrections can move clocks backward. Timestamp-based "last write wins" silently discards writes from machines with slightly fast clocks.
+<strong>Lamport timestamps</strong>: each node maintains a counter. On event: increment. On send: include counter. On receive: <code>counter = max(local, received) + 1</code>. Guarantee: if A causally precedes B, then <code>ts(A) &lt; ts(B)</code>. The converse is not guaranteed — a lower timestamp does not mean "happened before."
+<strong>Vector clocks</strong>: each node maintains a vector of counters, one per node (<code>{A:3, B:1, C:2}</code>). On event: increment own entry. On send: include vector. On receive: element-wise max, then increment own entry. Two events are <strong>concurrent</strong> if neither vector dominates the other — this is a conflict. Used by Dynamo and Riak for conflict detection in leaderless replication.
+<strong>Hybrid Logical Clocks (HLC)</strong>: combines physical time with a logical counter: <code>HLC = (wall_clock, logical_counter)</code>. The physical component provides approximate real-time ordering; the logical counter breaks ties within the same physical tick. Used by <strong>CockroachDB</strong> for multi-version reads and distributed snapshots. Google <strong>Spanner</strong> uses TrueTime (GPS + atomic clocks with bounded uncertainty interval) to achieve external consistency — committing a write waits for the uncertainty window to pass, guaranteeing a globally consistent ordering.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Physical clock (NTP)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">HLC: max(physical, received) + logical</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Bounded staleness reads</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Global consistent snapshot without global lock</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">vector clock = concurrent event detection</span>
+          
+          <span class="tag green">HLC = physical + logical hybrid</span>
+          
+          <span class="tag purple">Spanner TrueTime = GPS bounded skew</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
   </div>
 
   <div class="section-sub">Gotchas &amp; Failure Modes</div>

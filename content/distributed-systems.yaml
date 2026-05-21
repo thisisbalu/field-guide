@@ -186,6 +186,37 @@ overview:
         - {text: "SAGA = compensations not rollback", color: orange}
         - {text: "outbox = atomic dual write", color: green}
 
+    - title: "🕰️ Vector Clocks & Hybrid Logical Clocks"
+      body: >
+        **The problem**: wall clocks on different machines drift by milliseconds to seconds even
+        with NTP. NTP corrections can move clocks backward. Timestamp-based "last write wins"
+        silently discards writes from machines with slightly fast clocks.
+
+        **Lamport timestamps**: each node maintains a counter. On event: increment. On send:
+        include counter. On receive: `counter = max(local, received) + 1`. Guarantee:
+        if A causally precedes B, then `ts(A) < ts(B)`. The converse is not guaranteed —
+        a lower timestamp does not mean "happened before."
+
+        **Vector clocks**: each node maintains a vector of counters, one per node
+        (`{A:3, B:1, C:2}`). On event: increment own entry. On send: include vector.
+        On receive: element-wise max, then increment own entry. Two events are **concurrent**
+        if neither vector dominates the other — this is a conflict. Used by Dynamo and Riak
+        for conflict detection in leaderless replication.
+
+        **Hybrid Logical Clocks (HLC)**: combines physical time with a logical counter:
+        `HLC = (wall_clock, logical_counter)`. The physical component provides approximate
+        real-time ordering; the logical counter breaks ties within the same physical tick.
+        Used by **CockroachDB** for multi-version reads and distributed snapshots. Google
+        **Spanner** uses TrueTime (GPS + atomic clocks with bounded uncertainty interval)
+        to achieve external consistency — committing a write waits for the uncertainty window
+        to pass, guaranteeing a globally consistent ordering.
+      flows:
+        - ["Physical clock (NTP)", "HLC: max(physical, received) + logical", "Bounded staleness reads", "Global consistent snapshot without global lock"]
+      tags:
+        - {text: "vector clock = concurrent event detection", color: orange}
+        - {text: "HLC = physical + logical hybrid", color: green}
+        - {text: "Spanner TrueTime = GPS bounded skew", color: purple}
+
   gotchas:
     - title: "Partial failure is harder than total failure"
       body: >

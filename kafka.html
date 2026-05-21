@@ -365,6 +365,49 @@ td:last-child{color:var(--cheat-val);}
       </div>
     </div>
     
+    <div class="concept-card">
+      <div class="concept-title">📋 Schema Registry & Avro</div>
+      <div class="concept-body">
+        <p>Kafka messages are opaque bytes — producers and consumers must agree on the format. <strong>Schema Registry</strong> (Confluent or Apicurio) is a centralized schema repository that enforces schema evolution compatibility and resolves schemas at runtime.
+<strong>Apache Avro</strong> is the dominant serialization format for Kafka: - Binary format — compact, fast; no field names repeated per record (unlike JSON) - Schema defined in JSON: <code>{"type":"record","fields":[{"name":"id","type":"long"}]}</code> - Each Avro message is prefixed with a <strong>magic byte + schema ID</strong> (5 bytes total).
+  The consumer reads the schema ID, fetches the schema from the registry, and deserializes.</p>
+<p><strong>Schema evolution compatibility modes</strong> (enforced by the registry on each new schema version): - <strong>BACKWARD</strong>: new schema can read data written by the previous schema. Rule: only add
+  optional fields with defaults, never remove or rename required fields.
+- <strong>FORWARD</strong>: previous schema can read data written by the new schema. Rule: only remove
+  optional fields, never add required fields without defaults.
+- <strong>FULL</strong>: both backward and forward compatible — safest, most restrictive.
+<strong>Why it matters</strong>: without Schema Registry, a schema change in the producer immediately breaks all consumers. With it, consumers fetch the exact schema used to write each message — producers and consumers can deploy independently and evolve schemas gradually.</p>
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Producer serializes (schema ID prefix)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Publishes to Kafka</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Consumer reads magic byte + schema ID</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Fetches schema from registry</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Deserializes correctly</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">schema ID per message (5 bytes)</span>
+          
+          <span class="tag orange">BACKWARD = add fields with defaults</span>
+          
+          <span class="tag purple">Avro = binary, no field names in wire format</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
   </div>
 
   <div class="section-sub">Gotchas &amp; Failure Modes</div>

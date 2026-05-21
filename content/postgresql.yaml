@@ -174,6 +174,58 @@ overview:
         - {text: "hash = even distribution", color: orange}
         - {text: "pruning = partition-key in WHERE", color: purple}
 
+    - title: "🔄 Replication: Streaming & Logical"
+      body: >
+        **Physical (streaming) replication**: the primary continuously ships WAL bytes to standbys.
+        Standbys replay WAL and maintain a byte-for-byte copy. Used for HA and read-scaling.
+        Requires the same PostgreSQL major version. **Patroni** + etcd is the standard tool for
+        automatic failover — it uses a distributed lock to ensure only one node is primary.
+
+        **Synchronous vs asynchronous**: async (default) — committed transactions may not yet be
+        on the standby when the primary fails (data loss risk). Synchronous (`synchronous_commit = on`)
+        — the primary waits for at least one standby to acknowledge before returning to the client.
+        RPO = 0, but adds one round-trip of latency per write (~0.5 ms in-AZ, ~2–5 ms cross-AZ).
+
+        **Replication slots**: guarantee WAL is retained until the standby consumes it.
+        Risk: a lagging or disconnected standby causes WAL accumulation → disk full.
+        Monitor `pg_replication_slots.confirmed_flush_lsn` and lag in bytes/seconds.
+
+        **Logical replication**: decodes WAL into row-level `INSERT`/`UPDATE`/`DELETE` events.
+        Requires `wal_level = logical`. Use cases: selective table replication, zero-downtime
+        major version upgrades (PG14 → PG16), and CDC via Debezium → Kafka.
+      flows:
+        - ["Primary WAL", "Physical: stream bytes → Standby replays", "Logical: decode → row events → subscriber / CDC"]
+      tags:
+        - {text: "sync replication = RPO 0", color: green}
+        - {text: "logical = cross-version + CDC", color: orange}
+        - {text: "replication slot = WAL retention risk", color: red}
+
+    - title: "☁️ AWS RDS & Aurora PostgreSQL"
+      body: >
+        **RDS for PostgreSQL**: managed PostgreSQL on EC2. Automated backups (PITR to S3),
+        Multi-AZ (synchronous standby in another AZ, automated failover in ~60 s), read replicas
+        (asynchronous, up to 15). Parameter groups replace `postgresql.conf`. No `SUPERUSER` —
+        use the `rds_superuser` role. Extensions must be allowlisted via `rds.allowed_extensions`.
+
+        **Amazon Aurora PostgreSQL**: distributed storage layer (6 copies across 3 AZs, written
+        in a quorum). WAL written to shared storage — read replicas serve up-to-date data without
+        a replication lag artifact. Faster failover (~30 s). Aurora Global Database replicates to
+        secondary regions with ~1 s lag. Serverless v2 scales compute automatically.
+        Not 100% PostgreSQL-compatible — some extensions and low-level features differ.
+
+        **RDS Proxy**: a managed connection pooler for RDS and Aurora. Handles connection pooling,
+        graceful failover (holds connections during failover, reconnects transparently), and IAM
+        authentication. Useful when Lambda or many microservices would exhaust `max_connections`.
+
+        **Choosing**:
+        - RDS: standard PostgreSQL behavior, broad extension support, predictable costs
+        - Aurora: higher HA, faster failover, global distribution, automatic storage scaling
+        - Self-managed (EC2 + Patroni): full control, custom extensions, lowest latency
+      tags:
+        - {text: "RDS Multi-AZ = sync standby", color: green}
+        - {text: "Aurora = shared distributed storage", color: orange}
+        - {text: "RDS Proxy = managed pooling", color: purple}
+
   gotchas:
     - title: "Table bloat — MVCC dead tuples that autovacuum can't reclaim"
       body: >

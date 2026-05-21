@@ -175,6 +175,60 @@ overview:
         - {text: "KEDA = scale to zero", color: purple}
         - {text: "CA = node count", color: orange}
 
+    - title: "🔌 Admission Controllers & Webhooks"
+      body: >
+        Admission controllers intercept API server requests **after** authentication and authorization
+        but **before** the object is persisted to etcd. Two types:
+
+        **MutatingAdmissionWebhook**: can modify the incoming object — inject sidecars, set default
+        labels, add annotations, override resource requests. Runs before validating webhooks.
+        Used by: Vault Agent Injector (injects sidecar), Istio (injects Envoy), Kyverno mutations.
+
+        **ValidatingAdmissionWebhook**: can approve or reject the request but cannot modify it.
+        Returns an error if the object doesn't meet policy. Used by: OPA/Gatekeeper, Kyverno
+        validations, custom policy enforcement (require labels, restrict images to approved registries).
+
+        Both are registered via `MutatingWebhookConfiguration` / `ValidatingWebhookConfiguration`
+        objects that tell the API server which URL to call and for which resource kinds.
+
+        **Failure policy**: `Fail` (reject the object if the webhook is unreachable) vs `Ignore`
+        (allow the request through). A misconfigured webhook with `Fail` policy can block all pod
+        creation if the webhook service is down — the most common cause of "cluster is broken" incidents.
+      tags:
+        - {text: "mutating → validating order", color: orange}
+        - {text: "Fail policy can block cluster", color: red}
+        - {text: "sidecar injection via mutating webhook", color: green}
+
+    - title: "🔧 CRDs & Operator Pattern"
+      body: >
+        **CustomResourceDefinition (CRD)**: extends the Kubernetes API with your own resource types.
+        Once registered, you can `kubectl apply -f postgres-cluster.yaml` just like a Deployment.
+        The API server validates, stores, and serves the custom resource — but doesn't act on it.
+
+        **Controller**: a reconciliation loop that watches CRD objects and acts on them — creating
+        child resources (Pods, Services, PVCs), calling external APIs, managing lifecycle. The
+        controller encodes **operational knowledge** that would otherwise be a runbook.
+
+        **Operator = CRD + Controller**: the combination is an Operator. It extends Kubernetes
+        with domain-specific automation. Example: a `PostgresCluster` CRD + a controller that
+        handles primary/standby setup, backups, and failover automatically.
+
+        **controller-runtime** (used by Kubebuilder and Operator SDK): provides the reconciler
+        interface (`Reconcile(ctx, req) Result`), object watches, leader election, and webhook
+        scaffolding. The reconciler compares desired state (CRD spec) with observed state
+        and converges — the same level-triggered model as all of Kubernetes.
+
+        **When to build vs use**: prefer well-maintained community Operators (CloudNativePG,
+        Strimzi) over building your own — building a correct controller is significant work.
+        Build one when the operational logic is complex enough that it needs a runbook today
+        and the runbook is mature enough to automate.
+      flows:
+        - ["User applies CRD object", "API server stores it", "Controller Watch fires", "Reconcile() runs", "Converges to desired state"]
+      tags:
+        - {text: "CRD = new resource type", color: green}
+        - {text: "operator = CRD + controller", color: purple}
+        - {text: "reconcile = observe → diff → act", color: orange}
+
   gotchas:
     - title: "CPU limits cause throttling — requests and limits are not the same thing"
       body: >

@@ -386,6 +386,68 @@ td:last-child{color:var(--cheat-val);}
       </div>
     </div>
     
+    <div class="concept-card">
+      <div class="concept-title">🔌 Admission Controllers & Webhooks</div>
+      <div class="concept-body">
+        Admission controllers intercept API server requests <strong>after</strong> authentication and authorization but <strong>before</strong> the object is persisted to etcd. Two types:
+<strong>MutatingAdmissionWebhook</strong>: can modify the incoming object — inject sidecars, set default labels, add annotations, override resource requests. Runs before validating webhooks. Used by: Vault Agent Injector (injects sidecar), Istio (injects Envoy), Kyverno mutations.
+<strong>ValidatingAdmissionWebhook</strong>: can approve or reject the request but cannot modify it. Returns an error if the object doesn't meet policy. Used by: OPA/Gatekeeper, Kyverno validations, custom policy enforcement (require labels, restrict images to approved registries).
+Both are registered via <code>MutatingWebhookConfiguration</code> / <code>ValidatingWebhookConfiguration</code> objects that tell the API server which URL to call and for which resource kinds.
+<strong>Failure policy</strong>: <code>Fail</code> (reject the object if the webhook is unreachable) vs <code>Ignore</code> (allow the request through). A misconfigured webhook with <code>Fail</code> policy can block all pod creation if the webhook service is down — the most common cause of "cluster is broken" incidents.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">mutating → validating order</span>
+          
+          <span class="tag red">Fail policy can block cluster</span>
+          
+          <span class="tag green">sidecar injection via mutating webhook</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔧 CRDs & Operator Pattern</div>
+      <div class="concept-body">
+        <strong>CustomResourceDefinition (CRD)</strong>: extends the Kubernetes API with your own resource types. Once registered, you can <code>kubectl apply -f postgres-cluster.yaml</code> just like a Deployment. The API server validates, stores, and serves the custom resource — but doesn't act on it.
+<strong>Controller</strong>: a reconciliation loop that watches CRD objects and acts on them — creating child resources (Pods, Services, PVCs), calling external APIs, managing lifecycle. The controller encodes <strong>operational knowledge</strong> that would otherwise be a runbook.
+<strong>Operator = CRD + Controller</strong>: the combination is an Operator. It extends Kubernetes with domain-specific automation. Example: a <code>PostgresCluster</code> CRD + a controller that handles primary/standby setup, backups, and failover automatically.
+<strong>controller-runtime</strong> (used by Kubebuilder and Operator SDK): provides the reconciler interface (<code>Reconcile(ctx, req) Result</code>), object watches, leader election, and webhook scaffolding. The reconciler compares desired state (CRD spec) with observed state and converges — the same level-triggered model as all of Kubernetes.
+<strong>When to build vs use</strong>: prefer well-maintained community Operators (CloudNativePG, Strimzi) over building your own — building a correct controller is significant work. Build one when the operational logic is complex enough that it needs a runbook today and the runbook is mature enough to automate.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">User applies CRD object</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">API server stores it</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Controller Watch fires</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Reconcile() runs</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Converges to desired state</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">CRD = new resource type</span>
+          
+          <span class="tag purple">operator = CRD + controller</span>
+          
+          <span class="tag orange">reconcile = observe → diff → act</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
   </div>
 
   <div class="section-sub">Gotchas &amp; Failure Modes</div>

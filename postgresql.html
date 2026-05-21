@@ -385,6 +385,62 @@ Partitioning adds overhead: the planner must evaluate each partition, <code>INSE
       </div>
     </div>
     
+    <div class="concept-card">
+      <div class="concept-title">🔄 Replication: Streaming & Logical</div>
+      <div class="concept-body">
+        <strong>Physical (streaming) replication</strong>: the primary continuously ships WAL bytes to standbys. Standbys replay WAL and maintain a byte-for-byte copy. Used for HA and read-scaling. Requires the same PostgreSQL major version. <strong>Patroni</strong> + etcd is the standard tool for automatic failover — it uses a distributed lock to ensure only one node is primary.
+<strong>Synchronous vs asynchronous</strong>: async (default) — committed transactions may not yet be on the standby when the primary fails (data loss risk). Synchronous (<code>synchronous_commit = on</code>) — the primary waits for at least one standby to acknowledge before returning to the client. RPO = 0, but adds one round-trip of latency per write (~0.5 ms in-AZ, ~2–5 ms cross-AZ).
+<strong>Replication slots</strong>: guarantee WAL is retained until the standby consumes it. Risk: a lagging or disconnected standby causes WAL accumulation → disk full. Monitor <code>pg_replication_slots.confirmed_flush_lsn</code> and lag in bytes/seconds.
+<strong>Logical replication</strong>: decodes WAL into row-level <code>INSERT</code>/<code>UPDATE</code>/<code>DELETE</code> events. Requires <code>wal_level = logical</code>. Use cases: selective table replication, zero-downtime major version upgrades (PG14 → PG16), and CDC via Debezium → Kafka.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Primary WAL</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Physical: stream bytes → Standby replays</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Logical: decode → row events → subscriber / CDC</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">sync replication = RPO 0</span>
+          
+          <span class="tag orange">logical = cross-version + CDC</span>
+          
+          <span class="tag red">replication slot = WAL retention risk</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">☁️ AWS RDS & Aurora PostgreSQL</div>
+      <div class="concept-body">
+        <strong>RDS for PostgreSQL</strong>: managed PostgreSQL on EC2. Automated backups (PITR to S3), Multi-AZ (synchronous standby in another AZ, automated failover in ~60 s), read replicas (asynchronous, up to 15). Parameter groups replace <code>postgresql.conf</code>. No <code>SUPERUSER</code> — use the <code>rds_superuser</code> role. Extensions must be allowlisted via <code>rds.allowed_extensions</code>.
+<strong>Amazon Aurora PostgreSQL</strong>: distributed storage layer (6 copies across 3 AZs, written in a quorum). WAL written to shared storage — read replicas serve up-to-date data without a replication lag artifact. Faster failover (~30 s). Aurora Global Database replicates to secondary regions with ~1 s lag. Serverless v2 scales compute automatically. Not 100% PostgreSQL-compatible — some extensions and low-level features differ.
+<strong>RDS Proxy</strong>: a managed connection pooler for RDS and Aurora. Handles connection pooling, graceful failover (holds connections during failover, reconnects transparently), and IAM authentication. Useful when Lambda or many microservices would exhaust <code>max_connections</code>.
+<strong>Choosing</strong>: - RDS: standard PostgreSQL behavior, broad extension support, predictable costs - Aurora: higher HA, faster failover, global distribution, automatic storage scaling - Self-managed (EC2 + Patroni): full control, custom extensions, lowest latency
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">RDS Multi-AZ = sync standby</span>
+          
+          <span class="tag orange">Aurora = shared distributed storage</span>
+          
+          <span class="tag purple">RDS Proxy = managed pooling</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
   </div>
 
   <div class="section-sub">Gotchas &amp; Failure Modes</div>
