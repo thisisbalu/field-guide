@@ -9,7 +9,7 @@ meta:
   title_short: OAuth2
   subtitle: "// authorization framework · flows · tokens · scopes · OIDC · zero trust · senior → principal"
   category: Security
-  icon: "🔐"
+  icon: "🔑"
 
 colors:
   toggle_light: "#4f46e5"

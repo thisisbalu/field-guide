@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Apache Kafka — Field Guide</title>
+<script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
 
@@ -38,6 +39,10 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
 
+/* ── Back navigation ─────────────────────────────────────────────────────── */
+.back-link{position:fixed;top:1.25rem;left:1.25rem;z-index:100;display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);text-decoration:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.back-link:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
 /* ── Theme toggle ────────────────────────────────────────────────────────── */
 .theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
 .theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
@@ -50,12 +55,6 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
 h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
 .subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
-
-/* ── Stats row ───────────────────────────────────────────────────────────── */
-.stats{display:flex;gap:.75rem;margin-bottom:2rem;flex-wrap:wrap;}
-.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.65rem 1rem;text-align:center;flex:1;min-width:90px;}
-.stat-num{font-size:1.6rem;font-weight:800;color:var(--stat-num);font-family:'IBM Plex Mono',monospace;line-height:1;}
-.stat-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:'IBM Plex Mono',monospace;margin-top:.25rem;}
 
 /* ── Tabs ────────────────────────────────────────────────────────────────── */
 .tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
@@ -72,7 +71,7 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .section-sub::before{content:'//';color:var(--muted);opacity:.6;}
 
 /* ── Concept cards ───────────────────────────────────────────────────────── */
-.concepts{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+.concepts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;}
 .concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
 .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
 [data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
@@ -109,6 +108,14 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .when-not .when-title{color:var(--red);}
 .when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
 
+/* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
+.qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
+.qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
+.qa-search:focus{border-color:var(--tab-active-border,var(--text));}
+.qa-search::placeholder{color:var(--muted);}
+.expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
+.expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
 /* ── Accordion ───────────────────────────────────────────────────────────── */
 .accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
 .acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
@@ -120,8 +127,8 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
 .acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
 .acc-item.open .acc-chevron{transform:rotate(180deg);}
-.acc-body{max-height:0;overflow:hidden;transition:max-height .4s ease;padding:0 1.1rem;}
-.acc-item.open .acc-body{max-height:3000px;padding:0 1.1rem 1.75rem;}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{padding:0 1.1rem 1.75rem;}
 .acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
 .acc-answer p{margin-bottom:.5rem;}
 .acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
@@ -164,7 +171,8 @@ td:last-child{color:var(--cheat-val);}
 .cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
 .cmd-group{display:flex;flex-direction:column;}
 .cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
-.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;cursor:pointer;transition:opacity .2s;}
+.cmd:hover{opacity:.75;}
 
 /* ── Comparison table ────────────────────────────────────────────────────── */
 .comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
@@ -196,11 +204,14 @@ td:last-child{color:var(--cheat-val);}
   .scenario-body{grid-template-columns:1fr;}
   .when-grid{grid-template-columns:1fr;}
   h1{font-size:2rem;}
+  .back-link span{display:none;}
 }
 
 </style>
 </head>
 <body>
+
+<a class="back-link" href="index.html">← <span>Field Guide</span></a>
 
 <div class="theme-toggle" onclick="toggleTheme()">
   <div class="toggle-track"><div class="toggle-knob"></div></div>
@@ -213,10 +224,10 @@ td:last-child{color:var(--cheat-val);}
 </div>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
-  <div class="tab" onclick="switchTab('deepdive',this)">Deep Dive</div>
-  <div class="tab" onclick="switchTab('qa',this)">Q &amp; A</div>
-  <div class="tab" onclick="switchTab('scenarios',this)">Scenarios</div>
+  <div class="tab active" data-tab="overview" role="button" tabindex="0" onclick="switchTab('overview',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('overview',this);event.preventDefault();}">Overview</div>
+  <div class="tab" data-tab="deepdive" role="button" tabindex="0" onclick="switchTab('deepdive',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('deepdive',this);event.preventDefault();}">Deep Dive</div>
+  <div class="tab" data-tab="qa" role="button" tabindex="0" onclick="switchTab('qa',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('qa',this);event.preventDefault();}">Q &amp; A</div>
+  <div class="tab" data-tab="scenarios" role="button" tabindex="0" onclick="switchTab('scenarios',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('scenarios',this);event.preventDefault();}">Scenarios</div>
 </div>
 
 
@@ -728,12 +739,17 @@ td:last-child{color:var(--cheat-val);}
 <div class="section" id="qa">
   <div class="section-title">Interview Q &amp; A</div>
 
+  <div class="qa-controls">
+    <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
+    <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
+  </div>
+
   
   <div class="section-sub">Senior Engineer — Execution Depth</div>
   <div class="accordion">
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-01</span>
         <span class="acc-question">How does Kafka guarantee message ordering, and what breaks it?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -749,7 +765,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-02</span>
         <span class="acc-question">What is consumer group rebalancing, when does it happen, and how do you minimize its impact?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -764,7 +780,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-03</span>
         <span class="acc-question">What is an idempotent producer, and how does Kafka prevent duplicate messages from retries?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -779,7 +795,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-04</span>
         <span class="acc-question">What is ISR, and what happens when a replica falls out of ISR?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -794,7 +810,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-05</span>
         <span class="acc-question">How do you choose partition count for a topic, and what are the tradeoffs?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -809,7 +825,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-06</span>
         <span class="acc-question">What is log compaction, how does it work internally, and when do you choose it over time-based retention?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -824,7 +840,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-07</span>
         <span class="acc-question">What causes consumer lag, and how do you diagnose and address it?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -839,7 +855,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-08</span>
         <span class="acc-question">What is a Dead Letter Queue in a Kafka context, and how do you implement one correctly?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -854,7 +870,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-09</span>
         <span class="acc-question">A consumer is being repeatedly kicked out of the group due to max.poll.interval.ms. What causes this and how do you fix it?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -869,7 +885,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-10</span>
         <span class="acc-question">Walk through acks=0, acks=1, and acks=all — what you gain and lose at each.</span>
         <span class="level-badge level-senior">Senior</span>
@@ -886,7 +902,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-11</span>
         <span class="acc-question">What does enable.auto.commit=false force you to think about? What are the failure modes of manual offset management?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -901,7 +917,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-12</span>
         <span class="acc-question">What is a Kafka transaction — what does it guarantee, and what does it not cover?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -916,7 +932,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-13</span>
         <span class="acc-question">What happens when you increase partition count on a live topic?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -931,7 +947,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-14</span>
         <span class="acc-question">How does auto.offset.reset interact with consumer groups, and what are the dangerous failure scenarios?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -953,7 +969,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
   <div class="accordion">
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-01</span>
         <span class="acc-question">Design exactly-once semantics end-to-end from producer through to a relational database sink.</span>
         <span class="level-badge level-staff">Staff</span>
@@ -968,7 +984,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-02</span>
         <span class="acc-question">How do you handle schema evolution across producers and consumers in production without downtime?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -983,7 +999,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-03</span>
         <span class="acc-question">Design a multi-region Kafka topology. What are the options and what breaks first?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -998,7 +1014,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-04</span>
         <span class="acc-question">What is your Kafka observability strategy — which metrics matter and what do you alert on first?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1013,7 +1029,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-05</span>
         <span class="acc-question">Your consumer must process Kafka events and call an external HTTP API exactly once. The API isn't idempotent. How do you design this?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1028,7 +1044,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-06</span>
         <span class="acc-question">Design a retry and DLQ strategy for a consumer processing critical financial events.</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1043,7 +1059,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-07</span>
         <span class="acc-question">Kafka Streams vs Apache Flink vs Spark Streaming — how do you decide?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1060,7 +1076,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-08</span>
         <span class="acc-question">When would you NOT use Kafka for a problem that looks like a fit?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1075,7 +1091,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-09</span>
         <span class="acc-question">Walk me through capacity planning for a Kafka cluster. What inputs do you need?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1090,7 +1106,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-10</span>
         <span class="acc-question">One broker in your cluster is consistently hot while others are idle. How do you diagnose and fix it without downtime?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1105,7 +1121,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-11</span>
         <span class="acc-question">How do you implement multi-tenancy on a shared Kafka cluster — and where does it break down at org scale?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1120,7 +1136,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-12</span>
         <span class="acc-question">Describe a production-grade Kafka security model — authentication, authorization, and encryption.</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1144,7 +1160,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
   <div class="accordion">
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-01</span>
         <span class="acc-question">How do you evaluate whether to run self-managed Kafka vs. migrate to a managed service (Confluent Cloud, MSK, Aiven)?</span>
         <span class="level-badge level-principal">Principal</span>
@@ -1159,7 +1175,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-02</span>
         <span class="acc-question">Kafka is becoming the central data bus for your org — 50 teams, 400 topics. What governance model do you put in place?</span>
         <span class="level-badge level-principal">Principal</span>
@@ -1174,7 +1190,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-03</span>
         <span class="acc-question">Design a disaster recovery strategy for Kafka with an RPO of 30 seconds and RTO of 5 minutes.</span>
         <span class="level-badge level-principal">Principal</span>
@@ -1189,7 +1205,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-04</span>
         <span class="acc-question">Your event-sourced system has been in production 3 years. The log is 2TB, replay takes 4 hours, and teams are coupling directly to internal event schemas. What do you do?</span>
         <span class="level-badge level-principal">Principal</span>
@@ -1204,7 +1220,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-05</span>
         <span class="acc-question">How does Conway's Law apply to Kafka topic design?</span>
         <span class="level-badge level-principal">Principal</span>
@@ -1219,7 +1235,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-06</span>
         <span class="acc-question">An upstream service starts producing at 5x normal volume. Consumer lag cascades across unrelated consumer groups. How do you contain blast radius and prevent recurrence?</span>
         <span class="level-badge level-principal">Principal</span>
@@ -1234,7 +1250,7 @@ What breaks it: sending without a key causes round-robin routing across partitio
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-07</span>
         <span class="acc-question">A team wants to use Kafka for request/reply RPC between services. How do you respond — technically and organizationally?</span>
         <span class="level-badge level-principal">Principal</span>
@@ -1359,24 +1375,105 @@ What breaks it: sending without a key causes round-robin routing across partitio
   
 </div>
 
-<script>function toggleTheme(){
+<script>// ── Theme (localStorage persistence) ─────────────────────────────────────
+function toggleTheme() {
   const h = document.documentElement;
   const isDark = h.getAttribute('data-theme') === 'dark';
-  h.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  const next = isDark ? 'light' : 'dark';
+  h.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
   document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
 }
 
-function switchTab(name, el){
+// ── Tabs (with URL hash sync) ─────────────────────────────────────────────
+function switchTab(name, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   el.classList.add('active');
   document.getElementById(name).classList.add('active');
+  history.replaceState(null, '', '#' + name);
 }
 
-function toggleAcc(header){
-  const item = header.parentElement;
-  item.classList.toggle('open', !item.classList.contains('open'));
+// ── Accordion (JS-driven scrollHeight animation) ───────────────────────────
+function setAccOpen(item, open) {
+  const body = item.querySelector('.acc-body');
+  if (open) {
+    item.classList.add('open');
+    const h = body.scrollHeight;
+    body.style.maxHeight = h + 'px';
+    function onEnd(e) {
+      if (e.propertyName !== 'max-height') return;
+      body.removeEventListener('transitionend', onEnd);
+      if (item.classList.contains('open')) body.style.maxHeight = 'none';
+    }
+    body.addEventListener('transitionend', onEnd);
+  } else {
+    if (!body.style.maxHeight || body.style.maxHeight === 'none') {
+      body.style.maxHeight = body.scrollHeight + 'px';
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      item.classList.remove('open');
+      body.style.maxHeight = '0';
+    }));
+  }
 }
+
+function toggleAcc(header) {
+  setAccOpen(header.parentElement, !header.parentElement.classList.contains('open'));
+}
+
+// ── Expand / collapse all Q&A ─────────────────────────────────────────────
+function toggleAllAcc(btn) {
+  const items = [...document.querySelectorAll('#qa .acc-item')].filter(i => i.style.display !== 'none');
+  const allOpen = items.every(i => i.classList.contains('open'));
+  items.forEach(i => setAccOpen(i, !allOpen));
+  btn.textContent = allOpen ? 'Expand All' : 'Collapse All';
+}
+
+// ── Q&A keyword filter ────────────────────────────────────────────────────
+function filterQA(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.acc-item').forEach(item => {
+    const text = item.querySelector('.acc-question').textContent.toLowerCase();
+    item.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+  // Reset expand-all label whenever filter changes
+  const btn = document.querySelector('.expand-all-btn');
+  if (btn) btn.textContent = 'Expand All';
+}
+
+// ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
+document.addEventListener('DOMContentLoaded', function () {
+  // Sync toggle label with the actual current theme
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const label = document.getElementById('toggle-label');
+  if (label) label.textContent = isDark ? 'LIGHT MODE' : 'DARK MODE';
+
+  // Restore active tab from URL hash
+  const hash = location.hash.slice(1);
+  const validTabs = ['overview', 'deepdive', 'qa', 'scenarios'];
+  if (hash && validTabs.includes(hash)) {
+    const tab = document.querySelector(`.tab[data-tab="${hash}"]`);
+    if (tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(hash).classList.add('active');
+    }
+  }
+
+  // Copy-to-clipboard on CLI command blocks
+  document.querySelectorAll('.cmd').forEach(cmd => {
+    cmd.title = 'Click to copy';
+    cmd.addEventListener('click', function () {
+      navigator.clipboard.writeText(this.textContent.trim()).then(() => {
+        const orig = this.style.opacity;
+        this.style.opacity = '0.4';
+        setTimeout(() => { this.style.opacity = orig; }, 600);
+      }).catch(() => {});
+    });
+  });
+});
 </script>
 </body>
 </html>

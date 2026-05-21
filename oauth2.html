@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OAuth 2.0 — Field Guide</title>
+<script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
 
@@ -38,6 +39,10 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
 
+/* ── Back navigation ─────────────────────────────────────────────────────── */
+.back-link{position:fixed;top:1.25rem;left:1.25rem;z-index:100;display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);text-decoration:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.back-link:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
 /* ── Theme toggle ────────────────────────────────────────────────────────── */
 .theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
 .theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
@@ -50,12 +55,6 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
 h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
 .subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
-
-/* ── Stats row ───────────────────────────────────────────────────────────── */
-.stats{display:flex;gap:.75rem;margin-bottom:2rem;flex-wrap:wrap;}
-.stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.65rem 1rem;text-align:center;flex:1;min-width:90px;}
-.stat-num{font-size:1.6rem;font-weight:800;color:var(--stat-num);font-family:'IBM Plex Mono',monospace;line-height:1;}
-.stat-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:'IBM Plex Mono',monospace;margin-top:.25rem;}
 
 /* ── Tabs ────────────────────────────────────────────────────────────────── */
 .tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
@@ -72,7 +71,7 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .section-sub::before{content:'//';color:var(--muted);opacity:.6;}
 
 /* ── Concept cards ───────────────────────────────────────────────────────── */
-.concepts{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+.concepts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;}
 .concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
 .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
 [data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
@@ -109,6 +108,14 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .when-not .when-title{color:var(--red);}
 .when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
 
+/* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
+.qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
+.qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
+.qa-search:focus{border-color:var(--tab-active-border,var(--text));}
+.qa-search::placeholder{color:var(--muted);}
+.expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
+.expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
 /* ── Accordion ───────────────────────────────────────────────────────────── */
 .accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
 .acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
@@ -120,8 +127,8 @@ h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-
 .acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
 .acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
 .acc-item.open .acc-chevron{transform:rotate(180deg);}
-.acc-body{max-height:0;overflow:hidden;transition:max-height .4s ease;padding:0 1.1rem;}
-.acc-item.open .acc-body{max-height:3000px;padding:0 1.1rem 1.75rem;}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{padding:0 1.1rem 1.75rem;}
 .acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
 .acc-answer p{margin-bottom:.5rem;}
 .acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
@@ -164,7 +171,8 @@ td:last-child{color:var(--cheat-val);}
 .cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
 .cmd-group{display:flex;flex-direction:column;}
 .cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
-.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;cursor:pointer;transition:opacity .2s;}
+.cmd:hover{opacity:.75;}
 
 /* ── Comparison table ────────────────────────────────────────────────────── */
 .comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
@@ -196,11 +204,14 @@ td:last-child{color:var(--cheat-val);}
   .scenario-body{grid-template-columns:1fr;}
   .when-grid{grid-template-columns:1fr;}
   h1{font-size:2rem;}
+  .back-link span{display:none;}
 }
 
 </style>
 </head>
 <body>
+
+<a class="back-link" href="index.html">← <span>Field Guide</span></a>
 
 <div class="theme-toggle" onclick="toggleTheme()">
   <div class="toggle-track"><div class="toggle-knob"></div></div>
@@ -213,10 +224,10 @@ td:last-child{color:var(--cheat-val);}
 </div>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
-  <div class="tab" onclick="switchTab('deepdive',this)">Deep Dive</div>
-  <div class="tab" onclick="switchTab('qa',this)">Q &amp; A</div>
-  <div class="tab" onclick="switchTab('scenarios',this)">Scenarios</div>
+  <div class="tab active" data-tab="overview" role="button" tabindex="0" onclick="switchTab('overview',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('overview',this);event.preventDefault();}">Overview</div>
+  <div class="tab" data-tab="deepdive" role="button" tabindex="0" onclick="switchTab('deepdive',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('deepdive',this);event.preventDefault();}">Deep Dive</div>
+  <div class="tab" data-tab="qa" role="button" tabindex="0" onclick="switchTab('qa',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('qa',this);event.preventDefault();}">Q &amp; A</div>
+  <div class="tab" data-tab="scenarios" role="button" tabindex="0" onclick="switchTab('scenarios',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('scenarios',this);event.preventDefault();}">Scenarios</div>
 </div>
 
 
@@ -784,12 +795,17 @@ td:last-child{color:var(--cheat-val);}
 <div class="section" id="qa">
   <div class="section-title">Interview Q &amp; A</div>
 
+  <div class="qa-controls">
+    <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
+    <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
+  </div>
+
   
   <div class="section-sub">Senior Engineer — Execution Depth</div>
   <div class="accordion">
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-01</span>
         <span class="acc-question">Walk me through the Authorization Code flow with PKCE step by step.</span>
         <span class="level-badge level-senior">Senior</span>
@@ -809,7 +825,7 @@ td:last-child{color:var(--cheat-val);}
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-02</span>
         <span class="acc-question">What is the difference between an access token and a refresh token — why do we need both?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -825,7 +841,7 @@ Refresh tokens solve this: they live server-side (or in a secure httpOnly cookie
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-03</span>
         <span class="acc-question">How does a resource server validate a JWT access token?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -844,7 +860,7 @@ Refresh tokens solve this: they live server-side (or in a secure httpOnly cookie
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-04</span>
         <span class="acc-question">What is the difference between OAuth2 and OpenID Connect?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -860,7 +876,7 @@ Rule: use the ID token to know <em>who</em> the user is. Use the access token to
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-05</span>
         <span class="acc-question">Why is the Implicit flow deprecated and what replaced it?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -876,7 +892,7 @@ Replacement: <strong>Authorization Code + PKCE</strong>. Tokens are never in the
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-06</span>
         <span class="acc-question">How should you design scopes for a large API surface?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -892,7 +908,7 @@ Separate read and write — a reporting client needs <code>read</code> only; a w
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-07</span>
         <span class="acc-question">How do you handle token expiry and silent renewal in a client application?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -908,7 +924,7 @@ For SPAs using the BFF pattern: the backend handles refresh invisibly; the SPA n
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-08</span>
         <span class="acc-question">What is the state parameter in OAuth2 and what attack does it prevent?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -924,7 +940,7 @@ This prevents <strong>OAuth CSRF</strong> (Cross-Site Request Forgery): an attac
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-09</span>
         <span class="acc-question">What is token introspection and when do you use it over local JWT validation?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -940,7 +956,7 @@ Use local JWT validation (JWKS) for high-throughput APIs where the AS call laten
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-10</span>
         <span class="acc-question">How does the Client Credentials flow work and how do you secure the client secret?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -956,7 +972,7 @@ Securing the client secret: never hardcode in source or config files in version 
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-11</span>
         <span class="acc-question">What is the Device Authorization flow and when is it appropriate?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -971,7 +987,7 @@ Securing the client secret: never hardcode in source or config files in version 
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-12</span>
         <span class="acc-question">How do you handle OAuth2 in a Single Page Application (SPA) securely?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -987,7 +1003,7 @@ Without BFF: use Authorization Code + PKCE (no client secret, PKCE only for publ
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-13</span>
         <span class="acc-question">What is refresh token rotation and how does reuse detection work?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -1003,7 +1019,7 @@ Reuse detection: the AS maintains which refresh token is the current valid one i
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">S-14</span>
         <span class="acc-question">How do you securely store and transmit tokens in different client types?</span>
         <span class="level-badge level-senior">Senior</span>
@@ -1028,7 +1044,7 @@ Reuse detection: the AS maintains which refresh token is the current valid one i
   <div class="accordion">
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-01</span>
         <span class="acc-question">Design the key components of an OAuth2 authorization server. What does each component do?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1048,7 +1064,7 @@ Reuse detection: the AS maintains which refresh token is the current valid one i
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-02</span>
         <span class="acc-question">How do you design OAuth2 for a multi-tenant SaaS platform where each tenant has its own users and resource servers?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1063,7 +1079,7 @@ Reuse detection: the AS maintains which refresh token is the current valid one i
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-03</span>
         <span class="acc-question">How do you implement the Backend for Frontend (BFF) pattern for a SPA?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1078,7 +1094,7 @@ Reuse detection: the AS maintains which refresh token is the current valid one i
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-04</span>
         <span class="acc-question">How do you handle token validation at scale in a high-traffic microservices system?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1093,7 +1109,7 @@ Reuse detection: the AS maintains which refresh token is the current valid one i
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-05</span>
         <span class="acc-question">What is Token Exchange (RFC 8693) and how does it solve the delegation problem in microservices?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1109,7 +1125,7 @@ With Token Exchange: Service A calls the AS's token endpoint with <code>grant_ty
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-06</span>
         <span class="acc-question">How do you design and enforce scopes across a large API surface with multiple teams?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1125,7 +1141,7 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-07</span>
         <span class="acc-question">How do you integrate an OAuth2-protected API with a legacy system that only supports API keys or Basic Auth?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1141,7 +1157,7 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-08</span>
         <span class="acc-question">How do you implement step-up authentication in an OAuth2 system?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1156,7 +1172,7 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-09</span>
         <span class="acc-question">How do you audit and monitor OAuth2 flows in production?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1171,7 +1187,7 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-10</span>
         <span class="acc-question">How do you handle OAuth2 for mobile applications — what are the specific security considerations?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1186,7 +1202,7 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-11</span>
         <span class="acc-question">How do you secure a public-facing OAuth2 authorization server against abuse?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1201,7 +1217,7 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">ST-12</span>
         <span class="acc-question">How do you migrate a system from API keys to OAuth2 without a big-bang cutover?</span>
         <span class="level-badge level-staff">Staff</span>
@@ -1223,7 +1239,7 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
   <div class="accordion">
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-01</span>
         <span class="acc-question">How would you design an org-wide identity and authorization platform to serve 50+ teams and 200+ services?</span>
         <span class="level-badge level-principal">Principal</span>
@@ -1238,7 +1254,7 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-02</span>
         <span class="acc-question">OAuth2 vs API keys vs mTLS — how do you decide which to use for a given integration?</span>
         <span class="level-badge level-principal">Principal</span>
@@ -1255,7 +1271,7 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-03</span>
         <span class="acc-question">How do you incorporate OAuth2 into a zero-trust architecture?</span>
         <span class="level-badge level-principal">Principal</span>
@@ -1270,7 +1286,7 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-04</span>
         <span class="acc-question">How do you design federated OAuth2 across organizational boundaries for B2B integrations?</span>
         <span class="level-badge level-principal">Principal</span>
@@ -1285,7 +1301,7 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-05</span>
         <span class="acc-question">Build the threat model for an OAuth2 authorization server. What are the highest-risk attack surfaces?</span>
         <span class="level-badge level-principal">Principal</span>
@@ -1300,7 +1316,7 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
     </div>
     
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">P-06</span>
         <span class="acc-question">How does Conway's Law apply to OAuth2 and authorization system design?</span>
         <span class="level-badge level-principal">Principal</span>
@@ -1425,24 +1441,105 @@ Enforcement: the resource server is responsible for enforcing scopes — the AS 
   
 </div>
 
-<script>function toggleTheme(){
+<script>// ── Theme (localStorage persistence) ─────────────────────────────────────
+function toggleTheme() {
   const h = document.documentElement;
   const isDark = h.getAttribute('data-theme') === 'dark';
-  h.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  const next = isDark ? 'light' : 'dark';
+  h.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
   document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
 }
 
-function switchTab(name, el){
+// ── Tabs (with URL hash sync) ─────────────────────────────────────────────
+function switchTab(name, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   el.classList.add('active');
   document.getElementById(name).classList.add('active');
+  history.replaceState(null, '', '#' + name);
 }
 
-function toggleAcc(header){
-  const item = header.parentElement;
-  item.classList.toggle('open', !item.classList.contains('open'));
+// ── Accordion (JS-driven scrollHeight animation) ───────────────────────────
+function setAccOpen(item, open) {
+  const body = item.querySelector('.acc-body');
+  if (open) {
+    item.classList.add('open');
+    const h = body.scrollHeight;
+    body.style.maxHeight = h + 'px';
+    function onEnd(e) {
+      if (e.propertyName !== 'max-height') return;
+      body.removeEventListener('transitionend', onEnd);
+      if (item.classList.contains('open')) body.style.maxHeight = 'none';
+    }
+    body.addEventListener('transitionend', onEnd);
+  } else {
+    if (!body.style.maxHeight || body.style.maxHeight === 'none') {
+      body.style.maxHeight = body.scrollHeight + 'px';
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      item.classList.remove('open');
+      body.style.maxHeight = '0';
+    }));
+  }
 }
+
+function toggleAcc(header) {
+  setAccOpen(header.parentElement, !header.parentElement.classList.contains('open'));
+}
+
+// ── Expand / collapse all Q&A ─────────────────────────────────────────────
+function toggleAllAcc(btn) {
+  const items = [...document.querySelectorAll('#qa .acc-item')].filter(i => i.style.display !== 'none');
+  const allOpen = items.every(i => i.classList.contains('open'));
+  items.forEach(i => setAccOpen(i, !allOpen));
+  btn.textContent = allOpen ? 'Expand All' : 'Collapse All';
+}
+
+// ── Q&A keyword filter ────────────────────────────────────────────────────
+function filterQA(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.acc-item').forEach(item => {
+    const text = item.querySelector('.acc-question').textContent.toLowerCase();
+    item.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+  // Reset expand-all label whenever filter changes
+  const btn = document.querySelector('.expand-all-btn');
+  if (btn) btn.textContent = 'Expand All';
+}
+
+// ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
+document.addEventListener('DOMContentLoaded', function () {
+  // Sync toggle label with the actual current theme
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const label = document.getElementById('toggle-label');
+  if (label) label.textContent = isDark ? 'LIGHT MODE' : 'DARK MODE';
+
+  // Restore active tab from URL hash
+  const hash = location.hash.slice(1);
+  const validTabs = ['overview', 'deepdive', 'qa', 'scenarios'];
+  if (hash && validTabs.includes(hash)) {
+    const tab = document.querySelector(`.tab[data-tab="${hash}"]`);
+    if (tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(hash).classList.add('active');
+    }
+  }
+
+  // Copy-to-clipboard on CLI command blocks
+  document.querySelectorAll('.cmd').forEach(cmd => {
+    cmd.title = 'Click to copy';
+    cmd.addEventListener('click', function () {
+      navigator.clipboard.writeText(this.textContent.trim()).then(() => {
+        const orig = this.style.opacity;
+        this.style.opacity = '0.4';
+        setTimeout(() => { this.style.opacity = orig; }, 600);
+      }).catch(() => {});
+    });
+  });
+});
 </script>
 </body>
 </html>

@@ -67,6 +67,7 @@ def build_index(topics: list[dict]) -> str:
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tech Interview Field Guide</title>
+<script>(function(){{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}})()</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
   [data-theme="light"]{{--bg:#f0f4f8;--surface:#fff;--border:#c5d4e8;--text:#1a2235;--muted:#64748b;--badge-bg:#e2e8f0;}}
@@ -87,7 +88,6 @@ def build_index(topics: list[dict]) -> str:
   .card-icon{{font-size:1.5rem;line-height:1;}}
   .card-name{{font-size:.95rem;font-weight:700;margin-top:.2rem;}}
   .card-badge{{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;padding:.15rem .5rem;border-radius:2px;background:var(--badge-bg);color:var(--muted);text-transform:uppercase;letter-spacing:.1em;width:fit-content;}}
-  .card-meta{{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);margin-top:auto;padding-top:.4rem;}}
 </style>
 </head>
 <body>

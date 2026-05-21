@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ meta.title }} — Field Guide</title>
+<script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
 
@@ -19,6 +20,8 @@
 </head>
 <body>
 
+<a class="back-link" href="index.html">← <span>Field Guide</span></a>
+
 <div class="theme-toggle" onclick="toggleTheme()">
   <div class="toggle-track"><div class="toggle-knob"></div></div>
   <span id="toggle-label">DARK MODE</span>
@@ -30,10 +33,10 @@
 </div>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
-  <div class="tab" onclick="switchTab('deepdive',this)">Deep Dive</div>
-  <div class="tab" onclick="switchTab('qa',this)">Q &amp; A</div>
-  <div class="tab" onclick="switchTab('scenarios',this)">Scenarios</div>
+  <div class="tab active" data-tab="overview" role="button" tabindex="0" onclick="switchTab('overview',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('overview',this);event.preventDefault();}">Overview</div>
+  <div class="tab" data-tab="deepdive" role="button" tabindex="0" onclick="switchTab('deepdive',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('deepdive',this);event.preventDefault();}">Deep Dive</div>
+  <div class="tab" data-tab="qa" role="button" tabindex="0" onclick="switchTab('qa',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('qa',this);event.preventDefault();}">Q &amp; A</div>
+  <div class="tab" data-tab="scenarios" role="button" tabindex="0" onclick="switchTab('scenarios',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('scenarios',this);event.preventDefault();}">Scenarios</div>
 </div>
 
 {# ═══════════════════════════════════════════════════════════════ OVERVIEW #}
@@ -158,12 +161,17 @@
 <div class="section" id="qa">
   <div class="section-title">Interview Q &amp; A</div>
 
+  <div class="qa-controls">
+    <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
+    <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
+  </div>
+
   {% if qa.senior %}
   <div class="section-sub">Senior Engineer — Execution Depth</div>
   <div class="accordion">
     {% for q in qa.senior %}
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">{{ q.id }}</span>
         <span class="acc-question">{{ q.question }}</span>
         <span class="level-badge level-senior">Senior</span>
@@ -185,7 +193,7 @@
   <div class="accordion">
     {% for q in qa.staff %}
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">{{ q.id }}</span>
         <span class="acc-question">{{ q.question }}</span>
         <span class="level-badge level-staff">Staff</span>
@@ -207,7 +215,7 @@
   <div class="accordion">
     {% for q in qa.principal %}
     <div class="acc-item">
-      <div class="acc-header" onclick="toggleAcc(this)">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
         <span class="acc-num">{{ q.id }}</span>
         <span class="acc-question">{{ q.question }}</span>
         <span class="level-badge level-principal">Principal</span>
