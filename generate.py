@@ -54,8 +54,8 @@ def build_index(topics: list[dict]) -> str:
             c = t["colors"]
             file_name = f"{m['id']}.html"
             desc = m.get('description', '')
-        desc_html = f'\n  <div class="card-desc">{desc}</div>' if desc else ''
-        cards_html += f"""
+            desc_html = f'\n  <div class="card-desc">{desc}</div>' if desc else ''
+            cards_html += f"""
 <a class="card" href="{file_name}" style="--card-accent:{c['toggle_light']}">
   <div class="card-icon">{m.get('icon','📄')}</div>
   <div class="card-name">{m['title']}</div>{desc_html}
