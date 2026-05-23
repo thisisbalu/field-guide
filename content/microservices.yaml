@@ -1,0 +1,1030 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Microservices Patterns — Interview Field Guide Content
+# Edit this file to update the guide. Run: python generate.py microservices
+# ══════════════════════════════════════════════════════════════════════════════
+
+meta:
+  id: microservices
+  title: Microservices Patterns
+  title_short: Microservices
+  subtitle: "// decomposition · communication · resilience · sagas · service mesh · senior → principal"
+  description: "Patterns for building resilient, independently deployable distributed services at scale."
+  category: Backend
+  icon: "⚙️"
+
+colors:
+  toggle_light: "#0f766e"
+  toggle_dark: "#2dd4bf"
+  light_vars: >-
+    --accent:#0f766e;--accent2:#d95a1e;--accent3:#7c3aed;
+    --highlight-bg:#f0fdfa;--highlight-text:#0f766e;--highlight-border:#0d9488;
+    --your-exp-bg:rgba(124,58,237,.06);--your-exp-border:rgba(124,58,237,.2);--your-exp-text:#4c1d95;
+    --acc-hover:rgba(15,118,110,.04);--acc-open-border:#0f766e;--acc-open-bg:rgba(15,118,110,.03);
+    --num-color:#0f766e;--num-bg:rgba(15,118,110,.1);
+    --tag-color:#0f766e;--tag-bg:rgba(15,118,110,.08);--tag-border:rgba(15,118,110,.2);
+    --flow-arrow:#0f766e;--h1-from:#134e4a;--h1-to:#0f766e;
+    --badge-color:#134e4a;--stat-num:#0f766e;
+    --tab-active-color:#0f766e;--tab-active-bg:rgba(15,118,110,.08);--tab-active-border:#0f766e;
+    --section-title:#0f766e;--concept-title:#134e4a;
+    --cheat-head-bg:#134e4a;--cheat-head-text:#ffffff;--cheat-key:#134e4a;
+    --cmd-bg:#f0fdfa;--cmd-text:#134e4a;
+  dark_vars: >-
+    --accent:#2dd4bf;--accent2:#ff9d6b;--accent3:#a78bfa;
+    --highlight-bg:#042f2e;--highlight-text:#2dd4bf;--highlight-border:#0d9488;
+    --your-exp-bg:rgba(167,139,250,.1);--your-exp-border:rgba(167,139,250,.3);--your-exp-text:#c4b5fd;
+    --acc-hover:rgba(45,212,191,.04);--acc-open-border:#2dd4bf;--acc-open-bg:rgba(45,212,191,.03);
+    --num-color:#2dd4bf;--num-bg:rgba(45,212,191,.1);
+    --tag-color:#2dd4bf;--tag-bg:rgba(45,212,191,.08);--tag-border:rgba(45,212,191,.2);
+    --flow-arrow:#2dd4bf;--h1-from:#2dd4bf;--h1-to:#0d9488;
+    --badge-color:#2dd4bf;--stat-num:#2dd4bf;
+    --tab-active-color:#2dd4bf;--tab-active-bg:rgba(45,212,191,.08);--tab-active-border:#2dd4bf;
+    --section-title:#2dd4bf;--concept-title:#2dd4bf;
+    --cheat-head-bg:#042f2e;--cheat-head-text:#2dd4bf;--cheat-key:#2dd4bf;
+    --cmd-bg:#042f2e;--cmd-text:#2dd4bf;
+
+# ── OVERVIEW ──────────────────────────────────────────────────────────────────
+overview:
+  concepts:
+    - title: "✂️ Service Decomposition"
+      body: >
+        Decomposition is the hardest microservices decision — get it wrong and you build a
+        distributed monolith. Two main strategies: **Decompose by Business Capability** —
+        align services to stable business functions (Orders, Inventory, Payments); changes
+        in business logic stay within one service. **Decompose by Subdomain (DDD)** —
+        identify bounded contexts where a concept has a single consistent model; the context
+        boundary becomes the service boundary.
+
+        A service should be: independently deployable, owned by one team, and responsible
+        for a single cohesive capability. The two-pizza team rule is a useful proxy.
+        **Red flags for wrong boundaries:** services that must be deployed together,
+        services that need synchronous calls to complete their own operations, or
+        services sharing a database table.
+      tags:
+        - {text: "bounded context", color: blue}
+        - {text: "single capability", color: green}
+        - {text: "independent deploy", color: green}
+
+    - title: "🚪 API Gateway"
+      body: >
+        The API Gateway is the single entry point for all external clients. It handles
+        cross-cutting concerns so services don't have to: **routing** (path → service),
+        **authentication** (validate token, pass identity downstream), **rate limiting**,
+        **SSL termination**, **request/response transformation**, and **aggregation**
+        (fan-out to multiple services and combine responses for the client).
+
+        Two flavors: **Edge gateway** (one per product, e.g., mobile API gateway, web gateway)
+        — tailored to client needs, pattern called BFF (Backend for Frontend).
+        **Shared gateway** (one per org) — simpler ops but becomes a bottleneck and couples
+        teams. Common tools: Kong, AWS API Gateway, Nginx, Envoy, Spring Cloud Gateway.
+      tags:
+        - {text: "BFF pattern", color: blue}
+        - {text: "cross-cutting concerns", color: orange}
+        - {text: "single entry point", color: green}
+
+    - title: "🔍 Service Discovery"
+      body: >
+        Services need to find each other without hardcoded IPs. Two models:
+        **Client-side discovery** — client queries a registry (Eureka, Consul), picks an
+        instance, and calls it directly. Client owns load balancing logic (Ribbon).
+        **Server-side discovery** — client calls a router (load balancer, Kubernetes Service)
+        which queries the registry and forwards. Client is unaware of discovery.
+
+        Kubernetes DNS is the default for container workloads: every Service gets a stable
+        DNS name (`orders-service.default.svc.cluster.local`) that resolves to the ClusterIP,
+        which load-balances to healthy pods. Service registry (Consul, Eureka) is typically
+        needed only outside Kubernetes or for multi-cluster scenarios.
+      tags:
+        - {text: "client-side vs server-side", color: orange}
+        - {text: "Kubernetes DNS default", color: green}
+        - {text: "Consul for multi-cluster", color: blue}
+
+    - title: "📡 Inter-service Communication"
+      body: >
+        **Synchronous (request/response):** REST (HTTP/1.1) or gRPC (HTTP/2 + Protobuf).
+        Simple mental model, but the caller blocks and inherits the callee's latency and
+        availability. Each hop in a call chain adds latency and failure surface.
+
+        **Asynchronous (event-driven):** producer publishes to a message broker (Kafka,
+        RabbitMQ, SQS); consumer processes at its own pace. Decouples availability:
+        producer succeeds even if consumer is down. Enables fan-out, replay, and audit.
+        Trade-off: eventual consistency; harder to debug; need dead-letter queues for failures.
+
+        **Rule of thumb:** use async for anything that doesn't need an immediate result
+        (notifications, analytics, downstream side effects). Use sync for queries where
+        the caller needs the response to proceed (checkout pricing, auth checks).
+      tags:
+        - {text: "sync = tight coupling", color: orange}
+        - {text: "async = resilient", color: green}
+        - {text: "gRPC for internal", color: blue}
+
+    - title: "⚡ Circuit Breaker"
+      body: >
+        The circuit breaker prevents cascading failures. When a downstream service is slow
+        or failing, continuing to send requests wastes threads, exhausts connection pools,
+        and propagates failure upstream.
+
+        Three states: **Closed** (normal) — requests pass through; failures counted.
+        **Open** — failure threshold exceeded; requests immediately return a fallback
+        without calling the downstream. **Half-Open** — after a timeout, a probe request
+        is allowed through; success → Closed, failure → Open again.
+
+        Configured by: failure rate threshold (e.g., 50% in a 10-call window),
+        slow call threshold, wait duration in Open state, permitted calls in Half-Open.
+        Implementation: Resilience4j (Java), Polly (.NET), Hystrix (legacy).
+        Combine with **fallback** (return cached data, default, or graceful degradation).
+      tags:
+        - {text: "closed/open/half-open", color: blue}
+        - {text: "Resilience4j", color: green}
+        - {text: "pair with fallback", color: orange}
+      flows:
+        - steps: ["Request", "Closed (normal)", "Failure threshold hit", "Open (fail fast)", "Timeout → Half-Open", "Probe succeeds → Closed"]
+
+    - title: "📋 Saga Pattern"
+      body: >
+        Sagas manage distributed transactions across services without two-phase commit (2PC).
+        A saga is a sequence of local transactions; each step publishes an event or sends
+        a command to trigger the next. On failure, compensating transactions undo completed steps.
+
+        **Choreography:** each service listens for events and reacts. No central coordinator.
+        Simple to implement, but hard to visualize the flow; debugging requires tracing events.
+        Good for simple, linear flows.
+
+        **Orchestration:** a saga orchestrator (a service or workflow engine) explicitly
+        commands each step and handles failures. Flow is explicit and centralized. Easier
+        to test and monitor. Risk: orchestrator becomes a bottleneck or single point of
+        failure. Good for complex, multi-step flows with many compensation paths.
+      tags:
+        - {text: "no 2PC", color: green}
+        - {text: "compensating transactions", color: orange}
+        - {text: "choreography vs orchestration", color: blue}
+
+    - title: "🔄 CQRS & Event Sourcing"
+      body: >
+        **CQRS (Command Query Responsibility Segregation):** separate the write model
+        (commands → append events or update state) from the read model (optimized query views).
+        Read models are denormalized projections rebuilt from events. Enables independent
+        scaling of reads and writes and tailored read schemas (e.g., a search index).
+
+        **Event Sourcing:** instead of storing current state, store the full sequence of
+        events that produced it. Current state is derived by replaying events.
+        Benefits: full audit log, temporal queries ("what was the state at T?"), replay to
+        rebuild projections. Costs: eventual consistency on reads, query complexity,
+        event schema evolution is hard.
+
+        Often used together but independent: you can do CQRS without event sourcing
+        (dual-write to read store) and event sourcing without CQRS.
+      tags:
+        - {text: "separate read/write", color: blue}
+        - {text: "full audit log", color: green}
+        - {text: "eventual consistency", color: orange}
+
+    - title: "🕸️ Service Mesh"
+      body: >
+        A service mesh moves cross-cutting network concerns out of application code and into
+        a sidecar proxy (Envoy) injected alongside every service pod. The **data plane**
+        (sidecars) handles: mTLS (mutual TLS between services), load balancing, retries,
+        circuit breaking, distributed tracing, and metrics collection — without any
+        application code changes.
+
+        The **control plane** (Istio, Linkerd, Consul Connect) configures sidecar behavior
+        via policies: traffic routing (canary %, header-based routing), AuthorizationPolicy
+        (which services can talk to which), PeerAuthentication (mTLS mode).
+
+        Trade-off: significant operational complexity and resource overhead (~50ms added
+        latency per hop in early Istio; much improved now). Justified when you have many
+        services and need consistent observability and zero-trust networking without
+        per-service implementation.
+      tags:
+        - {text: "sidecar proxy", color: blue}
+        - {text: "mTLS + observability", color: green}
+        - {text: "Istio / Linkerd", color: orange}
+
+    - title: "🧱 Bulkhead Pattern"
+      body: >
+        Named after ship hull compartments — if one compartment floods, others stay dry.
+        Bulkheads isolate failures by partitioning resources (thread pools, connection pools,
+        semaphores) per downstream dependency.
+
+        Without bulkheads: a slow downstream A exhausts the shared thread pool → requests to
+        healthy downstream B also queue and time out → entire service becomes unavailable.
+
+        Implementation: dedicated thread pool per external dependency (Hystrix thread pool
+        isolation); or semaphore-based (limits concurrent calls without separate threads).
+        Kubernetes resource limits (`requests`/`limits`) are a bulkhead at the infrastructure
+        level — a runaway pod can't starve its neighbors.
+
+        Combine with circuit breaker: bulkhead limits concurrency; circuit breaker stops
+        calls when the dependency is failing.
+      tags:
+        - {text: "thread pool isolation", color: blue}
+        - {text: "resource partitioning", color: green}
+        - {text: "combine with CB", color: orange}
+
+  gotchas:
+    - title: "Distributed monolith — the worst of both worlds"
+      body: >
+        Services that must be deployed together, share a database, or make synchronous chains
+        of calls to complete a request are a distributed monolith. You pay the operational
+        overhead of microservices (network, serialization, distributed tracing) without the
+        deployment independence benefit. Fix: enforce strict service boundaries, own your data,
+        and decouple deployments before splitting.
+
+    - title: "Chatty synchronous call chains"
+      body: >
+        A user request triggering 10 sequential synchronous service calls adds latencies:
+        if each service takes 20ms, the chain takes 200ms+ before business logic runs.
+        Any one service going slow or failing takes down the whole request. Fix: prefer
+        async for non-critical downstream work, fan-out in parallel where possible, or
+        consolidate overly granular services.
+
+    - title: "Shared database anti-pattern"
+      body: >
+        Multiple services writing to the same database tables creates hidden coupling — schema
+        changes break multiple services simultaneously; you can't scale or replace one service's
+        data store independently. Each service must own its own schema (separate tables,
+        schemas, or databases). Data needed by multiple services should flow via events or
+        APIs, not shared tables.
+
+    - title: "No distributed tracing from day one"
+      body: >
+        In a monolith, a stack trace tells you everything. In microservices, a failure in
+        service E was triggered by service A via B → C → D. Without a correlation ID propagated
+        through every request and a tracing system (Jaeger, Zipkin, Tempo), debugging is
+        nearly impossible. Instrument from the start — retrofitting is painful.
+
+    - title: "Sagas with no idempotent compensations"
+      body: >
+        Compensating transactions in a saga can themselves fail and be retried. If a
+        compensation is not idempotent, retrying it causes double-cancellations, double-refunds,
+        or corrupted state. Every step and every compensation must be idempotent.
+        Use idempotency keys and check-then-act patterns in compensations.
+
+    - title: "Ignoring the Fallacies of Distributed Computing"
+      body: >
+        Peter Deutsch's 8 fallacies: the network is reliable; latency is zero; bandwidth is
+        infinite; the network is secure; topology doesn't change; there is one administrator;
+        transport cost is zero; the network is homogeneous. Each one is false. Services must
+        handle timeouts, partial failures, retries, and network partitions explicitly — they
+        can't be ignored or wrapped in try/catch.
+
+  when_to_use:
+    - "Large systems with multiple teams where independent deployment velocity matters"
+    - "Components with vastly different scaling requirements (high-traffic search vs low-traffic admin)"
+    - "Polyglot requirements — different services genuinely need different tech stacks or data stores"
+    - "Long-lived systems where modular evolution and fault isolation outweigh operational overhead"
+
+  when_not_to_use:
+    - "Early-stage products where domain boundaries are unclear — start with a modular monolith"
+    - "Small teams (< 5 engineers) where operational overhead of distributed systems outweighs benefits"
+    - "Systems with strong consistency requirements across all operations that can't tolerate eventual consistency"
+    - "When the latency and complexity of network calls would make SLAs impossible to meet"
+
+# ── DEEP DIVE ─────────────────────────────────────────────────────────────────
+deep_dive:
+  tables:
+    - title: "Resilience Patterns"
+      full_width: true
+      rows:
+        - key: "Retry"
+          value: "Retry transient failures with exponential backoff + jitter. Jitter prevents thundering herd (all retries hitting at the same time). Retry only idempotent operations. Max 3 retries with backoff: 100ms, 200ms, 400ms + rand(0,100ms)."
+        - key: "Timeout"
+          value: "Every external call must have a timeout. Without it, slow downstream exhausts threads indefinitely. Set timeout < caller's own SLO. Propagate deadlines with context (Go context, gRPC deadline). Default: fail open after timeout, not hang."
+        - key: "Circuit Breaker"
+          value: "Fail fast when a downstream is unhealthy. Closed → Open when failure rate > threshold. Open → Half-Open after wait duration. Half-Open → Closed on probe success. Resilience4j, Polly. Combine with fallback (cached response, default value, graceful degradation)."
+        - key: "Bulkhead"
+          value: "Isolate resource pools per dependency. Thread pool bulkhead: dedicated pool per downstream; slow call saturates its pool, not the shared one. Semaphore bulkhead: limits concurrent calls without threads. Prevents one slow dependency from starving all others."
+        - key: "Fallback"
+          value: "Return a degraded but acceptable response when primary fails. Options: cached previous response, default/empty response, static data, alternative data source. Fallback quality should be transparent to callers — log a metric but don't fail the request."
+        - key: "Rate Limiter"
+          value: "Protect a service from being overloaded by a single caller. Applied outbound (limit calls to downstream) or inbound (limit calls from upstream). Resilience4j RateLimiter: token bucket. Different from circuit breaker — limits load proactively, not reactively."
+        - key: "Hedged Requests"
+          value: "Send the same request to multiple replicas after a timeout and use the first response. Reduces tail latency at the cost of extra load. Useful for read-only, idempotent calls where P99 latency matters. Google's 'backup requests' pattern."
+
+    - title: "Communication Patterns"
+      full_width: true
+      rows:
+        - key: "Synchronous REST"
+          value: "Simple request/response over HTTP. Best for queries needing immediate results. Caller blocked during call. Timeout and retry required. Adds latency per hop. Use for: auth checks, pricing, inventory reads."
+        - key: "Synchronous gRPC"
+          value: "HTTP/2 + Protobuf. 5–10× faster than REST for internal calls. Strongly typed contracts (.proto). Bidirectional streaming. Browser requires grpc-web proxy. Best for high-frequency internal service communication."
+        - key: "Async (Kafka/SQS)"
+          value: "Producer publishes; consumer processes independently. Decouples availability. Enables fan-out, replay, audit. Eventual consistency. Requires DLQ for failed messages. Best for: notifications, analytics, downstream side effects, event-driven workflows."
+        - key: "Outbox Pattern"
+          value: "Write event + DB record in a single local transaction. A relay (Debezium CDC or polling job) publishes the event to the broker. Guarantees at-least-once delivery without distributed transactions. Prevents lost events if broker is down at write time."
+        - key: "Request-Reply (async)"
+          value: "Async with correlation ID. Caller publishes to a request queue with a reply-to address; consumer processes and publishes response to reply queue. Decouples caller and callee without synchronous blocking. Useful for long-running operations."
+
+    - title: "Data Patterns"
+      full_width: true
+      rows:
+        - key: "Database per Service"
+          value: "Each service owns its schema. No shared tables. Other services get data via APIs or events. Enables independent schema evolution, polyglot persistence, and independent scaling. Data duplication is intentional and managed via eventual consistency."
+        - key: "Saga (Choreography)"
+          value: "Each service emits an event after completing its step. Other services react. No central coordinator. Simple, but flow is implicit. Hard to debug; requires distributed tracing. Use for simple linear flows with few steps."
+        - key: "Saga (Orchestration)"
+          value: "Saga orchestrator explicitly commands each step. Tracks state machine. Handles compensations. Flow is explicit and testable. Tools: Temporal, AWS Step Functions, Camunda. Risk: orchestrator is a bottleneck."
+        - key: "CQRS"
+          value: "Separate write (commands) and read (queries) models. Read models are denormalized projections optimized for specific queries. Enables independent scaling of reads/writes. Read model is eventually consistent with write model."
+        - key: "Event Sourcing"
+          value: "Store append-only event log instead of current state. Derive state by replaying events. Full audit, temporal queries, replay to rebuild projections. Hard: event schema evolution, query complexity, snapshot management for long-lived aggregates."
+        - key: "API Composition"
+          value: "Read from multiple services and join in-memory (at API gateway or BFF). Simple to implement. Risk: coupling to multiple services, N+1 if done naively. Use for reads only. For writes, use saga."
+
+    - title: "Service Mesh Capabilities"
+      full_width: false
+      rows:
+        - key: "mTLS"
+          value: "Mutual TLS between every service pair. Sidecar handles cert rotation. Zero-trust: no implicit trust between internal services."
+        - key: "Traffic management"
+          value: "Canary deployments (route 5% to v2), header-based routing (internal testers get v2), weighted traffic split, fault injection for chaos testing."
+        - key: "Observability"
+          value: "Automatic distributed traces, metrics (request rate, error rate, latency), access logs — without instrumentation in app code."
+        - key: "Retries & timeouts"
+          value: "Configured in mesh policy, not app code. Apply consistently across all services without per-service implementation."
+        - key: "AuthorizationPolicy"
+          value: "Declares which services can call which (e.g., orders-service can call inventory-service; nothing else can). Enforced by sidecars."
+        - key: "Tools"
+          value: "Istio (full-featured, complex), Linkerd (simpler, lighter), Consul Connect (multi-platform), AWS App Mesh (AWS-native)."
+
+  comparison:
+    title: "Saga Choreography vs Orchestration"
+    columns: ["Dimension", "Choreography", "Orchestration"]
+    rows:
+      - ["Coordination", "Implicit via events", "Explicit via orchestrator commands"]
+      - ["Coupling", "Services coupled to event contracts", "Services coupled to orchestrator"]
+      - ["Flow visibility", "Distributed; need tracing to see flow", "Centralized; explicit state machine"]
+      - ["Failure handling", "Each service handles own compensation events", "Orchestrator drives compensations"]
+      - ["Debugging", "Hard; events span services and time", "Easier; orchestrator has full saga state"]
+      - ["Testing", "Integration tests across services needed", "Unit-testable orchestrator state machine"]
+      - ["Scalability", "High; no central bottleneck", "Orchestrator can become bottleneck at scale"]
+      - ["Best for", "Simple linear flows, few steps", "Complex flows, many compensation paths"]
+      - ["Tools", "Kafka, RabbitMQ events", "Temporal, AWS Step Functions, Camunda"]
+
+# ── Q & A ─────────────────────────────────────────────────────────────────────
+qa:
+  senior:
+    - id: S-01
+      question: "What are the three states of a circuit breaker and what transitions them?"
+      answer: >
+        **Closed (normal operation):** requests pass through to the downstream service.
+        Failures are counted. Transition to Open when: failure rate exceeds the threshold
+        (e.g., 50% of calls in a 10-request sliding window), or slow call rate exceeds
+        threshold (e.g., 80% of calls exceed 2s).
+
+        **Open (fail fast):** all requests immediately return a failure or fallback without
+        calling the downstream. A timer starts. Transition to Half-Open after the wait
+        duration (e.g., 30s).
+
+        **Half-Open (probe):** a limited number of probe requests are allowed through.
+        If they succeed → transitions back to Closed. If they fail → returns to Open.
+
+        **Configuration knobs (Resilience4j):**
+        - `failureRateThreshold`: % failures to open (default 50)
+        - `slidingWindowSize`: number of calls in the window
+        - `waitDurationInOpenState`: how long to stay open before probing
+        - `permittedNumberOfCallsInHalfOpenState`: probe count
+
+        **Fallback:** always pair with a fallback — return cached data, a default, or a
+        degraded response so the caller doesn't surface a raw failure.
+      staff_add: >
+        At Staff level, discuss where to place circuit breakers: at the API gateway
+        (coarse-grained, no app code change) vs in the service client (fine-grained, per
+        operation). Also: distinguish circuit breakers from retries. Retries handle transient
+        errors on healthy services. Circuit breakers stop calls to persistently unhealthy
+        services. Apply retries *inside* a closed circuit breaker, not outside — otherwise
+        retries keep hammering an already-broken service.
+
+    - id: S-02
+      question: "What is the Saga pattern and when would you use it over a distributed transaction?"
+      answer: >
+        A saga is a sequence of local transactions coordinated via events or commands.
+        Each step performs a local transaction and either publishes an event (choreography)
+        or sends a command to the next participant (orchestration). On failure, previously
+        completed steps are undone via **compensating transactions**.
+
+        **Why not 2PC (two-phase commit)?**
+        2PC requires all participants to hold locks during the prepare phase, blocking other
+        operations. In a microservices architecture spanning multiple independent services
+        and databases, 2PC is impractical — it requires all participants to be available
+        simultaneously, introduces tight coupling, and kills availability (if one participant
+        is down, the whole transaction blocks). 2PC violates the "each service owns its data"
+        principle.
+
+        **When to use sagas:**
+        - Any multi-service operation that must be atomic from a business perspective
+          (create order + reserve inventory + charge payment)
+        - When strong consistency across services is impossible or undesirable
+        - When compensating transactions can faithfully undo business effects
+
+        **When sagas are hard:**
+        - Compensations that can't be undone (you can't "unsend" an email — use a flag)
+        - Long-running sagas with many steps and many failure paths
+        - Maintaining correct ordering of compensations when multiple steps fail
+
+    - id: S-03
+      question: "What is the difference between an API Gateway and a service mesh? When do you need both?"
+      answer: >
+        **API Gateway:** north-south traffic (external clients → internal services).
+        Handles: authentication, rate limiting, routing, SSL termination, request/response
+        transformation, documentation, API versioning. Operates at L7 (HTTP application layer).
+        One gateway per product or organization.
+
+        **Service Mesh:** east-west traffic (service → service inside the cluster).
+        Handles: mTLS, retries, timeouts, circuit breaking, load balancing, distributed
+        tracing, traffic shaping (canary). Operates at L4/L7 via sidecar proxies. Applied
+        uniformly across all services without app code changes.
+
+        **Overlap:** both can do load balancing, retries, and observability at their respective
+        layers. But they serve fundamentally different traffic directions.
+
+        **When you need both:** large orgs with many internal services. The API gateway
+        secures and routes external traffic; the service mesh provides internal zero-trust
+        networking and consistent observability without per-service implementation.
+
+        **When a gateway is enough:** early stage, few services, internal calls are simple.
+        Add a mesh when internal security (mTLS) and consistent cross-service observability
+        become pain points.
+
+    - id: S-04
+      question: "How does the Outbox pattern guarantee at-least-once event delivery?"
+      answer: >
+        **Problem:** after a service writes to its DB, it must publish an event. If the app
+        publishes to the broker and then the process crashes before the DB commits (or vice
+        versa), you get inconsistency: DB updated but no event, or event published but DB
+        rolled back.
+
+        **Outbox pattern:**
+        1. Within a single local DB transaction, write both the business record AND an
+           `outbox_events` row: `{id, aggregate_type, aggregate_id, event_type, payload, created_at}`
+        2. Transaction commits atomically — both or neither
+        3. A separate relay process reads unpublished outbox rows and publishes them to the
+           broker (Kafka, SQS)
+        4. On successful publish, mark the row as published (or delete it)
+
+        **Relay options:**
+        - **Polling:** relay polls `outbox_events WHERE published = false` every N seconds.
+          Simple, slightly delayed.
+        - **CDC (Debezium):** captures DB changes via transaction log (binlog/WAL) and streams
+          them to Kafka without polling. Near-real-time, lower DB load.
+
+        **At-least-once:** if the relay crashes after publishing but before marking as published,
+        it republishes. Consumers must be idempotent (deduplicate by event ID).
+
+    - id: S-05
+      question: "How would you implement distributed tracing across services?"
+      answer: >
+        Distributed tracing connects a single user request across all the services it touches
+        into a single **trace**, composed of **spans** (one per operation).
+
+        **How it works:**
+        1. The first service (or API gateway) generates a `trace-id` and a `span-id`
+        2. These are propagated via HTTP headers: `traceparent` (W3C standard), or
+           `X-B3-TraceId`/`X-B3-SpanId` (Zipkin B3 format)
+        3. Each downstream service reads the incoming headers, creates a child span
+           (inheriting the trace-id), does its work, and reports the span to a collector
+        4. The tracing backend (Jaeger, Tempo, Zipkin) assembles spans into a trace waterfall
+
+        **Instrumentation:**
+        - **Auto-instrumentation:** agent-based (Java agent, OpenTelemetry SDK) — instruments
+          HTTP clients, DB drivers, message consumers automatically
+        - **Manual spans:** add spans around business-critical operations not covered by
+          auto-instrumentation
+
+        **OpenTelemetry** is now the standard: vendor-neutral SDK that exports to any backend
+        (Jaeger, Zipkin, Tempo, Datadog, Honeycomb).
+
+        **Sampling:** never trace 100% in production. Use adaptive sampling: trace 100% of
+        errors, 1–5% of successful requests. Head-based or tail-based sampling.
+      staff_add: >
+        At Staff level: address trace propagation through async boundaries. When a service
+        publishes to Kafka, the trace context must go into the message headers
+        (`traceparent`). The consumer extracts it and creates a linked span — this is a
+        different trace than the producer's (async), but they're linked via the message ID.
+        Tools like OpenTelemetry's Kafka instrumentation handle this automatically. Also:
+        discuss sampling strategy design — tail-based sampling (keep traces with errors or
+        high latency) is more useful but harder to implement than head-based.
+
+    - id: S-06
+      question: "What is the Strangler Fig pattern and how do you apply it when decomposing a monolith?"
+      answer: >
+        Named after the fig tree that grows around a host tree, gradually replacing it.
+        Instead of a risky big-bang rewrite, you incrementally extract functionality from
+        the monolith while keeping it running.
+
+        **Steps:**
+        1. Put an API gateway (or routing layer) in front of the monolith
+        2. Choose the first capability to extract — prefer low-coupling, high-value, or
+           high-change-frequency modules. Avoid shared DB tables.
+        3. Build the new microservice for that capability
+        4. Run it in shadow mode: route production traffic to both; compare responses; fix
+           discrepancies
+        5. Gradually shift traffic: 1% → 10% → 50% → 100% (canary via feature flag or
+           gateway weight)
+        6. Remove the corresponding code from the monolith
+        7. Repeat
+
+        **Key enablers:** the gateway provides a stable external URL regardless of where
+        the code lives. The monolith and new service coexist; no forced cutover.
+
+        **Pitfall:** don't extract services before untangling the shared database. Extract
+        the data ownership first (create a separate schema or sidecar DB) before splitting
+        the service boundary.
+
+    - id: S-07
+      question: "How do you handle data consistency across services when a saga step fails midway?"
+      answer: >
+        A saga step failure leaves some local transactions committed and some not.
+        Consistency is restored via **compensating transactions** that undo the committed steps.
+
+        **Compensation requirements:**
+        - Every saga step must have a corresponding compensating transaction defined upfront
+        - Compensations must be **idempotent** — they may be retried on failure
+        - Compensations must be **semantically correct**: undoing "charge $100" is "refund $100",
+          not just "delete the charge record"
+        - Some operations can't be undone (sending an email). Use a **pivot transaction**:
+          schedule the irreversible action only after all preceding steps succeed, or use a
+          flag to suppress the action if the saga is later rolled back
+
+        **Failure handling in orchestration:**
+        - Orchestrator detects failure (timeout, explicit failure response)
+        - Triggers compensations in reverse order
+        - Compensations are retried with backoff on failure; if all retries fail,
+          saga enters a "stuck" state requiring manual intervention — alert on this
+
+        **Semantic lock (countermeasure):** mark the resource as "pending" during the saga.
+        Prevents other transactions from reading a stale committed intermediate state.
+
+    - id: S-08
+      question: "What is the Bulkhead pattern and how does it prevent cascading failures?"
+      answer: >
+        The bulkhead isolates resource pools (threads, connections, semaphores) per
+        downstream dependency. Without it, a slow downstream A blocks threads → shared
+        thread pool exhausted → requests to healthy downstream B also queue → entire service
+        fails.
+
+        **Thread pool isolation:**
+        Each downstream gets a dedicated thread pool (e.g., 10 threads for Payment service,
+        10 for Inventory service). A slow Payment call blocks only its 10 threads; Inventory
+        calls still have their pool. Total threads = sum of pools + core app threads.
+
+        **Semaphore isolation:**
+        Instead of separate threads, limit concurrent calls via a semaphore (counter).
+        Cheaper (no thread switching), but if the downstream blocks a thread, that thread
+        is still occupied — you just cap concurrent callers. Good for fast, in-process calls.
+
+        **In practice (Resilience4j):**
+        ```java
+        BulkheadConfig config = BulkheadConfig.custom()
+            .maxConcurrentCalls(10)
+            .maxWaitDuration(Duration.ofMillis(500))
+            .build();
+        ```
+
+        **Infrastructure level:** Kubernetes resource requests/limits — each pod gets
+        bounded CPU/memory so a runaway service can't starve neighbors.
+
+        Pair bulkhead with circuit breaker: bulkhead limits load; circuit breaker stops
+        calls to failed services. Together they contain failures within defined boundaries.
+
+    - id: S-09
+      question: "How would you design service-to-service authentication without sharing secrets?"
+      answer: >
+        **mTLS (Mutual TLS):**
+        Both client and server present certificates. A trusted CA (Vault PKI, cert-manager)
+        issues short-lived certificates to each service. Each service verifies the other's
+        cert. No shared secret — each service has its own cert/key pair. Cert rotation is
+        automatic. In a service mesh (Istio), this happens at the sidecar level without
+        app code changes.
+
+        **JWT with service identity:**
+        Services obtain a short-lived JWT from an identity provider (Vault, Keycloak) using
+        their service account credentials. Include service identity as a claim. Downstream
+        services verify the JWT signature (public key). Tokens expire quickly (5–15 min);
+        services refresh automatically.
+
+        **Kubernetes ServiceAccount tokens:**
+        Kubernetes injects a ServiceAccount token into each pod. Services can use this to
+        authenticate to other Kubernetes-native services. Bound tokens include namespace
+        and service account claims — downstream can authorize based on these.
+
+        **Best practice:** use mTLS at the transport layer (mesh handles it) for encryption
+        and identity; combine with AuthorizationPolicy (which service can call what) enforced
+        by the mesh control plane. This gives you encryption, authentication, and authorization
+        without app code changes.
+
+    - id: S-10
+      question: "What is CQRS and when should you apply it?"
+      answer: >
+        CQRS (Command Query Responsibility Segregation) separates write operations
+        (commands that change state) from read operations (queries that return data).
+        The write model handles validation and business rules; the read model is a
+        denormalized projection optimized for specific query patterns.
+
+        **Why separate them?**
+        - Write model enforces invariants (requires consistency); read model optimizes
+          for query performance (can be denormalized, cached, eventually consistent)
+        - Read and write loads are typically asymmetric (10:1 reads:writes) — scale
+          independently
+        - Read projections can be tailored per consumer (dashboard view, search index,
+          mobile summary) without changing the write model
+
+        **Implementation patterns:**
+        - **Simple CQRS (no event sourcing):** same DB, separate code paths. Write path
+          updates normalized tables; read path queries denormalized views or materialized views.
+        - **Full CQRS + Event Sourcing:** commands produce events; events update separate
+          read stores (Elasticsearch, Redis, read DB). Read stores are eventually consistent.
+
+        **When NOT to use:**
+        - Simple CRUD applications — adds complexity without benefit
+        - When strong consistency between write and read is required
+        - Small teams without the operational capacity to maintain dual stores
+
+        CQRS is a pattern, not a requirement. Apply it to specific aggregates/domains
+        with high read/write asymmetry, not globally across the entire system.
+
+  staff:
+    - id: ST-01
+      question: "Design a reliable order processing system using the saga pattern across Order, Inventory, and Payment services."
+      answer: >
+        **Flow (Orchestration with Temporal):**
+
+        ```
+        CreateOrderSaga:
+          1. orders-service: create order (status=PENDING)
+          2. inventory-service: reserve items
+          3. payment-service: charge customer
+          4. orders-service: confirm order (status=CONFIRMED)
+          5. notification-service: send confirmation (async, fire-and-forget)
+        ```
+
+        **Compensations (reverse order on failure):**
+        - Payment fails: release inventory → cancel order
+        - Inventory fails: cancel order (no payment taken yet)
+        - Confirmation fails: release payment → release inventory → cancel order
+
+        **Implementation details:**
+        - Orchestrator: Temporal workflow. Each activity is idempotent (activity ID as
+          idempotency key). Temporal handles retries, timeouts, and state persistence.
+        - Each service exposes: `reserve()`, `release()` (compensation), `charge()`, `refund()`.
+          All idempotent by saga step ID.
+        - Order status machine: PENDING → INVENTORY_RESERVED → PAYMENT_CHARGED → CONFIRMED
+          | INVENTORY_FAILED → CANCELLED | PAYMENT_FAILED → INVENTORY_RELEASED → CANCELLED
+        - Semantic lock: order in PENDING blocks concurrent saga on same order.
+
+        **Observability:**
+        - Trace ID propagated through all saga steps
+        - Saga state persisted in Temporal — visible in Temporal UI
+        - Metrics: saga success rate, step failure rate, compensation rate, saga duration P99
+        - Alert: sagas stuck in non-terminal state > 5 min → manual intervention queue
+      staff_add: >
+        Principal-level: discuss the dual-write problem in each service. When inventory-service
+        reserves items, it must atomically update inventory AND record the saga step. Use the
+        outbox pattern: `UPDATE inventory SET reserved = reserved + N` and
+        `INSERT INTO outbox (saga_id, step='inventory_reserved')` in one transaction. The
+        orchestrator gets the step acknowledgment reliably. Also: what happens when Temporal
+        itself is down? Design for this: sagas in-flight pause; no new sagas start; existing
+        inventory holds don't expire (or have a generous timeout). Temporal's durable
+        execution model resumes sagas transparently after recovery.
+
+    - id: ST-02
+      question: "How do you implement and observe a canary deployment in a microservices environment using a service mesh?"
+      answer: >
+        **Goal:** route a small percentage of traffic to a new version; compare error rate,
+        latency, and business metrics; roll forward or roll back automatically.
+
+        **Istio-based canary:**
+        ```yaml
+        # VirtualService: 5% to v2, 95% to v1
+        - destination: { host: orders-service, subset: v1 }
+          weight: 95
+        - destination: { host: orders-service, subset: v2 }
+          weight: 5
+        ---
+        # DestinationRule: defines v1 and v2 subsets by pod label
+        subsets:
+        - name: v1
+          labels: { version: v1 }
+        - name: v2
+          labels: { version: v2 }
+        ```
+
+        **Progressive delivery automation (Flagger/Argo Rollouts):**
+        - Start at 5% → auto-promote to 10% → 20% → 50% → 100% on success
+        - Rollback trigger: error rate > 1% OR P99 latency > SLO threshold
+        - Analysis period: 5 minutes at each step before promoting
+        - Metrics from Prometheus/Istio telemetry — no manual intervention needed
+
+        **What to measure per canary step:**
+        - HTTP 5xx error rate (primary signal)
+        - P99 request latency
+        - Business metrics (order conversion rate, payment success rate via custom Prometheus metrics)
+        - DB error rate, downstream dependency error rate
+
+        **Header-based routing:** before percentage rollout, route internal testers to v2
+        via `X-Canary: true` header. Validates v2 with real data before any external traffic.
+
+        **Database migration:** canary deployments require backward-compatible DB changes.
+        v1 and v2 must read/write the same schema. Use expand-contract for schema changes.
+
+    - id: ST-03
+      question: "How do you approach capacity planning and resource isolation in a microservices cluster?"
+      answer: >
+        **Kubernetes resource model:** every container declares `requests` (guaranteed) and
+        `limits` (maximum). The scheduler places pods on nodes with sufficient requested
+        resources. `requests` = what the container needs under normal load.
+        `limits` = cap to prevent runaway consumption.
+
+        **Setting requests correctly:**
+        - Profile under realistic load (load test): P95 CPU and memory during peak
+        - Set `requests` to P95 steady-state, `limits` to 2× requests (headroom for bursts)
+        - For memory: set `requests == limits` to avoid OOMKilled evictions under pressure
+          (memory is not compressible like CPU)
+
+        **Bulkheads at cluster level:**
+        - **Namespace resource quotas:** cap total CPU/memory per team namespace. Prevents
+          one team's runaway service from exhausting cluster capacity.
+        - **LimitRange:** sets default requests/limits for pods that don't specify them.
+        - **Priority classes:** critical services (auth, payment) get higher priority — scheduler
+          evicts lower-priority pods first under pressure.
+
+        **Autoscaling:**
+        - HPA (Horizontal Pod Autoscaler): scale pods on CPU, memory, or custom metrics
+          (Kafka consumer lag, queue depth via KEDA)
+        - VPA (Vertical Pod Autoscaler): recommends correct requests/limits based on observed usage
+        - Cluster Autoscaler: adds/removes nodes based on pending pod pressure
+
+        **Capacity planning process:**
+        - Baseline: measure CPU/memory/RPS per service under current load
+        - Forecast: project traffic growth (30/60/90 day)
+        - Load test: validate the new service handles projected peak × 1.5 safety margin
+        - Review: revisit resource settings quarterly; shrink over-provisioned services
+
+    - id: ST-04
+      question: "How do you handle breaking changes in inter-service event contracts?"
+      answer: >
+        **Schema evolution strategies:**
+
+        **Backward-compatible (producer adds):**
+        - Add optional fields: consumers using older schema ignore unknown fields
+          (if consumer is lenient — Avro, Protobuf handle this natively; JSON requires
+          lenient deserialization)
+        - Avro/Protobuf evolution rules: add fields with defaults; never remove or rename
+
+        **Breaking changes (producer removes/renames):**
+        - **Dual-write transition:** producer publishes both v1 and v2 events simultaneously.
+          Consumers migrate to v2 at their own pace. Producer drops v1 after all consumers
+          migrate (tracked via consumer group lag metrics).
+        - **Event versioning:** include `schema_version: "v2"` in event headers. Consumers
+          route by version — handle v1 and v2 with separate handlers during transition.
+        - **Schema registry (Confluent):** enforces compatibility rules (BACKWARD, FORWARD,
+          FULL) before a schema can be registered. CI validates new schema against registry
+          before deploy.
+
+        **Consumer-driven contract testing (Pact):**
+        - Consumers publish their expected event schema as a pact
+        - Producer CI runs against the pact broker; build fails if new event schema breaks
+          a consumer contract
+        - Catches breaking changes before they reach production
+
+        **Pitfall:** never share a code library of event classes between services — it
+        couples service deployments. Each service owns its own event schema representation.
+        Use a schema registry for the canonical schema, not a shared library.
+
+  principal:
+    - id: P-01
+      question: "How do you decide the right service granularity for a new platform, and how does team topology influence it?"
+      answer: >
+        **Conway's Law:** your architecture mirrors your communication structure. A monolith
+        built by one team; microservices built by many teams. The implication: design team
+        structure and service boundaries together, not separately.
+
+        **Team Topologies framework:**
+        - **Stream-aligned teams:** each team owns a product domain end-to-end
+          (Orders, Payments, Catalog). Services align to team boundaries.
+        - **Platform team:** owns shared infrastructure (auth, observability, CI/CD, service
+          mesh). Other teams consume it as self-service.
+        - **Enabling teams:** temporary; help stream teams adopt new patterns.
+        - **Complicated-subsystem teams:** own high-expertise components (ML pipeline,
+          real-time pricing engine).
+
+        **Service granularity principles:**
+        - One service per team (not per class or DB table). If two services are always
+          deployed together, they're one service owned by one team.
+        - Service size: small enough to be understood by the team, large enough to be
+          worth the operational overhead. "How long to onboard a new engineer?" is a good
+          proxy.
+        - Start coarser, split later. Merging overly-split services is much harder than
+          splitting an oversized one.
+
+        **Wrong granularity signals:**
+        - Teams routinely coordinate multi-service deployments → boundaries are wrong
+        - Teams step on each other's changes in the same service → split needed
+        - A service has very low traffic but high operational cost → merge
+        - Services that can't be tested independently → excessive coupling
+
+        **My framing for the interview:** microservices are an organizational scaling pattern
+        as much as a technical one. You don't adopt microservices because it's better
+        architecture; you adopt it because your team structure demands independent deployment
+        velocity. If you have 5 engineers, you almost certainly shouldn't have 20 services.
+      staff_add: >
+        Push further: inverse Conway maneuver — deliberately restructure teams to produce
+        the desired architecture. If you want loosely coupled services, create loosely coupled
+        teams with clear ownership. Top-down: architect the desired domain model first, then
+        restructure teams to align. Bottom-up: observe where teams naturally coordinate and
+        set boundaries there. Both directions are valid; the key is making the decision
+        explicit rather than letting Conway's Law operate by default.
+
+    - id: P-02
+      question: "A critical multi-step business flow (order → payment → fulfillment) is experiencing 2% saga failure rate causing stuck orders. How do you diagnose and fix this at scale?"
+      answer: >
+        **Immediate diagnosis:**
+        - Pull stuck sagas from Temporal/Step Functions dashboard. Group by: which step
+          fails, which service, what error type (timeout? business exception? infra error?)
+        - Correlate with: deployment times (did failure rate increase after a deploy?),
+          infrastructure events (DB slow query, network blip), specific customers/order types
+        - Check compensation success rate: are compensations themselves failing? Double-failure
+          is the worst case — payment charged, inventory not reserved, compensation can't refund
+
+        **Root cause categories:**
+        - **Flaky downstream** (payment processor 2% timeout): add retry with backoff inside
+          the saga step; ensure idempotency key on processor call so retries don't double-charge
+        - **Non-idempotent step being retried:** audit every step — does retrying produce
+          duplicate side effects? Fix: idempotency key per saga step ID
+        - **Timeout too tight:** step timeout < downstream P99. Instrument downstream P99
+          per saga step; set timeout at P99 + 20% buffer
+        - **Data race in semantic lock:** two sagas on the same order_id competing. Fix:
+          advisory lock or optimistic concurrency (version field) on the order record
+
+        **Operational fixes (immediate):**
+        - Manual resolution workflow: ops console to inspect stuck sagas, see exact state,
+          trigger retry or rollback. This unblocks customers now.
+        - Alert: stuck saga > 10 min → PagerDuty. SLA: resolve or escalate within 30 min.
+
+        **Systemic fixes (weeks):**
+        - Saga observability dashboard: success rate, step failure rate, median/P99 duration,
+          compensation rate — per saga type, per step
+        - Chaos engineering: inject failures at each saga step; validate compensations work;
+          validate stuck saga detection and alerting fire correctly
+        - Backpressure: if saga failure rate > 5%, pause new saga creation (circuit breaker
+          at saga entry point) rather than accumulating more stuck sagas
+
+# ── SCENARIOS ─────────────────────────────────────────────────────────────────
+scenarios:
+  - title: "Design an E-commerce Order Processing System with Sagas"
+    problem: >
+      Design the backend for an e-commerce order placement flow. When a customer checks out,
+      the system must: validate inventory, charge payment, allocate warehouse stock, and send
+      a confirmation email. Any step can fail. The system processes 50,000 orders per hour
+      at peak with a P99 checkout latency SLO of 3 seconds.
+    constraints:
+      - Each of the 4 steps is owned by a separate microservice with its own database
+      - Payment charges must never be duplicated on retry
+      - Partial failures must leave no money charged without inventory reserved
+      - The confirmation email is best-effort (failure is acceptable)
+    discussion:
+      - >
+        **Saga orchestration with Temporal:**
+        Use an orchestrated saga — the flow is complex enough (4 steps, 3 compensations)
+        that choreography would make the flow implicit and hard to debug. Temporal provides
+        durable execution: the workflow state is persisted; a crash resumes transparently.
+        The saga orchestrator is a Temporal Workflow; each service call is a Temporal Activity.
+      - >
+        **Idempotency on payment:**
+        The Payment Activity generates an idempotency key: `saga_id + "_charge"`. The payment
+        processor is called with this key. On retry (Temporal retries activities automatically),
+        the same key is sent — the processor deduplicates and returns the original result.
+        No double-charge possible.
+      - >
+        **Compensation design:**
+        Steps and compensations (in reverse order): ④ Email fails → no compensation (best-effort,
+        order is already confirmed). ③ Warehouse allocation fails → refund payment → release
+        inventory reservation → cancel order. ② Payment fails → release inventory → cancel order.
+        ① Inventory fails → cancel order. Each compensation is idempotent (compensation ID =
+        `saga_id + "_release_inventory"` etc).
+      - >
+        **Latency SLO:**
+        3s P99 with 4 sequential service calls. Budget per call: ~600ms. Use Temporal's
+        `scheduleToCloseTimeout` per activity. Inventory check and payment authorization can be
+        parallelized (fan-out within the Temporal workflow) if business rules allow — reduces
+        sequential latency to 2 calls deep instead of 4.
+      - >
+        **Email as fire-and-forget:**
+        After the saga succeeds, publish an `OrderConfirmed` event to Kafka. Email service
+        consumes asynchronously. Failure doesn't affect the checkout response. Separate from
+        the saga — don't block the customer on email delivery.
+    red_flags:
+      - "Using 2PC across services — requires all services available simultaneously, kills scalability"
+      - "Non-idempotent payment step — retry on Temporal timeout causes duplicate charges"
+      - "Compensation that itself isn't idempotent — compensation retries cause double-refunds"
+      - "Including email in the synchronous saga — email latency and failures break checkout"
+
+  - title: "Design a Resilient Microservices System That Survives Downstream Failures"
+    problem: >
+      Your order-service calls three downstream services: inventory-service, pricing-service,
+      and recommendation-service. In production, you experience cascading failures: when
+      recommendation-service becomes slow (due to an ML model load spike), order-service
+      threads fill up waiting for it, and inventory and pricing calls also start failing
+      even though those services are healthy.
+    constraints:
+      - Order display (inventory + pricing) is critical; recommendations are nice-to-have
+      - SLO: order page loads in < 1s P99; 99.9% availability
+      - Recommendation-service has unpredictable latency spikes lasting 30–120 seconds
+    discussion:
+      - >
+        **Root cause: no bulkhead or circuit breaker on recommendation-service.**
+        All three downstream calls share the same HTTP client thread pool. Slow recommendation
+        calls saturate the pool; inventory and pricing calls queue and time out even though
+        those services are healthy. This is a cascading failure caused by resource exhaustion.
+      - >
+        **Bulkhead: separate thread pools per downstream:**
+        Create dedicated thread pools: `inventory-pool (20 threads)`, `pricing-pool (10 threads)`,
+        `recommendation-pool (5 threads)`. Recommendation slowness can exhaust only its 5-thread
+        pool. Inventory and pricing pools are unaffected.
+      - >
+        **Circuit breaker on recommendation-service:**
+        Configure Resilience4j circuit breaker: open when 50% of calls in a 10-call window
+        fail or exceed 800ms. In Open state: immediately return the fallback (empty
+        recommendations list) without calling the service at all. Probe every 30s (Half-Open).
+        This stops threads from being consumed by a broken service.
+      - >
+        **Fallback strategy:**
+        - Recommendation-service fallback: return `[]` or cached recommendations from Redis
+          (last known good result per user). Degrade gracefully — page loads without recs.
+        - Inventory/pricing: no fallback — these are critical. If they fail, surface an error
+          page with retry. Do not show stale inventory to avoid overselling.
+      - >
+        **Timeout hierarchy:**
+        Recommendation timeout: 200ms (nice-to-have; fail fast). Inventory + pricing timeout:
+        500ms (critical; more budget). Order page total: 1000ms. With parallelism:
+        fan-out all 3 calls simultaneously; recommendation circuit breaks fast if unhealthy;
+        page renders with inventory + pricing + whatever recommendations returned.
+      - >
+        **Observability:**
+        Dashboard: circuit breaker state per downstream, thread pool utilization, fallback rate.
+        Alert: recommendation fallback rate > 10% for > 5 minutes → investigate.
+        This separates "recommendation service is down" (acceptable, fallback active) from
+        "circuit breaker rate on inventory is opening" (critical, page down).
+    red_flags:
+      - "Shared thread pool for all downstream calls — one slow service starves others"
+      - "No circuit breaker — threads kept occupied until timeout on every call to broken service"
+      - "Same fallback strategy for critical and nice-to-have services — inventory should never silently degrade"
+      - "Retry recommendation-service on failure without circuit breaker — makes the cascade worse by retrying into a slow service"
+
+  - title: "Decompose a Payment Monolith into Microservices"
+    problem: >
+      A 7-year-old payment processing monolith handles: customer wallet management, transaction
+      history, fraud detection, payment gateway integration, and settlement/reconciliation.
+      It processes $2B/year. The team of 40 engineers frequently breaks each other's work,
+      deployments take 2 hours with high rollback risk, and the fraud detection ML team
+      needs to iterate rapidly but is blocked by monolith release cycles.
+    constraints:
+      - Zero tolerance for double-charges or lost transactions (financial compliance)
+      - PCI-DSS compliance must be maintained throughout migration
+      - 99.99% availability SLO (< 1 hour downtime per year)
+      - 40 engineers must keep shipping features during the migration
+    discussion:
+      - >
+        **Start with the strangler fig, not a rewrite:**
+        Put an API gateway in front of the monolith. All traffic enters via the gateway.
+        Extract services one at a time; gateway routes each extracted capability to the new
+        service, unextracted capabilities still go to the monolith. No big-bang cutover.
+        Monolith and microservices coexist until migration is complete.
+      - >
+        **First extraction: fraud detection (highest ROI, least coupling):**
+        The fraud ML team has the clearest motivation to move fast. Fraud detection is read-only
+        (it doesn't write transactions — it scores them). Easier to extract first: build the
+        fraud-service, run in shadow mode (monolith still makes fraud decisions; fraud-service
+        runs in parallel and we compare results). After 4 weeks of comparison, route 5% of
+        fraud decisions to fraud-service, ramp to 100% over 4 weeks.
+      - >
+        **Database decomposition — the hardest part:**
+        The monolith uses one shared database. Transactions, wallets, and fraud signals are in
+        the same schema. Strategy: (1) identify tables owned by each domain, (2) create
+        separate schemas within the same DB cluster (logical separation, no data movement yet),
+        (3) enforce that only the new service writes to its schema; monolith reads via
+        database views or API calls, (4) physically move schemas to separate DB instances
+        once code separation is stable.
+      - >
+        **Financial data integrity during migration:**
+        Use the outbox pattern for every financial transaction: write to `transactions` table
+        and `outbox_events` in a single local transaction. Relay publishes to Kafka for
+        downstream consumers (reconciliation, audit). No event is lost even if the consumer
+        is down. Dual-write during migration: write to both old schema and new service's
+        schema; reconciliation job validates they match.
+      - >
+        **PCI-DSS compliance:**
+        PCI scope follows cardholder data. Isolate payment-gateway-service (the only component
+        touching raw card data) in a PCI-scoped namespace with network policies, mTLS, and
+        audit logging. All other services work with tokenized payment references — not in PCI
+        scope. This reduces audit surface and lets the other 39 engineers work outside PCI scope.
+      - >
+        **Availability during migration:**
+        Canary all cutovers: 1% → 5% → 20% → 100% with automatic rollback on error rate spike.
+        Maintain the monolith as a fallback for 4 weeks after each extraction goes to 100%.
+        Runbook for every migration step: rollback procedure, health checks, alert thresholds.
+    red_flags:
+      - "Big-bang rewrite — too risky for a $2B/year financial system; monolith stays live"
+      - "Extracting services before separating data ownership — shared DB means services are still coupled"
+      - "Not running shadow mode before cutting traffic — undocumented behavior differences will cause incidents"
+      - "Putting PCI data in multiple services — expands audit scope to all services handling raw card data"
+      - "Ignoring the outbox pattern for financial transactions — dual-write without it risks lost transactions"

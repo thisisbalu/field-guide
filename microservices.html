@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Microservices Patterns — Field Guide</title>
+<script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#0f766e;--accent2:#d95a1e;--accent3:#7c3aed; --highlight-bg:#f0fdfa;--highlight-text:#0f766e;--highlight-border:#0d9488; --your-exp-bg:rgba(124,58,237,.06);--your-exp-border:rgba(124,58,237,.2);--your-exp-text:#4c1d95; --acc-hover:rgba(15,118,110,.04);--acc-open-border:#0f766e;--acc-open-bg:rgba(15,118,110,.03); --num-color:#0f766e;--num-bg:rgba(15,118,110,.1); --tag-color:#0f766e;--tag-bg:rgba(15,118,110,.08);--tag-border:rgba(15,118,110,.2); --flow-arrow:#0f766e;--h1-from:#134e4a;--h1-to:#0f766e; --badge-color:#134e4a;--stat-num:#0f766e; --tab-active-color:#0f766e;--tab-active-bg:rgba(15,118,110,.08);--tab-active-border:#0f766e; --section-title:#0f766e;--concept-title:#134e4a; --cheat-head-bg:#134e4a;--cheat-head-text:#ffffff;--cheat-key:#134e4a; --cmd-bg:#f0fdfa;--cmd-text:#134e4a; }
+  [data-theme="dark"]{ --accent:#2dd4bf;--accent2:#ff9d6b;--accent3:#a78bfa; --highlight-bg:#042f2e;--highlight-text:#2dd4bf;--highlight-border:#0d9488; --your-exp-bg:rgba(167,139,250,.1);--your-exp-border:rgba(167,139,250,.3);--your-exp-text:#c4b5fd; --acc-hover:rgba(45,212,191,.04);--acc-open-border:#2dd4bf;--acc-open-bg:rgba(45,212,191,.03); --num-color:#2dd4bf;--num-bg:rgba(45,212,191,.1); --tag-color:#2dd4bf;--tag-bg:rgba(45,212,191,.08);--tag-border:rgba(45,212,191,.2); --flow-arrow:#2dd4bf;--h1-from:#2dd4bf;--h1-to:#0d9488; --badge-color:#2dd4bf;--stat-num:#2dd4bf; --tab-active-color:#2dd4bf;--tab-active-bg:rgba(45,212,191,.08);--tab-active-border:#2dd4bf; --section-title:#2dd4bf;--concept-title:#2dd4bf; --cheat-head-bg:#042f2e;--cheat-head-text:#2dd4bf;--cheat-key:#2dd4bf; --cmd-bg:#042f2e;--cmd-text:#2dd4bf; }
+  [data-theme="light"] .toggle-knob{background:#0f766e;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#2dd4bf;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Back navigation ─────────────────────────────────────────────────────── */
+.back-link{position:fixed;top:1.25rem;left:1.25rem;z-index:100;display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);text-decoration:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.back-link:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
+/* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
+.qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
+.qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
+.qa-search:focus{border-color:var(--tab-active-border,var(--text));}
+.qa-search::placeholder{color:var(--muted);}
+.expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
+.expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;cursor:pointer;transition:opacity .2s;}
+.cmd:hover{opacity:.75;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+  .back-link span{display:none;}
+}
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
+
+</style>
+</head>
+<body data-topic-id="microservices">
+
+<a class="back-link" href="index.html">← <span>Field Guide</span></a>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>Microservices Patterns</h1>
+  <p class="subtitle">// decomposition · communication · resilience · sagas · service mesh · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="overview" role="button" tabindex="0" onclick="switchTab('overview',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('overview',this);event.preventDefault();}">Overview</div>
+  <div class="tab" data-tab="deepdive" role="button" tabindex="0" onclick="switchTab('deepdive',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('deepdive',this);event.preventDefault();}">Deep Dive</div>
+  <div class="tab" data-tab="qa" role="button" tabindex="0" onclick="switchTab('qa',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('qa',this);event.preventDefault();}">Q &amp; A</div>
+  <div class="tab" data-tab="scenarios" role="button" tabindex="0" onclick="switchTab('scenarios',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('scenarios',this);event.preventDefault();}">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">✂️ Service Decomposition</div>
+      <div class="concept-body">
+        Decomposition is the hardest microservices decision — get it wrong and you build a distributed monolith. Two main strategies: <strong>Decompose by Business Capability</strong> — align services to stable business functions (Orders, Inventory, Payments); changes in business logic stay within one service. <strong>Decompose by Subdomain (DDD)</strong> — identify bounded contexts where a concept has a single consistent model; the context boundary becomes the service boundary.
+A service should be: independently deployable, owned by one team, and responsible for a single cohesive capability. The two-pizza team rule is a useful proxy. <strong>Red flags for wrong boundaries:</strong> services that must be deployed together, services that need synchronous calls to complete their own operations, or services sharing a database table.
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">bounded context</span>
+          
+          <span class="tag green">single capability</span>
+          
+          <span class="tag green">independent deploy</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🚪 API Gateway</div>
+      <div class="concept-body">
+        The API Gateway is the single entry point for all external clients. It handles cross-cutting concerns so services don't have to: <strong>routing</strong> (path → service), <strong>authentication</strong> (validate token, pass identity downstream), <strong>rate limiting</strong>, <strong>SSL termination</strong>, <strong>request/response transformation</strong>, and <strong>aggregation</strong> (fan-out to multiple services and combine responses for the client).
+Two flavors: <strong>Edge gateway</strong> (one per product, e.g., mobile API gateway, web gateway) — tailored to client needs, pattern called BFF (Backend for Frontend). <strong>Shared gateway</strong> (one per org) — simpler ops but becomes a bottleneck and couples teams. Common tools: Kong, AWS API Gateway, Nginx, Envoy, Spring Cloud Gateway.
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">BFF pattern</span>
+          
+          <span class="tag orange">cross-cutting concerns</span>
+          
+          <span class="tag green">single entry point</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔍 Service Discovery</div>
+      <div class="concept-body">
+        Services need to find each other without hardcoded IPs. Two models: <strong>Client-side discovery</strong> — client queries a registry (Eureka, Consul), picks an instance, and calls it directly. Client owns load balancing logic (Ribbon). <strong>Server-side discovery</strong> — client calls a router (load balancer, Kubernetes Service) which queries the registry and forwards. Client is unaware of discovery.
+Kubernetes DNS is the default for container workloads: every Service gets a stable DNS name (<code>orders-service.default.svc.cluster.local</code>) that resolves to the ClusterIP, which load-balances to healthy pods. Service registry (Consul, Eureka) is typically needed only outside Kubernetes or for multi-cluster scenarios.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">client-side vs server-side</span>
+          
+          <span class="tag green">Kubernetes DNS default</span>
+          
+          <span class="tag blue">Consul for multi-cluster</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📡 Inter-service Communication</div>
+      <div class="concept-body">
+        <strong>Synchronous (request/response):</strong> REST (HTTP/1.1) or gRPC (HTTP/2 + Protobuf). Simple mental model, but the caller blocks and inherits the callee's latency and availability. Each hop in a call chain adds latency and failure surface.
+<strong>Asynchronous (event-driven):</strong> producer publishes to a message broker (Kafka, RabbitMQ, SQS); consumer processes at its own pace. Decouples availability: producer succeeds even if consumer is down. Enables fan-out, replay, and audit. Trade-off: eventual consistency; harder to debug; need dead-letter queues for failures.
+<strong>Rule of thumb:</strong> use async for anything that doesn't need an immediate result (notifications, analytics, downstream side effects). Use sync for queries where the caller needs the response to proceed (checkout pricing, auth checks).
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">sync = tight coupling</span>
+          
+          <span class="tag green">async = resilient</span>
+          
+          <span class="tag blue">gRPC for internal</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">⚡ Circuit Breaker</div>
+      <div class="concept-body">
+        The circuit breaker prevents cascading failures. When a downstream service is slow or failing, continuing to send requests wastes threads, exhausts connection pools, and propagates failure upstream.
+Three states: <strong>Closed</strong> (normal) — requests pass through; failures counted. <strong>Open</strong> — failure threshold exceeded; requests immediately return a fallback without calling the downstream. <strong>Half-Open</strong> — after a timeout, a probe request is allowed through; success → Closed, failure → Open again.
+Configured by: failure rate threshold (e.g., 50% in a 10-call window), slow call threshold, wait duration in Open state, permitted calls in Half-Open. Implementation: Resilience4j (Java), Polly (.NET), Hystrix (legacy). Combine with <strong>fallback</strong> (return cached data, default, or graceful degradation).
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">steps</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">closed/open/half-open</span>
+          
+          <span class="tag green">Resilience4j</span>
+          
+          <span class="tag orange">pair with fallback</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📋 Saga Pattern</div>
+      <div class="concept-body">
+        Sagas manage distributed transactions across services without two-phase commit (2PC). A saga is a sequence of local transactions; each step publishes an event or sends a command to trigger the next. On failure, compensating transactions undo completed steps.
+<strong>Choreography:</strong> each service listens for events and reacts. No central coordinator. Simple to implement, but hard to visualize the flow; debugging requires tracing events. Good for simple, linear flows.
+<strong>Orchestration:</strong> a saga orchestrator (a service or workflow engine) explicitly commands each step and handles failures. Flow is explicit and centralized. Easier to test and monitor. Risk: orchestrator becomes a bottleneck or single point of failure. Good for complex, multi-step flows with many compensation paths.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">no 2PC</span>
+          
+          <span class="tag orange">compensating transactions</span>
+          
+          <span class="tag blue">choreography vs orchestration</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔄 CQRS & Event Sourcing</div>
+      <div class="concept-body">
+        <strong>CQRS (Command Query Responsibility Segregation):</strong> separate the write model (commands → append events or update state) from the read model (optimized query views). Read models are denormalized projections rebuilt from events. Enables independent scaling of reads and writes and tailored read schemas (e.g., a search index).
+<strong>Event Sourcing:</strong> instead of storing current state, store the full sequence of events that produced it. Current state is derived by replaying events. Benefits: full audit log, temporal queries ("what was the state at T?"), replay to rebuild projections. Costs: eventual consistency on reads, query complexity, event schema evolution is hard.
+Often used together but independent: you can do CQRS without event sourcing (dual-write to read store) and event sourcing without CQRS.
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">separate read/write</span>
+          
+          <span class="tag green">full audit log</span>
+          
+          <span class="tag orange">eventual consistency</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🕸️ Service Mesh</div>
+      <div class="concept-body">
+        A service mesh moves cross-cutting network concerns out of application code and into a sidecar proxy (Envoy) injected alongside every service pod. The <strong>data plane</strong> (sidecars) handles: mTLS (mutual TLS between services), load balancing, retries, circuit breaking, distributed tracing, and metrics collection — without any application code changes.
+The <strong>control plane</strong> (Istio, Linkerd, Consul Connect) configures sidecar behavior via policies: traffic routing (canary %, header-based routing), AuthorizationPolicy (which services can talk to which), PeerAuthentication (mTLS mode).
+Trade-off: significant operational complexity and resource overhead (~50ms added latency per hop in early Istio; much improved now). Justified when you have many services and need consistent observability and zero-trust networking without per-service implementation.
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">sidecar proxy</span>
+          
+          <span class="tag green">mTLS + observability</span>
+          
+          <span class="tag orange">Istio / Linkerd</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🧱 Bulkhead Pattern</div>
+      <div class="concept-body">
+        Named after ship hull compartments — if one compartment floods, others stay dry. Bulkheads isolate failures by partitioning resources (thread pools, connection pools, semaphores) per downstream dependency.
+Without bulkheads: a slow downstream A exhausts the shared thread pool → requests to healthy downstream B also queue and time out → entire service becomes unavailable.
+Implementation: dedicated thread pool per external dependency (Hystrix thread pool isolation); or semaphore-based (limits concurrent calls without separate threads). Kubernetes resource limits (<code>requests</code>/<code>limits</code>) are a bulkhead at the infrastructure level — a runaway pod can't starve its neighbors.
+Combine with circuit breaker: bulkhead limits concurrency; circuit breaker stops calls when the dependency is failing.
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">thread pool isolation</span>
+          
+          <span class="tag green">resource partitioning</span>
+          
+          <span class="tag orange">combine with CB</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Distributed monolith — the worst of both worlds</span>
+      Services that must be deployed together, share a database, or make synchronous chains of calls to complete a request are a distributed monolith. You pay the operational overhead of microservices (network, serialization, distributed tracing) without the deployment independence benefit. Fix: enforce strict service boundaries, own your data, and decouple deployments before splitting.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Chatty synchronous call chains</span>
+      A user request triggering 10 sequential synchronous service calls adds latencies: if each service takes 20ms, the chain takes 200ms+ before business logic runs. Any one service going slow or failing takes down the whole request. Fix: prefer async for non-critical downstream work, fan-out in parallel where possible, or consolidate overly granular services.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Shared database anti-pattern</span>
+      Multiple services writing to the same database tables creates hidden coupling — schema changes break multiple services simultaneously; you can't scale or replace one service's data store independently. Each service must own its own schema (separate tables, schemas, or databases). Data needed by multiple services should flow via events or APIs, not shared tables.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">No distributed tracing from day one</span>
+      In a monolith, a stack trace tells you everything. In microservices, a failure in service E was triggered by service A via B → C → D. Without a correlation ID propagated through every request and a tracing system (Jaeger, Zipkin, Tempo), debugging is nearly impossible. Instrument from the start — retrofitting is painful.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Sagas with no idempotent compensations</span>
+      Compensating transactions in a saga can themselves fail and be retried. If a compensation is not idempotent, retrying it causes double-cancellations, double-refunds, or corrupted state. Every step and every compensation must be idempotent. Use idempotency keys and check-then-act patterns in compensations.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Ignoring the Fallacies of Distributed Computing</span>
+      Peter Deutsch's 8 fallacies: the network is reliable; latency is zero; bandwidth is infinite; the network is secure; topology doesn't change; there is one administrator; transport cost is zero; the network is homogeneous. Each one is false. Services must handle timeouts, partial failures, retries, and network partitions explicitly — they can't be ignored or wrapped in try/catch.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use Microservices When</div>
+      <ul>
+        
+        <li>Large systems with multiple teams where independent deployment velocity matters</li>
+        
+        <li>Components with vastly different scaling requirements (high-traffic search vs low-traffic admin)</li>
+        
+        <li>Polyglot requirements — different services genuinely need different tech stacks or data stores</li>
+        
+        <li>Long-lived systems where modular evolution and fault isolation outweigh operational overhead</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use Microservices When</div>
+      <ul>
+        
+        <li>Early-stage products where domain boundaries are unclear — start with a modular monolith</li>
+        
+        <li>Small teams (< 5 engineers) where operational overhead of distributed systems outweighs benefits</li>
+        
+        <li>Systems with strong consistency requirements across all operations that can't tolerate eventual consistency</li>
+        
+        <li>When the latency and complexity of network calls would make SLAs impossible to meet</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Resilience Patterns</div>
+      <table>
+        
+        <tr><td>Retry</td><td>Retry transient failures with exponential backoff + jitter. Jitter prevents thundering herd (all retries hitting at the same time). Retry only idempotent operations. Max 3 retries with backoff: 100ms, 200ms, 400ms + rand(0,100ms).</td></tr>
+        
+        <tr><td>Timeout</td><td>Every external call must have a timeout. Without it, slow downstream exhausts threads indefinitely. Set timeout < caller's own SLO. Propagate deadlines with context (Go context, gRPC deadline). Default: fail open after timeout, not hang.</td></tr>
+        
+        <tr><td>Circuit Breaker</td><td>Fail fast when a downstream is unhealthy. Closed → Open when failure rate > threshold. Open → Half-Open after wait duration. Half-Open → Closed on probe success. Resilience4j, Polly. Combine with fallback (cached response, default value, graceful degradation).</td></tr>
+        
+        <tr><td>Bulkhead</td><td>Isolate resource pools per dependency. Thread pool bulkhead: dedicated pool per downstream; slow call saturates its pool, not the shared one. Semaphore bulkhead: limits concurrent calls without threads. Prevents one slow dependency from starving all others.</td></tr>
+        
+        <tr><td>Fallback</td><td>Return a degraded but acceptable response when primary fails. Options: cached previous response, default/empty response, static data, alternative data source. Fallback quality should be transparent to callers — log a metric but don't fail the request.</td></tr>
+        
+        <tr><td>Rate Limiter</td><td>Protect a service from being overloaded by a single caller. Applied outbound (limit calls to downstream) or inbound (limit calls from upstream). Resilience4j RateLimiter: token bucket. Different from circuit breaker — limits load proactively, not reactively.</td></tr>
+        
+        <tr><td>Hedged Requests</td><td>Send the same request to multiple replicas after a timeout and use the first response. Reduces tail latency at the cost of extra load. Useful for read-only, idempotent calls where P99 latency matters. Google's 'backup requests' pattern.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Communication Patterns</div>
+      <table>
+        
+        <tr><td>Synchronous REST</td><td>Simple request/response over HTTP. Best for queries needing immediate results. Caller blocked during call. Timeout and retry required. Adds latency per hop. Use for: auth checks, pricing, inventory reads.</td></tr>
+        
+        <tr><td>Synchronous gRPC</td><td>HTTP/2 + Protobuf. 5–10× faster than REST for internal calls. Strongly typed contracts (.proto). Bidirectional streaming. Browser requires grpc-web proxy. Best for high-frequency internal service communication.</td></tr>
+        
+        <tr><td>Async (Kafka/SQS)</td><td>Producer publishes; consumer processes independently. Decouples availability. Enables fan-out, replay, audit. Eventual consistency. Requires DLQ for failed messages. Best for: notifications, analytics, downstream side effects, event-driven workflows.</td></tr>
+        
+        <tr><td>Outbox Pattern</td><td>Write event + DB record in a single local transaction. A relay (Debezium CDC or polling job) publishes the event to the broker. Guarantees at-least-once delivery without distributed transactions. Prevents lost events if broker is down at write time.</td></tr>
+        
+        <tr><td>Request-Reply (async)</td><td>Async with correlation ID. Caller publishes to a request queue with a reply-to address; consumer processes and publishes response to reply queue. Decouples caller and callee without synchronous blocking. Useful for long-running operations.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Data Patterns</div>
+      <table>
+        
+        <tr><td>Database per Service</td><td>Each service owns its schema. No shared tables. Other services get data via APIs or events. Enables independent schema evolution, polyglot persistence, and independent scaling. Data duplication is intentional and managed via eventual consistency.</td></tr>
+        
+        <tr><td>Saga (Choreography)</td><td>Each service emits an event after completing its step. Other services react. No central coordinator. Simple, but flow is implicit. Hard to debug; requires distributed tracing. Use for simple linear flows with few steps.</td></tr>
+        
+        <tr><td>Saga (Orchestration)</td><td>Saga orchestrator explicitly commands each step. Tracks state machine. Handles compensations. Flow is explicit and testable. Tools: Temporal, AWS Step Functions, Camunda. Risk: orchestrator is a bottleneck.</td></tr>
+        
+        <tr><td>CQRS</td><td>Separate write (commands) and read (queries) models. Read models are denormalized projections optimized for specific queries. Enables independent scaling of reads/writes. Read model is eventually consistent with write model.</td></tr>
+        
+        <tr><td>Event Sourcing</td><td>Store append-only event log instead of current state. Derive state by replaying events. Full audit, temporal queries, replay to rebuild projections. Hard: event schema evolution, query complexity, snapshot management for long-lived aggregates.</td></tr>
+        
+        <tr><td>API Composition</td><td>Read from multiple services and join in-memory (at API gateway or BFF). Simple to implement. Risk: coupling to multiple services, N+1 if done naively. Use for reads only. For writes, use saga.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Service Mesh Capabilities</div>
+      <table>
+        
+        <tr><td>mTLS</td><td>Mutual TLS between every service pair. Sidecar handles cert rotation. Zero-trust: no implicit trust between internal services.</td></tr>
+        
+        <tr><td>Traffic management</td><td>Canary deployments (route 5% to v2), header-based routing (internal testers get v2), weighted traffic split, fault injection for chaos testing.</td></tr>
+        
+        <tr><td>Observability</td><td>Automatic distributed traces, metrics (request rate, error rate, latency), access logs — without instrumentation in app code.</td></tr>
+        
+        <tr><td>Retries & timeouts</td><td>Configured in mesh policy, not app code. Apply consistently across all services without per-service implementation.</td></tr>
+        
+        <tr><td>AuthorizationPolicy</td><td>Declares which services can call which (e.g., orders-service can call inventory-service; nothing else can). Enforced by sidecars.</td></tr>
+        
+        <tr><td>Tools</td><td>Istio (full-featured, complex), Linkerd (simpler, lighter), Consul Connect (multi-platform), AWS App Mesh (AWS-native).</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Saga Choreography vs Orchestration</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Coordination</td>
+            
+            <td>Implicit via events</td>
+            
+            <td>Explicit via orchestrator commands</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Coupling</td>
+            
+            <td>Services coupled to event contracts</td>
+            
+            <td>Services coupled to orchestrator</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Flow visibility</td>
+            
+            <td>Distributed; need tracing to see flow</td>
+            
+            <td>Centralized; explicit state machine</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Failure handling</td>
+            
+            <td>Each service handles own compensation events</td>
+            
+            <td>Orchestrator drives compensations</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Debugging</td>
+            
+            <td>Hard; events span services and time</td>
+            
+            <td>Easier; orchestrator has full saga state</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Testing</td>
+            
+            <td>Integration tests across services needed</td>
+            
+            <td>Unit-testable orchestrator state machine</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Scalability</td>
+            
+            <td>High; no central bottleneck</td>
+            
+            <td>Orchestrator can become bottleneck at scale</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best for</td>
+            
+            <td>Simple linear flows, few steps</td>
+            
+            <td>Complex flows, many compensation paths</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Tools</td>
+            
+            <td>Kafka, RabbitMQ events</td>
+            
+            <td>Temporal, AWS Step Functions, Camunda</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
+  <div class="qa-controls">
+    <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
+    <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
+  </div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="S-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">What are the three states of a circuit breaker and what transitions them?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Closed (normal operation):</strong> requests pass through to the downstream service. Failures are counted. Transition to Open when: failure rate exceeds the threshold (e.g., 50% of calls in a 10-request sliding window), or slow call rate exceeds threshold (e.g., 80% of calls exceed 2s).
+<strong>Open (fail fast):</strong> all requests immediately return a failure or fallback without calling the downstream. A timer starts. Transition to Half-Open after the wait duration (e.g., 30s).
+<strong>Half-Open (probe):</strong> a limited number of probe requests are allowed through. If they succeed → transitions back to Closed. If they fail → returns to Open.
+<strong>Configuration knobs (Resilience4j):</strong> - <code>failureRateThreshold</code>: % failures to open (default 50) - <code>slidingWindowSize</code>: number of calls in the window - <code>waitDurationInOpenState</code>: how long to stay open before probing - <code>permittedNumberOfCallsInHalfOpenState</code>: probe count
+<strong>Fallback:</strong> always pair with a fallback — return cached data, a default, or a degraded response so the caller doesn't surface a raw failure.</div>
+        
+        <div class="staff-add">At Staff level, discuss where to place circuit breakers: at the API gateway (coarse-grained, no app code change) vs in the service client (fine-grained, per operation). Also: distinguish circuit breakers from retries. Retries handle transient errors on healthy services. Circuit breakers stop calls to persistently unhealthy services. Apply retries <em>inside</em> a closed circuit breaker, not outside — otherwise retries keep hammering an already-broken service.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','S-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">What is the Saga pattern and when would you use it over a distributed transaction?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">A saga is a sequence of local transactions coordinated via events or commands. Each step performs a local transaction and either publishes an event (choreography) or sends a command to the next participant (orchestration). On failure, previously completed steps are undone via <strong>compensating transactions</strong>.
+<strong>Why not 2PC (two-phase commit)?</strong> 2PC requires all participants to hold locks during the prepare phase, blocking other operations. In a microservices architecture spanning multiple independent services and databases, 2PC is impractical — it requires all participants to be available simultaneously, introduces tight coupling, and kills availability (if one participant is down, the whole transaction blocks). 2PC violates the "each service owns its data" principle.
+<strong>When to use sagas:</strong> - Any multi-service operation that must be atomic from a business perspective
+  (create order + reserve inventory + charge payment)
+- When strong consistency across services is impossible or undesirable - When compensating transactions can faithfully undo business effects
+<strong>When sagas are hard:</strong> - Compensations that can't be undone (you can't "unsend" an email — use a flag) - Long-running sagas with many steps and many failure paths - Maintaining correct ordering of compensations when multiple steps fail</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','S-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">What is the difference between an API Gateway and a service mesh? When do you need both?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>API Gateway:</strong> north-south traffic (external clients → internal services). Handles: authentication, rate limiting, routing, SSL termination, request/response transformation, documentation, API versioning. Operates at L7 (HTTP application layer). One gateway per product or organization.
+<strong>Service Mesh:</strong> east-west traffic (service → service inside the cluster). Handles: mTLS, retries, timeouts, circuit breaking, load balancing, distributed tracing, traffic shaping (canary). Operates at L4/L7 via sidecar proxies. Applied uniformly across all services without app code changes.
+<strong>Overlap:</strong> both can do load balancing, retries, and observability at their respective layers. But they serve fundamentally different traffic directions.
+<strong>When you need both:</strong> large orgs with many internal services. The API gateway secures and routes external traffic; the service mesh provides internal zero-trust networking and consistent observability without per-service implementation.
+<strong>When a gateway is enough:</strong> early stage, few services, internal calls are simple. Add a mesh when internal security (mTLS) and consistent cross-service observability become pain points.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','S-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-04">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">How does the Outbox pattern guarantee at-least-once event delivery?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Problem:</strong> after a service writes to its DB, it must publish an event. If the app publishes to the broker and then the process crashes before the DB commits (or vice versa), you get inconsistency: DB updated but no event, or event published but DB rolled back.
+<strong>Outbox pattern:</strong> 1. Within a single local DB transaction, write both the business record AND an
+   <code>outbox_events</code> row: <code>{id, aggregate_type, aggregate_id, event_type, payload, created_at}</code>
+2. Transaction commits atomically — both or neither 3. A separate relay process reads unpublished outbox rows and publishes them to the
+   broker (Kafka, SQS)
+4. On successful publish, mark the row as published (or delete it)
+<strong>Relay options:</strong> - <strong>Polling:</strong> relay polls <code>outbox_events WHERE published = false</code> every N seconds.
+  Simple, slightly delayed.
+- <strong>CDC (Debezium):</strong> captures DB changes via transaction log (binlog/WAL) and streams
+  them to Kafka without polling. Near-real-time, lower DB load.</p>
+<p><strong>At-least-once:</strong> if the relay crashes after publishing but before marking as published, it republishes. Consumers must be idempotent (deduplicate by event ID).</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','S-04',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-05">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">How would you implement distributed tracing across services?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>Distributed tracing connects a single user request across all the services it touches into a single <strong>trace</strong>, composed of <strong>spans</strong> (one per operation).
+<strong>How it works:</strong> 1. The first service (or API gateway) generates a <code>trace-id</code> and a <code>span-id</code> 2. These are propagated via HTTP headers: <code>traceparent</code> (W3C standard), or
+   <code>X-B3-TraceId</code>/<code>X-B3-SpanId</code> (Zipkin B3 format)
+3. Each downstream service reads the incoming headers, creates a child span
+   (inheriting the trace-id), does its work, and reports the span to a collector
+4. The tracing backend (Jaeger, Tempo, Zipkin) assembles spans into a trace waterfall
+<strong>Instrumentation:</strong> - <strong>Auto-instrumentation:</strong> agent-based (Java agent, OpenTelemetry SDK) — instruments
+  HTTP clients, DB drivers, message consumers automatically
+- <strong>Manual spans:</strong> add spans around business-critical operations not covered by
+  auto-instrumentation</p>
+<p><strong>OpenTelemetry</strong> is now the standard: vendor-neutral SDK that exports to any backend (Jaeger, Zipkin, Tempo, Datadog, Honeycomb).
+<strong>Sampling:</strong> never trace 100% in production. Use adaptive sampling: trace 100% of errors, 1–5% of successful requests. Head-based or tail-based sampling.</p></div>
+        
+        <div class="staff-add">At Staff level: address trace propagation through async boundaries. When a service publishes to Kafka, the trace context must go into the message headers (<code>traceparent</code>). The consumer extracts it and creates a linked span — this is a different trace than the producer's (async), but they're linked via the message ID. Tools like OpenTelemetry's Kafka instrumentation handle this automatically. Also: discuss sampling strategy design — tail-based sampling (keep traces with errors or high latency) is more useful but harder to implement than head-based.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','S-05',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-06">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">What is the Strangler Fig pattern and how do you apply it when decomposing a monolith?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Named after the fig tree that grows around a host tree, gradually replacing it. Instead of a risky big-bang rewrite, you incrementally extract functionality from the monolith while keeping it running.
+<strong>Steps:</strong> 1. Put an API gateway (or routing layer) in front of the monolith 2. Choose the first capability to extract — prefer low-coupling, high-value, or
+   high-change-frequency modules. Avoid shared DB tables.
+3. Build the new microservice for that capability 4. Run it in shadow mode: route production traffic to both; compare responses; fix
+   discrepancies
+5. Gradually shift traffic: 1% → 10% → 50% → 100% (canary via feature flag or
+   gateway weight)
+6. Remove the corresponding code from the monolith 7. Repeat
+<strong>Key enablers:</strong> the gateway provides a stable external URL regardless of where the code lives. The monolith and new service coexist; no forced cutover.
+<strong>Pitfall:</strong> don't extract services before untangling the shared database. Extract the data ownership first (create a separate schema or sidecar DB) before splitting the service boundary.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','S-06',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-07">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">How do you handle data consistency across services when a saga step fails midway?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>A saga step failure leaves some local transactions committed and some not. Consistency is restored via <strong>compensating transactions</strong> that undo the committed steps.
+<strong>Compensation requirements:</strong> - Every saga step must have a corresponding compensating transaction defined upfront - Compensations must be <strong>idempotent</strong> — they may be retried on failure - Compensations must be <strong>semantically correct</strong>: undoing "charge $100" is "refund $100",
+  not just "delete the charge record"
+- Some operations can't be undone (sending an email). Use a <strong>pivot transaction</strong>:
+  schedule the irreversible action only after all preceding steps succeed, or use a
+  flag to suppress the action if the saga is later rolled back</p>
+<p><strong>Failure handling in orchestration:</strong> - Orchestrator detects failure (timeout, explicit failure response) - Triggers compensations in reverse order - Compensations are retried with backoff on failure; if all retries fail,
+  saga enters a "stuck" state requiring manual intervention — alert on this</p>
+<p><strong>Semantic lock (countermeasure):</strong> mark the resource as "pending" during the saga. Prevents other transactions from reading a stale committed intermediate state.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','S-07',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-08">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-08</span>
+        <span class="acc-question">What is the Bulkhead pattern and how does it prevent cascading failures?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The bulkhead isolates resource pools (threads, connections, semaphores) per downstream dependency. Without it, a slow downstream A blocks threads → shared thread pool exhausted → requests to healthy downstream B also queue → entire service fails.
+<strong>Thread pool isolation:</strong> Each downstream gets a dedicated thread pool (e.g., 10 threads for Payment service, 10 for Inventory service). A slow Payment call blocks only its 10 threads; Inventory calls still have their pool. Total threads = sum of pools + core app threads.
+<strong>Semaphore isolation:</strong> Instead of separate threads, limit concurrent calls via a semaphore (counter). Cheaper (no thread switching), but if the downstream blocks a thread, that thread is still occupied — you just cap concurrent callers. Good for fast, in-process calls.
+<strong>In practice (Resilience4j):</strong> <code>java BulkheadConfig config = BulkheadConfig.custom()
+    .maxConcurrentCalls(10)
+    .maxWaitDuration(Duration.ofMillis(500))
+    .build();</code>
+<strong>Infrastructure level:</strong> Kubernetes resource requests/limits — each pod gets bounded CPU/memory so a runaway service can't starve neighbors.
+Pair bulkhead with circuit breaker: bulkhead limits load; circuit breaker stops calls to failed services. Together they contain failures within defined boundaries.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','S-08',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-09">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-09</span>
+        <span class="acc-question">How would you design service-to-service authentication without sharing secrets?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>mTLS (Mutual TLS):</strong> Both client and server present certificates. A trusted CA (Vault PKI, cert-manager) issues short-lived certificates to each service. Each service verifies the other's cert. No shared secret — each service has its own cert/key pair. Cert rotation is automatic. In a service mesh (Istio), this happens at the sidecar level without app code changes.
+<strong>JWT with service identity:</strong> Services obtain a short-lived JWT from an identity provider (Vault, Keycloak) using their service account credentials. Include service identity as a claim. Downstream services verify the JWT signature (public key). Tokens expire quickly (5–15 min); services refresh automatically.
+<strong>Kubernetes ServiceAccount tokens:</strong> Kubernetes injects a ServiceAccount token into each pod. Services can use this to authenticate to other Kubernetes-native services. Bound tokens include namespace and service account claims — downstream can authorize based on these.
+<strong>Best practice:</strong> use mTLS at the transport layer (mesh handles it) for encryption and identity; combine with AuthorizationPolicy (which service can call what) enforced by the mesh control plane. This gives you encryption, authentication, and authorization without app code changes.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','S-09',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-10">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-10</span>
+        <span class="acc-question">What is CQRS and when should you apply it?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>CQRS (Command Query Responsibility Segregation) separates write operations (commands that change state) from read operations (queries that return data). The write model handles validation and business rules; the read model is a denormalized projection optimized for specific query patterns.
+<strong>Why separate them?</strong> - Write model enforces invariants (requires consistency); read model optimizes
+  for query performance (can be denormalized, cached, eventually consistent)
+- Read and write loads are typically asymmetric (10:1 reads:writes) — scale
+  independently
+- Read projections can be tailored per consumer (dashboard view, search index,
+  mobile summary) without changing the write model</p>
+<p><strong>Implementation patterns:</strong> - <strong>Simple CQRS (no event sourcing):</strong> same DB, separate code paths. Write path
+  updates normalized tables; read path queries denormalized views or materialized views.
+- <strong>Full CQRS + Event Sourcing:</strong> commands produce events; events update separate
+  read stores (Elasticsearch, Redis, read DB). Read stores are eventually consistent.</p>
+<p><strong>When NOT to use:</strong> - Simple CRUD applications — adds complexity without benefit - When strong consistency between write and read is required - Small teams without the operational capacity to maintain dual stores
+CQRS is a pattern, not a requirement. Apply it to specific aggregates/domains with high read/write asymmetry, not globally across the entire system.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','S-10',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="ST-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">Design a reliable order processing system using the saga pattern across Order, Inventory, and Payment services.</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Flow (Orchestration with Temporal):</strong>
+<code>CreateOrderSaga:
+  1. orders-service: create order (status=PENDING)
+  2. inventory-service: reserve items
+  3. payment-service: charge customer
+  4. orders-service: confirm order (status=CONFIRMED)
+  5. notification-service: send confirmation (async, fire-and-forget)</code>
+<strong>Compensations (reverse order on failure):</strong> - Payment fails: release inventory → cancel order - Inventory fails: cancel order (no payment taken yet) - Confirmation fails: release payment → release inventory → cancel order
+<strong>Implementation details:</strong> - Orchestrator: Temporal workflow. Each activity is idempotent (activity ID as
+  idempotency key). Temporal handles retries, timeouts, and state persistence.
+- Each service exposes: <code>reserve()</code>, <code>release()</code> (compensation), <code>charge()</code>, <code>refund()</code>.
+  All idempotent by saga step ID.
+- Order status machine: PENDING → INVENTORY_RESERVED → PAYMENT_CHARGED → CONFIRMED
+  | INVENTORY_FAILED → CANCELLED | PAYMENT_FAILED → INVENTORY_RELEASED → CANCELLED
+- Semantic lock: order in PENDING blocks concurrent saga on same order.
+<strong>Observability:</strong> - Trace ID propagated through all saga steps - Saga state persisted in Temporal — visible in Temporal UI - Metrics: saga success rate, step failure rate, compensation rate, saga duration P99 - Alert: sagas stuck in non-terminal state &gt; 5 min → manual intervention queue</div>
+        
+        <div class="staff-add">Principal-level: discuss the dual-write problem in each service. When inventory-service reserves items, it must atomically update inventory AND record the saga step. Use the outbox pattern: <code>UPDATE inventory SET reserved = reserved + N</code> and <code>INSERT INTO outbox (saga_id, step='inventory_reserved')</code> in one transaction. The orchestrator gets the step acknowledgment reliably. Also: what happens when Temporal itself is down? Design for this: sagas in-flight pause; no new sagas start; existing inventory holds don't expire (or have a generous timeout). Temporal's durable execution model resumes sagas transparently after recovery.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','ST-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">How do you implement and observe a canary deployment in a microservices environment using a service mesh?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Goal:</strong> route a small percentage of traffic to a new version; compare error rate, latency, and business metrics; roll forward or roll back automatically.
+<strong>Istio-based canary:</strong> <code>yaml # VirtualService: 5% to v2, 95% to v1 - destination: { host: orders-service, subset: v1 }
+  weight: 95
+- destination: { host: orders-service, subset: v2 }
+  weight: 5
+--- # DestinationRule: defines v1 and v2 subsets by pod label subsets: - name: v1
+  labels: { version: v1 }
+- name: v2
+  labels: { version: v2 }</code>
+<strong>Progressive delivery automation (Flagger/Argo Rollouts):</strong> - Start at 5% → auto-promote to 10% → 20% → 50% → 100% on success - Rollback trigger: error rate &gt; 1% OR P99 latency &gt; SLO threshold - Analysis period: 5 minutes at each step before promoting - Metrics from Prometheus/Istio telemetry — no manual intervention needed
+<strong>What to measure per canary step:</strong> - HTTP 5xx error rate (primary signal) - P99 request latency - Business metrics (order conversion rate, payment success rate via custom Prometheus metrics) - DB error rate, downstream dependency error rate
+<strong>Header-based routing:</strong> before percentage rollout, route internal testers to v2 via <code>X-Canary: true</code> header. Validates v2 with real data before any external traffic.
+<strong>Database migration:</strong> canary deployments require backward-compatible DB changes. v1 and v2 must read/write the same schema. Use expand-contract for schema changes.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','ST-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">How do you approach capacity planning and resource isolation in a microservices cluster?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Kubernetes resource model:</strong> every container declares <code>requests</code> (guaranteed) and <code>limits</code> (maximum). The scheduler places pods on nodes with sufficient requested resources. <code>requests</code> = what the container needs under normal load. <code>limits</code> = cap to prevent runaway consumption.
+<strong>Setting requests correctly:</strong> - Profile under realistic load (load test): P95 CPU and memory during peak - Set <code>requests</code> to P95 steady-state, <code>limits</code> to 2× requests (headroom for bursts) - For memory: set <code>requests == limits</code> to avoid OOMKilled evictions under pressure
+  (memory is not compressible like CPU)</p>
+<p><strong>Bulkheads at cluster level:</strong> - <strong>Namespace resource quotas:</strong> cap total CPU/memory per team namespace. Prevents
+  one team's runaway service from exhausting cluster capacity.
+- <strong>LimitRange:</strong> sets default requests/limits for pods that don't specify them. - <strong>Priority classes:</strong> critical services (auth, payment) get higher priority — scheduler
+  evicts lower-priority pods first under pressure.</p>
+<p><strong>Autoscaling:</strong> - HPA (Horizontal Pod Autoscaler): scale pods on CPU, memory, or custom metrics
+  (Kafka consumer lag, queue depth via KEDA)
+- VPA (Vertical Pod Autoscaler): recommends correct requests/limits based on observed usage - Cluster Autoscaler: adds/removes nodes based on pending pod pressure
+<strong>Capacity planning process:</strong> - Baseline: measure CPU/memory/RPS per service under current load - Forecast: project traffic growth (30/60/90 day) - Load test: validate the new service handles projected peak × 1.5 safety margin - Review: revisit resource settings quarterly; shrink over-provisioned services</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','ST-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-04">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-04</span>
+        <span class="acc-question">How do you handle breaking changes in inter-service event contracts?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Schema evolution strategies:</strong>
+<strong>Backward-compatible (producer adds):</strong> - Add optional fields: consumers using older schema ignore unknown fields
+  (if consumer is lenient — Avro, Protobuf handle this natively; JSON requires
+  lenient deserialization)
+- Avro/Protobuf evolution rules: add fields with defaults; never remove or rename
+<strong>Breaking changes (producer removes/renames):</strong> - <strong>Dual-write transition:</strong> producer publishes both v1 and v2 events simultaneously.
+  Consumers migrate to v2 at their own pace. Producer drops v1 after all consumers
+  migrate (tracked via consumer group lag metrics).
+- <strong>Event versioning:</strong> include <code>schema_version: "v2"</code> in event headers. Consumers
+  route by version — handle v1 and v2 with separate handlers during transition.
+- <strong>Schema registry (Confluent):</strong> enforces compatibility rules (BACKWARD, FORWARD,
+  FULL) before a schema can be registered. CI validates new schema against registry
+  before deploy.</p>
+<p><strong>Consumer-driven contract testing (Pact):</strong> - Consumers publish their expected event schema as a pact - Producer CI runs against the pact broker; build fails if new event schema breaks
+  a consumer contract
+- Catches breaking changes before they reach production
+<strong>Pitfall:</strong> never share a code library of event classes between services — it couples service deployments. Each service owns its own event schema representation. Use a schema registry for the canonical schema, not a shared library.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','ST-04',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="P-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How do you decide the right service granularity for a new platform, and how does team topology influence it?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Conway's Law:</strong> your architecture mirrors your communication structure. A monolith built by one team; microservices built by many teams. The implication: design team structure and service boundaries together, not separately.
+<strong>Team Topologies framework:</strong> - <strong>Stream-aligned teams:</strong> each team owns a product domain end-to-end
+  (Orders, Payments, Catalog). Services align to team boundaries.
+- <strong>Platform team:</strong> owns shared infrastructure (auth, observability, CI/CD, service
+  mesh). Other teams consume it as self-service.
+- <strong>Enabling teams:</strong> temporary; help stream teams adopt new patterns. - <strong>Complicated-subsystem teams:</strong> own high-expertise components (ML pipeline,
+  real-time pricing engine).</p>
+<p><strong>Service granularity principles:</strong> - One service per team (not per class or DB table). If two services are always
+  deployed together, they're one service owned by one team.
+- Service size: small enough to be understood by the team, large enough to be
+  worth the operational overhead. "How long to onboard a new engineer?" is a good
+  proxy.
+- Start coarser, split later. Merging overly-split services is much harder than
+  splitting an oversized one.</p>
+<p><strong>Wrong granularity signals:</strong> - Teams routinely coordinate multi-service deployments → boundaries are wrong - Teams step on each other's changes in the same service → split needed - A service has very low traffic but high operational cost → merge - Services that can't be tested independently → excessive coupling
+<strong>My framing for the interview:</strong> microservices are an organizational scaling pattern as much as a technical one. You don't adopt microservices because it's better architecture; you adopt it because your team structure demands independent deployment velocity. If you have 5 engineers, you almost certainly shouldn't have 20 services.</p></div>
+        
+        <div class="staff-add">Push further: inverse Conway maneuver — deliberately restructure teams to produce the desired architecture. If you want loosely coupled services, create loosely coupled teams with clear ownership. Top-down: architect the desired domain model first, then restructure teams to align. Bottom-up: observe where teams naturally coordinate and set boundaries there. Both directions are valid; the key is making the decision explicit rather than letting Conway's Law operate by default.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','P-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="P-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">P-02</span>
+        <span class="acc-question">A critical multi-step business flow (order → payment → fulfillment) is experiencing 2% saga failure rate causing stuck orders. How do you diagnose and fix this at scale?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Immediate diagnosis:</strong> - Pull stuck sagas from Temporal/Step Functions dashboard. Group by: which step
+  fails, which service, what error type (timeout? business exception? infra error?)
+- Correlate with: deployment times (did failure rate increase after a deploy?),
+  infrastructure events (DB slow query, network blip), specific customers/order types
+- Check compensation success rate: are compensations themselves failing? Double-failure
+  is the worst case — payment charged, inventory not reserved, compensation can't refund</p>
+<p><strong>Root cause categories:</strong> - <strong>Flaky downstream</strong> (payment processor 2% timeout): add retry with backoff inside
+  the saga step; ensure idempotency key on processor call so retries don't double-charge
+- <strong>Non-idempotent step being retried:</strong> audit every step — does retrying produce
+  duplicate side effects? Fix: idempotency key per saga step ID
+- <strong>Timeout too tight:</strong> step timeout &lt; downstream P99. Instrument downstream P99
+  per saga step; set timeout at P99 + 20% buffer
+- <strong>Data race in semantic lock:</strong> two sagas on the same order_id competing. Fix:
+  advisory lock or optimistic concurrency (version field) on the order record</p>
+<p><strong>Operational fixes (immediate):</strong> - Manual resolution workflow: ops console to inspect stuck sagas, see exact state,
+  trigger retry or rollback. This unblocks customers now.
+- Alert: stuck saga &gt; 10 min → PagerDuty. SLA: resolve or escalate within 30 min.
+<strong>Systemic fixes (weeks):</strong> - Saga observability dashboard: success rate, step failure rate, median/P99 duration,
+  compensation rate — per saga type, per step
+- Chaos engineering: inject failures at each saga step; validate compensations work;
+  validate stuck saga detection and alerting fire correctly
+- Backpressure: if saga failure rate &gt; 5%, pause new saga creation (circuit breaker
+  at saga entry point) rather than accumulating more stuck sagas</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('microservices','P-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">Design an E-commerce Order Processing System with Sagas</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Design the backend for an e-commerce order placement flow. When a customer checks out, the system must: validate inventory, charge payment, allocate warehouse stock, and send a confirmation email. Any step can fail. The system processes 50,000 orders per hour at peak with a P99 checkout latency SLO of 3 seconds.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Each of the 4 steps is owned by a separate microservice with its own database</li><li>Payment charges must never be duplicated on retry</li><li>Partial failures must leave no money charged without inventory reserved</li><li>The confirmation email is best-effort (failure is acceptable)</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Saga orchestration with Temporal:</strong> Use an orchestrated saga — the flow is complex enough (4 steps, 3 compensations) that choreography would make the flow implicit and hard to debug. Temporal provides durable execution: the workflow state is persisted; a crash resumes transparently. The saga orchestrator is a Temporal Workflow; each service call is a Temporal Activity.</li><li><strong>Idempotency on payment:</strong> The Payment Activity generates an idempotency key: <code>saga_id + "_charge"</code>. The payment processor is called with this key. On retry (Temporal retries activities automatically), the same key is sent — the processor deduplicates and returns the original result. No double-charge possible.</li><li><strong>Compensation design:</strong> Steps and compensations (in reverse order): ④ Email fails → no compensation (best-effort, order is already confirmed). ③ Warehouse allocation fails → refund payment → release inventory reservation → cancel order. ② Payment fails → release inventory → cancel order. ① Inventory fails → cancel order. Each compensation is idempotent (compensation ID = <code>saga_id + "_release_inventory"</code> etc).</li><li><strong>Latency SLO:</strong> 3s P99 with 4 sequential service calls. Budget per call: ~600ms. Use Temporal's <code>scheduleToCloseTimeout</code> per activity. Inventory check and payment authorization can be parallelized (fan-out within the Temporal workflow) if business rules allow — reduces sequential latency to 2 calls deep instead of 4.</li><li><strong>Email as fire-and-forget:</strong> After the saga succeeds, publish an <code>OrderConfirmed</code> event to Kafka. Email service consumes asynchronously. Failure doesn't affect the checkout response. Separate from the saga — don't block the customer on email delivery.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Using 2PC across services — requires all services available simultaneously, kills scalability</li><li>Non-idempotent payment step — retry on Temporal timeout causes duplicate charges</li><li>Compensation that itself isn't idempotent — compensation retries cause double-refunds</li><li>Including email in the synchronous saga — email latency and failures break checkout</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Design a Resilient Microservices System That Survives Downstream Failures</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Your order-service calls three downstream services: inventory-service, pricing-service, and recommendation-service. In production, you experience cascading failures: when recommendation-service becomes slow (due to an ML model load spike), order-service threads fill up waiting for it, and inventory and pricing calls also start failing even though those services are healthy.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Order display (inventory + pricing) is critical; recommendations are nice-to-have</li><li>{'SLO': 'order page loads in < 1s P99; 99.9% availability'}</li><li>Recommendation-service has unpredictable latency spikes lasting 30–120 seconds</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Root cause: no bulkhead or circuit breaker on recommendation-service.</strong> All three downstream calls share the same HTTP client thread pool. Slow recommendation calls saturate the pool; inventory and pricing calls queue and time out even though those services are healthy. This is a cascading failure caused by resource exhaustion.</li><li><strong>Bulkhead: separate thread pools per downstream:</strong> Create dedicated thread pools: <code>inventory-pool (20 threads)</code>, <code>pricing-pool (10 threads)</code>, <code>recommendation-pool (5 threads)</code>. Recommendation slowness can exhaust only its 5-thread pool. Inventory and pricing pools are unaffected.</li><li><strong>Circuit breaker on recommendation-service:</strong> Configure Resilience4j circuit breaker: open when 50% of calls in a 10-call window fail or exceed 800ms. In Open state: immediately return the fallback (empty recommendations list) without calling the service at all. Probe every 30s (Half-Open). This stops threads from being consumed by a broken service.</li><li><strong>Fallback strategy:</strong> - Recommendation-service fallback: return <code>[]</code> or cached recommendations from Redis
+  (last known good result per user). Degrade gracefully — page loads without recs.
+- Inventory/pricing: no fallback — these are critical. If they fail, surface an error
+  page with retry. Do not show stale inventory to avoid overselling.</li><li><strong>Timeout hierarchy:</strong> Recommendation timeout: 200ms (nice-to-have; fail fast). Inventory + pricing timeout: 500ms (critical; more budget). Order page total: 1000ms. With parallelism: fan-out all 3 calls simultaneously; recommendation circuit breaks fast if unhealthy; page renders with inventory + pricing + whatever recommendations returned.</li><li><strong>Observability:</strong> Dashboard: circuit breaker state per downstream, thread pool utilization, fallback rate. Alert: recommendation fallback rate &gt; 10% for &gt; 5 minutes → investigate. This separates "recommendation service is down" (acceptable, fallback active) from "circuit breaker rate on inventory is opening" (critical, page down).</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Shared thread pool for all downstream calls — one slow service starves others</li><li>No circuit breaker — threads kept occupied until timeout on every call to broken service</li><li>Same fallback strategy for critical and nice-to-have services — inventory should never silently degrade</li><li>Retry recommendation-service on failure without circuit breaker — makes the cascade worse by retrying into a slow service</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Decompose a Payment Monolith into Microservices</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A 7-year-old payment processing monolith handles: customer wallet management, transaction history, fraud detection, payment gateway integration, and settlement/reconciliation. It processes $2B/year. The team of 40 engineers frequently breaks each other's work, deployments take 2 hours with high rollback risk, and the fraud detection ML team needs to iterate rapidly but is blocked by monolith release cycles.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Zero tolerance for double-charges or lost transactions (financial compliance)</li><li>PCI-DSS compliance must be maintained throughout migration</li><li>99.99% availability SLO (< 1 hour downtime per year)</li><li>40 engineers must keep shipping features during the migration</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Start with the strangler fig, not a rewrite:</strong> Put an API gateway in front of the monolith. All traffic enters via the gateway. Extract services one at a time; gateway routes each extracted capability to the new service, unextracted capabilities still go to the monolith. No big-bang cutover. Monolith and microservices coexist until migration is complete.</li><li><strong>First extraction: fraud detection (highest ROI, least coupling):</strong> The fraud ML team has the clearest motivation to move fast. Fraud detection is read-only (it doesn't write transactions — it scores them). Easier to extract first: build the fraud-service, run in shadow mode (monolith still makes fraud decisions; fraud-service runs in parallel and we compare results). After 4 weeks of comparison, route 5% of fraud decisions to fraud-service, ramp to 100% over 4 weeks.</li><li><strong>Database decomposition — the hardest part:</strong> The monolith uses one shared database. Transactions, wallets, and fraud signals are in the same schema. Strategy: (1) identify tables owned by each domain, (2) create separate schemas within the same DB cluster (logical separation, no data movement yet), (3) enforce that only the new service writes to its schema; monolith reads via database views or API calls, (4) physically move schemas to separate DB instances once code separation is stable.</li><li><strong>Financial data integrity during migration:</strong> Use the outbox pattern for every financial transaction: write to <code>transactions</code> table and <code>outbox_events</code> in a single local transaction. Relay publishes to Kafka for downstream consumers (reconciliation, audit). No event is lost even if the consumer is down. Dual-write during migration: write to both old schema and new service's schema; reconciliation job validates they match.</li><li><strong>PCI-DSS compliance:</strong> PCI scope follows cardholder data. Isolate payment-gateway-service (the only component touching raw card data) in a PCI-scoped namespace with network policies, mTLS, and audit logging. All other services work with tokenized payment references — not in PCI scope. This reduces audit surface and lets the other 39 engineers work outside PCI scope.</li><li><strong>Availability during migration:</strong> Canary all cutovers: 1% → 5% → 20% → 100% with automatic rollback on error rate spike. Maintain the monolith as a fallback for 4 weeks after each extraction goes to 100%. Runbook for every migration step: rollback procedure, health checks, alert thresholds.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Big-bang rewrite — too risky for a $2B/year financial system; monolith stays live</li><li>Extracting services before separating data ownership — shared DB means services are still coupled</li><li>Not running shadow mode before cutting traffic — undocumented behavior differences will cause incidents</li><li>Putting PCI data in multiple services — expands audit scope to all services handling raw card data</li><li>Ignoring the outbox pattern for financial transactions — dual-write without it risks lost transactions</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>// ── Theme (localStorage persistence) ─────────────────────────────────────
+function toggleTheme() {
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  h.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+// ── Tabs (with URL hash sync) ─────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+  history.replaceState(null, '', '#' + name);
+}
+
+// ── Accordion (JS-driven scrollHeight animation) ───────────────────────────
+function setAccOpen(item, open) {
+  const body = item.querySelector('.acc-body');
+  if (open) {
+    item.classList.add('open');
+    const h = body.scrollHeight;
+    body.style.maxHeight = h + 'px';
+    function onEnd(e) {
+      if (e.propertyName !== 'max-height') return;
+      body.removeEventListener('transitionend', onEnd);
+      if (item.classList.contains('open')) body.style.maxHeight = 'none';
+    }
+    body.addEventListener('transitionend', onEnd);
+  } else {
+    if (!body.style.maxHeight || body.style.maxHeight === 'none') {
+      body.style.maxHeight = body.scrollHeight + 'px';
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      item.classList.remove('open');
+      body.style.maxHeight = '0';
+    }));
+  }
+}
+
+function toggleAcc(header) {
+  setAccOpen(header.parentElement, !header.parentElement.classList.contains('open'));
+}
+
+// ── Expand / collapse all Q&A ─────────────────────────────────────────────
+function toggleAllAcc(btn) {
+  const items = [...document.querySelectorAll('#qa .acc-item')].filter(i => i.style.display !== 'none');
+  const allOpen = items.every(i => i.classList.contains('open'));
+  items.forEach(i => setAccOpen(i, !allOpen));
+  btn.textContent = allOpen ? 'Expand All' : 'Collapse All';
+}
+
+// ── Q&A keyword filter ────────────────────────────────────────────────────
+function filterQA(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.acc-item').forEach(item => {
+    const text = item.querySelector('.acc-question').textContent.toLowerCase();
+    item.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+  // Reset expand-all label whenever filter changes
+  const btn = document.querySelector('.expand-all-btn');
+  if (btn) btn.textContent = 'Expand All';
+}
+
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
+// ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
+document.addEventListener('DOMContentLoaded', function () {
+  // Sync toggle label with the actual current theme
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const label = document.getElementById('toggle-label');
+  if (label) label.textContent = isDark ? 'LIGHT MODE' : 'DARK MODE';
+
+  // Restore active tab from URL hash
+  const hash = location.hash.slice(1);
+  const validTabs = ['overview', 'deepdive', 'qa', 'scenarios'];
+  if (hash && validTabs.includes(hash)) {
+    const tab = document.querySelector(`.tab[data-tab="${hash}"]`);
+    if (tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(hash).classList.add('active');
+    }
+  }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
+
+  // Copy-to-clipboard on CLI command blocks
+  document.querySelectorAll('.cmd').forEach(cmd => {
+    cmd.title = 'Click to copy';
+    cmd.addEventListener('click', function () {
+      navigator.clipboard.writeText(this.textContent.trim()).then(() => {
+        const orig = this.style.opacity;
+        this.style.opacity = '0.4';
+        setTimeout(() => { this.style.opacity = orig; }, 600);
+      }).catch(() => {});
+    });
+  });
+});
+</script>
+</body>
+</html>
