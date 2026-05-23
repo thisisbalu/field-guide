@@ -1,0 +1,898 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# JVM Tuning — Interview Field Guide Content
+# Edit this file to update the guide. Run: python generate.py jvm-tuning
+# ══════════════════════════════════════════════════════════════════════════════
+
+meta:
+  id: jvm-tuning
+  title: JVM Tuning
+  title_short: JVM
+  subtitle: "// GC algorithms · heap sizing · thread tuning · profiling · memory leaks · senior → principal"
+  description: "JVM internals, garbage collector tuning, memory management, and performance profiling for Java applications."
+  category: Backend
+  icon: "☕"
+
+colors:
+  toggle_light: "#d97706"
+  toggle_dark: "#fbbf24"
+  light_vars: >-
+    --accent:#d97706;--accent2:#0369a1;--accent3:#059669;
+    --highlight-bg:#fffbeb;--highlight-text:#d97706;--highlight-border:#f59e0b;
+    --your-exp-bg:rgba(5,150,105,.06);--your-exp-border:rgba(5,150,105,.2);--your-exp-text:#065f46;
+    --acc-hover:rgba(217,119,6,.04);--acc-open-border:#d97706;--acc-open-bg:rgba(217,119,6,.03);
+    --num-color:#d97706;--num-bg:rgba(217,119,6,.1);
+    --tag-color:#d97706;--tag-bg:rgba(217,119,6,.08);--tag-border:rgba(217,119,6,.2);
+    --flow-arrow:#d97706;--h1-from:#92400e;--h1-to:#d97706;
+    --badge-color:#92400e;--stat-num:#d97706;
+    --tab-active-color:#d97706;--tab-active-bg:rgba(217,119,6,.08);--tab-active-border:#d97706;
+    --section-title:#d97706;--concept-title:#92400e;
+    --cheat-head-bg:#92400e;--cheat-head-text:#ffffff;--cheat-key:#92400e;
+    --cmd-bg:#fffbeb;--cmd-text:#92400e;
+  dark_vars: >-
+    --accent:#fbbf24;--accent2:#38bdf8;--accent3:#10b981;
+    --highlight-bg:#451a03;--highlight-text:#fbbf24;--highlight-border:#f59e0b;
+    --your-exp-bg:rgba(16,185,129,.1);--your-exp-border:rgba(16,185,129,.3);--your-exp-text:#6ee7b7;
+    --acc-hover:rgba(251,191,36,.04);--acc-open-border:#fbbf24;--acc-open-bg:rgba(251,191,36,.03);
+    --num-color:#fbbf24;--num-bg:rgba(251,191,36,.1);
+    --tag-color:#fbbf24;--tag-bg:rgba(251,191,36,.08);--tag-border:rgba(251,191,36,.2);
+    --flow-arrow:#fbbf24;--h1-from:#fbbf24;--h1-to:#f59e0b;
+    --badge-color:#fbbf24;--stat-num:#fbbf24;
+    --tab-active-color:#fbbf24;--tab-active-bg:rgba(251,191,36,.08);--tab-active-border:#fbbf24;
+    --section-title:#fbbf24;--concept-title:#fbbf24;
+    --cheat-head-bg:#451a03;--cheat-head-text:#fbbf24;--cheat-key:#fbbf24;
+    --cmd-bg:#451a03;--cmd-text:#fbbf24;
+
+# ── OVERVIEW ──────────────────────────────────────────────────────────────────
+overview:
+  concepts:
+    - title: "🏗️ JVM Memory Areas"
+      body: >
+        The JVM divides memory into distinct regions:
+
+        **Heap:** where objects live. Divided into **Young Generation** (Eden + Survivor spaces S0/S1)
+        and **Old Generation** (Tenured). Most objects die young (generational hypothesis) — GC
+        exploits this by collecting Young Gen far more frequently.
+
+        **Metaspace** (Java 8+, replaced PermGen): class metadata, method bytecode, interned
+        strings. Grows dynamically (bounded by `-XX:MaxMetaspaceSize`). PermGen was fixed-size
+        and a common source of `OutOfMemoryError: PermGen space` errors.
+
+        **Stack:** per-thread. Holds stack frames (local variables, operand stack). Default
+        512KB–1MB per thread (`-Xss`). Many threads + large stacks = significant memory.
+
+        **Native/off-heap:** used by NIO DirectBuffers, mapped files, JVM internals. Not managed
+        by the GC — leaks are silent until the process crashes.
+
+        **Code Cache:** JIT-compiled native code. Bounded by `-XX:ReservedCodeCacheSize` (default 240MB in Java 11+).
+      tags:
+        - {text: "heap = GC-managed", color: blue}
+        - {text: "metaspace = dynamic", color: green}
+        - {text: "stack per thread", color: orange}
+
+    - title: "♻️ Garbage Collection Basics"
+      body: >
+        GC reclaims memory by identifying unreachable objects. Key concepts:
+
+        **Minor GC (Young Gen):** fast (milliseconds). Runs frequently. Live objects copied
+        from Eden to a Survivor space. Objects surviving enough GCs (threshold controlled by
+        `-XX:MaxTenuringThreshold`) are promoted to Old Gen.
+
+        **Major/Full GC (Old Gen or full heap):** slow (tens of milliseconds to seconds).
+        Stop-The-World pauses freeze all application threads. Triggered when Old Gen fills up.
+
+        **Stop-The-World (STW):** all application threads are paused while GC runs.
+        For low-latency applications, minimizing STW pause duration is the primary goal.
+
+        **GC trade-off triangle:** you can optimize for throughput (max CPU for the app),
+        latency (minimize pause durations), or memory footprint (minimize heap size). You
+        can't fully optimize all three simultaneously — choose your primary constraint first.
+      tags:
+        - {text: "Minor GC = fast", color: green}
+        - {text: "STW = latency killer", color: red}
+        - {text: "throughput vs latency", color: orange}
+
+    - title: "🗑️ GC Algorithms"
+      body: >
+        **Serial GC** (`-XX:+UseSerialGC`): single-threaded. Good for small heaps / single-core.
+
+        **Parallel GC** (`-XX:+UseParallelGC`): multiple threads for GC. Maximizes throughput.
+        High STW pauses. Good for batch processing where latency doesn't matter.
+
+        **G1 GC** (`-XX:+UseG1GC`, default since Java 9): divides heap into equal-sized regions.
+        Incremental collection — collects the most garbage-dense regions first. Targets a pause
+        time goal (`-XX:MaxGCPauseMillis=200`). Good balance of throughput and latency.
+        Best for most applications with heap > 4GB.
+
+        **ZGC** (`-XX:+UseZGC`, production since Java 15): ultra-low latency. Sub-millisecond
+        pauses regardless of heap size (tested up to 16TB). Concurrent — most work done while
+        app runs. Small throughput overhead (~15%). Best for latency-critical services.
+
+        **Shenandoah** (Red Hat, similar to ZGC): also sub-millisecond concurrent GC.
+        Available in OpenJDK builds.
+      tags:
+        - {text: "G1 = default, balanced", color: green}
+        - {text: "ZGC = sub-ms latency", color: blue}
+        - {text: "Parallel = max throughput", color: orange}
+
+    - title: "📏 Heap Sizing"
+      body: >
+        `-Xms` sets the initial heap size; `-Xmx` sets the maximum. Best practice: set
+        `-Xms == -Xmx` in production to avoid heap expansion pauses and to give the JVM
+        a predictable footprint. Heap expansion triggers a Full GC.
+
+        **Right-sizing:** size the heap so the **live data set** (objects that survive a
+        Full GC) fits comfortably. Rule of thumb: `Xmx = 2–3× live data set size`.
+        Too small → frequent GC. Too large → long Full GC pauses (GC scans all of heap).
+
+        **Container awareness (Java 10+):** the JVM now reads cgroup memory limits.
+        `-XX:MaxRAMPercentage=75.0` sets heap to 75% of the container's memory limit.
+        Default `MaxRAMPercentage` is 25% — too conservative for most Java apps.
+        Set to 70–80%, leaving headroom for the JVM itself (Metaspace, Code Cache, threads, native).
+
+        **Young Gen sizing:** `-XX:NewRatio=2` = Old Gen is 2× Young Gen (default for G1 this
+        is managed automatically). Larger Young Gen → less frequent Minor GC but larger pauses.
+      tags:
+        - {text: "Xms=Xmx in prod", color: green}
+        - {text: "MaxRAMPercentage in containers", color: blue}
+        - {text: "2-3x live data set", color: orange}
+
+    - title: "🔥 JIT Compilation"
+      body: >
+        The JVM interprets bytecode initially, then the JIT (Just-In-Time) compiler identifies
+        hot methods (called frequently) and compiles them to native machine code.
+
+        **Two JIT tiers (HotSpot):**
+        - **C1 (Client compiler):** fast compilation, light optimization. Good for short-lived code.
+        - **C2 (Server compiler):** slow compilation, aggressive optimization. Used for hot code paths.
+        - **Tiered compilation** (default since Java 8): starts with C1, promotes hot methods to C2.
+
+        **JIT warmup:** a freshly started JVM performs worse than a warmed-up one.
+        The first 30–120 seconds may show higher latency and lower throughput while C2 is compiling
+        hot methods. This affects: cold starts in serverless/containers, post-deploy canary tests.
+
+        **GraalVM Native Image:** ahead-of-time (AOT) compile Java to a native binary. Zero
+        warmup, much lower memory footprint, fast startup (milliseconds). Trade-off: no JIT
+        optimization at runtime; some Java reflection/dynamic features need configuration;
+        slower peak throughput than JIT after warmup. Best for CLI tools and serverless.
+      tags:
+        - {text: "tiered compilation", color: blue}
+        - {text: "warmup = first 1-2 min", color: orange}
+        - {text: "GraalVM for fast start", color: green}
+
+    - title: "📊 Profiling & Diagnostics"
+      body: >
+        **Java Flight Recorder (JFR):** low-overhead (<2%) continuous profiling built into the
+        JVM. Records: GC events, thread activity, CPU usage, I/O, lock contention, method
+        profiling. Enable: `-XX:+FlightRecorder -XX:StartFlightRecording=duration=60s,filename=app.jfr`.
+        Analyze with JDK Mission Control (JMC) or async-profiler.
+
+        **async-profiler:** open-source CPU/allocation/lock profiler. Uses perf_events (Linux)
+        for accurate CPU profiling. Generates flame graphs. Attach to running JVM:
+        `./profiler.sh -d 30 -f profile.html <pid>`.
+
+        **GC log analysis:** `-Xlog:gc*:file=gc.log:time,uptime:filecount=5,filesize=20m`.
+        Tools: GCEasy.io (online parser), GCViewer (local).
+
+        **Heap dumps:** `jmap -dump:live,format=b,file=heap.hprof <pid>`. Analyze with
+        Eclipse MAT (Memory Analyzer Tool) or VisualVM. Find: largest retained objects,
+        suspected memory leaks, duplicate string instances.
+
+        **Thread dumps:** `jstack <pid>` or `kill -3 <pid>`. Shows all thread states. Find:
+        deadlocks, threads blocked on locks, threads stuck in `WAITING`/`TIMED_WAITING`.
+      tags:
+        - {text: "JFR = low overhead", color: green}
+        - {text: "async-profiler + flame graph", color: blue}
+        - {text: "MAT for heap dumps", color: orange}
+
+    - title: "🔒 Memory Leaks"
+      body: >
+        Memory leaks in Java occur when objects are still referenced (not GC-eligible) but
+        are no longer needed. Common causes:
+
+        **Static collections:** `static Map<K, V>` that grows unboundedly. Entries are never
+        removed. Lives for the JVM lifetime.
+
+        **Listener/callback registration without deregistration:** event listeners, MBean
+        registrations, Guava EventBus subscribers. Object added to a registry; caller forgets
+        to remove. Registry holds a strong reference.
+
+        **Thread-local variables:** `ThreadLocal` values in a thread pool survive task completion.
+        If a task sets a ThreadLocal and doesn't call `remove()`, the value leaks for the thread's
+        lifetime.
+
+        **Classloader leaks:** web app redeployment in an app server (Tomcat) — new classloader
+        per deployment. If old classloader is referenced by a static field (JDBC driver, logging),
+        it can't be GC'd. Causes Metaspace growth on redeployment.
+
+        **Off-heap (DirectByteBuffer):** buffers acquired and not released. GC manages the
+        wrapper object but the native memory is reclaimed only when the wrapper is GC'd.
+        `sun.misc.Cleaner` eventually reclaims, but in OutOfMemoryError scenarios GC may
+        not run often enough.
+      tags:
+        - {text: "static collections grow", color: red}
+        - {text: "ThreadLocal.remove()", color: orange}
+        - {text: "classloader leaks", color: orange}
+
+    - title: "🧵 Thread & Lock Tuning"
+      body: >
+        **Thread pools:** most Java web servers and frameworks use a thread pool. Threads
+        are expensive (~512KB–1MB stack each). For 500 threads: 250–500MB stack memory.
+        Tune pool size based on workload: **CPU-bound** tasks: `threads = CPU cores + 1`.
+        **I/O-bound** tasks: `threads = CPU cores × (1 + wait_time / compute_time)`.
+        Over-provisioning threads causes context switching overhead; under-provisioning causes
+        queuing under load.
+
+        **Virtual Threads (Java 21 — Project Loom):** lightweight threads managed by the JVM,
+        not the OS. Millions of virtual threads are possible. Blocking I/O unmounts the virtual
+        thread from its carrier (OS) thread and remounts when I/O completes. Dramatically
+        simplifies I/O-bound services — write synchronous code, get async performance.
+        Enable in Spring Boot 3.2: `spring.threads.virtual.enabled=true`.
+
+        **Lock contention:** threads blocking on synchronized or locks reduces concurrency.
+        Detect with thread dumps (`BLOCKED` state) or JFR lock contention events.
+        Fix: reduce lock scope, use `ConcurrentHashMap` instead of `synchronized HashMap`,
+        use `ReentrantReadWriteLock` for read-heavy maps, eliminate locks via immutability.
+      tags:
+        - {text: "Virtual Threads Java 21", color: green}
+        - {text: "BLOCKED = contention", color: red}
+        - {text: "pool size by workload type", color: blue}
+
+  gotchas:
+    - title: "Setting -Xmx too high in containers without cgroup awareness"
+      body: >
+        Before Java 10, the JVM did not read container cgroup memory limits. `-Xmx` defaulted
+        to 25% of the physical host memory (not the container limit). A container with 2GB limit
+        on a 64GB host would set heap to 16GB — exceeding the container limit and causing OOMKilled.
+        Java 10+ respects cgroups. Always use `-XX:MaxRAMPercentage` instead of a fixed `-Xmx`
+        in containerized deployments to dynamically set heap relative to the container's actual limit.
+
+    - title: "Ignoring GC pause times until production incidents"
+      body: >
+        GC pauses are invisible in normal application metrics but directly cause P99 latency
+        spikes. A 500ms Full GC pause appears as a P99 timeout spike. Enable GC logging from
+        day one: `-Xlog:gc*:file=gc.log:time,uptime`. Review GC logs in staging load tests.
+        If P99 spikes under load correlate with GC events, tune before production.
+
+    - title: "Using System.gc() in application code"
+      body: >
+        `System.gc()` is a hint (not a command) to the JVM to run GC. In production it often
+        triggers a Full GC, causing a STW pause. It's almost never the right solution. If
+        you're calling it to reclaim memory, the real problem is a memory leak or incorrect
+        heap sizing. Remove all `System.gc()` calls from application code.
+
+    - title: "Heap dumps in production without a plan"
+      body: >
+        A heap dump from a large JVM (e.g., 8GB heap) takes several seconds of STW time and
+        produces an 8GB file. Triggering this on a production pod without planning is a
+        significant availability risk. Have a plan: dedicated diagnostic pod, reduced traffic
+        during dump, sufficient disk space, secure transfer of the file (it contains production data).
+
+    - title: "Thread pool starvation with blocking I/O"
+      body: >
+        A reactive framework (Spring WebFlux) uses a small event loop thread pool (1 thread per
+        CPU core). Performing blocking I/O (JDBC, file I/O) on event loop threads blocks the
+        entire thread pool — all other requests are starved. Either use async drivers (R2DBC
+        for databases) or offload blocking calls to a separate thread pool
+        (`Schedulers.boundedElastic()` in Reactor).
+
+  when_to_use:
+    - "Diagnosing P99 latency spikes correlated with GC pauses in production"
+    - "Sizing a new Java service for deployment in Kubernetes containers"
+    - "Investigating memory growth (heap or native) trending upward over time"
+    - "Optimizing throughput or startup time for latency-sensitive or serverless Java workloads"
+
+  when_not_to_use:
+    - "Premature optimization — profile first, tune second. Measure the actual bottleneck before adjusting JVM flags."
+    - "Non-JVM services — these concepts are specific to Java, Kotlin, Scala, Groovy on the HotSpot/OpenJDK JVM"
+
+# ── DEEP DIVE ─────────────────────────────────────────────────────────────────
+deep_dive:
+  tables:
+    - title: "Key JVM Flags"
+      full_width: false
+      rows:
+        - key: "-Xms / -Xmx"
+          value: "Initial / maximum heap size. Set equal in prod (-Xms4g -Xmx4g) to avoid expansion pauses."
+        - key: "-XX:MaxRAMPercentage"
+          value: "Set heap as % of container RAM limit (Java 10+). Use 70-75% in containers. Replaces -Xmx."
+        - key: "-XX:+UseG1GC"
+          value: "Enable G1 GC (default since Java 9). Balanced throughput/latency. Good for most apps."
+        - key: "-XX:+UseZGC"
+          value: "Enable ZGC (Java 15+ for production). Sub-millisecond GC pauses. Use for latency-critical services."
+        - key: "-XX:MaxGCPauseMillis"
+          value: "G1 pause time target (default 200ms). Not a guarantee. Lower = more frequent GC cycles."
+        - key: "-XX:G1HeapRegionSize"
+          value: "G1 region size (1MB–32MB). Auto-calculated. For large heaps: -XX:G1HeapRegionSize=16m."
+        - key: "-XX:+FlightRecorder"
+          value: "Enable JFR continuous profiling (<2% overhead). Available in production."
+        - key: "-Xlog:gc*:file=gc.log:time,uptime:filecount=5,filesize=20m"
+          value: "Enable GC logging to rotating files. Essential for diagnosing GC issues."
+        - key: "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp"
+          value: "Automatically take heap dump on OOM. Critical for post-mortem analysis."
+        - key: "-XX:+PrintCompilation"
+          value: "Log JIT compilation events. Use for diagnosing warmup or deoptimization issues."
+        - key: "-XX:+UseStringDeduplication"
+          value: "G1 only. JVM deduplicates identical String objects. Reduces heap for string-heavy apps."
+        - key: "-Xss"
+          value: "Thread stack size (default 512KB-1MB). Reduce for apps with thousands of threads: -Xss256k."
+
+    - title: "GC Algorithm Selection Guide"
+      full_width: true
+      rows:
+        - key: "Serial (-XX:+UseSerialGC)"
+          value: "Single-threaded GC. Heap < 100MB. Single-core. CLI tools, small containers. Not for web services."
+        - key: "Parallel (-XX:+UseParallelGC)"
+          value: "Multi-threaded GC, stop-the-world. Max throughput. Batch processing, ETL. High STW pauses (seconds for large heaps). Default before Java 9."
+        - key: "G1 (-XX:+UseG1GC)"
+          value: "Default since Java 9. Region-based. Targets pause time goal. Good balance. Best for: Heap 4GB–32GB, mixed workloads, web services. Tune: -XX:MaxGCPauseMillis=100."
+        - key: "ZGC (-XX:+UseZGC)"
+          value: "Sub-millisecond concurrent GC. Heap up to 16TB. Java 15+ production-ready. 5-15% throughput overhead. Best for: latency SLOs < 10ms, very large heaps, trading systems."
+        - key: "Shenandoah (-XX:+UseShenandoahGC)"
+          value: "Like ZGC. Concurrent compaction. Available in OpenJDK, not Oracle JDK. Good alternative to ZGC."
+
+    - title: "Memory Troubleshooting Commands"
+      full_width: false
+      rows:
+        - key: "jps"
+          value: "List JVM processes and PIDs on local machine."
+        - key: "jstat -gcutil <pid> 1000"
+          value: "GC statistics every 1 second: Eden%, Old%, Metaspace%, GC count, GC time."
+        - key: "jmap -heap <pid>"
+          value: "Print heap summary: GC algorithm, heap configuration, heap usage by region."
+        - key: "jmap -histo:live <pid> | head -30"
+          value: "Histogram of live objects by class. Forces GC first. Use with caution in production."
+        - key: "jmap -dump:live,format=b,file=heap.hprof <pid>"
+          value: "Full heap dump. Large heap = large file + STW pause. Analyze with Eclipse MAT."
+        - key: "jstack <pid>"
+          value: "Thread dump: all thread states, stack traces. Find deadlocks, BLOCKED threads."
+        - key: "jcmd <pid> VM.flags"
+          value: "Print all active JVM flags including defaults. Verify your -XX flags took effect."
+        - cmd: "jcmd <pid> JFR.start duration=60s filename=app.jfr"
+          desc: "Start a 60-second JFR recording on a running JVM."
+        - key: "jcmd <pid> GC.heap_info"
+          value: "Print current heap usage without causing GC."
+
+    - title: "Virtual Threads (Java 21)"
+      full_width: false
+      rows:
+        - key: "What they are"
+          value: "Lightweight threads managed by JVM scheduler, not OS threads. Millions can exist vs thousands of platform threads."
+        - key: "How they work"
+          value: "Virtual thread mounts on a carrier (OS) thread. On blocking I/O, it unmounts (carrier is free). Remounts when I/O completes. OS thread never blocks."
+        - key: "Enable in Spring Boot"
+          value: "spring.threads.virtual.enabled=true (Spring Boot 3.2+). Tomcat/Jetty request threads become virtual."
+        - key: "Best for"
+          value: "High-concurrency I/O-bound services. Eliminates need to tune thread pool sizes for I/O-bound work."
+        - key: "Limitations"
+          value: "Don't use for CPU-intensive tasks (no parallelism benefit). Avoid synchronized blocks (pins carrier thread). Use ReentrantLock instead."
+        - key: "Monitoring"
+          value: "JFR virtual thread events. JDK Mission Control. jstack shows virtual threads."
+
+  comparison:
+    title: "GC Algorithm Trade-offs"
+    columns: ["Metric", "Serial", "Parallel", "G1", "ZGC", "Shenandoah"]
+    rows:
+      - ["Pause type", "STW", "STW", "STW (incremental)", "Concurrent (~sub-ms)", "Concurrent (~sub-ms)"]
+      - ["Pause duration", "High (seconds)", "High (seconds)", "Medium (10-200ms)", "Sub-millisecond", "Sub-millisecond"]
+      - ["Throughput", "Low", "Highest", "High", "High (~5-15% overhead)", "High"]
+      - ["Memory overhead", "Low", "Low", "Medium", "Higher", "Higher"]
+      - ["Heap scalability", "< 100MB", "< 16GB", "4GB–32GB", "Up to 16TB", "Up to 2TB"]
+      - ["JVM threads", "1", "N (parallel)", "N (parallel+concurrent)", "N (concurrent)", "N (concurrent)"]
+      - ["Java version", "All", "All", "Java 7+ (default 9+)", "Java 11+ (prod 15+)", "Java 11+ (Red Hat builds)"]
+      - ["Best use case", "CLI tools", "Batch/ETL", "Most web services", "Latency-critical", "Alternative to ZGC"]
+
+# ── Q & A ─────────────────────────────────────────────────────────────────────
+qa:
+  senior:
+    - id: S-01
+      question: "Explain the JVM generational garbage collection model. Why does it improve performance?"
+      answer: >
+        Generational GC is based on the **weak generational hypothesis**: most objects die
+        young. In a typical web application, objects created to serve a request (request objects,
+        DTOs, parsed JSON) become garbage as soon as the request completes — usually within
+        milliseconds. Very few objects (caches, connection pools, application state) live long.
+
+        **Generations:**
+        - **Young Gen (Eden + Survivor S0/S1):** new objects allocated in Eden.
+          When Eden fills: Minor GC copies live objects to a Survivor space; dead objects are
+          reclaimed. Very fast because most objects are already dead — GC only copies the few
+          live objects (copying collection: cost proportional to live objects, not heap size).
+        - **Old Gen (Tenured):** objects surviving `MaxTenuringThreshold` Minor GCs are promoted.
+          Major GC collects Old Gen — slower because more objects survive, and the heap is larger.
+
+        **Why it works:**
+        - Minor GC is fast (milliseconds) and frequent.
+        - Major GC is slow but rare — only triggered when Old Gen fills up.
+        - Total GC overhead is low because most garbage is collected cheaply in Young Gen.
+
+        **Tuning implication:** if Minor GC is frequent and Old Gen grows quickly, objects are
+        being promoted too aggressively. Symptoms: frequent Minor GCs followed by a rapid
+        Full GC. Fix: increase Young Gen size (`-Xmn` or `-XX:NewRatio`) or reduce promotion
+        rate by fixing allocation patterns.
+
+    - id: S-02
+      question: "How do you diagnose and resolve a memory leak in a Java application?"
+      answer: >
+        **Step 1: Confirm it's a leak (not just a large live set).**
+        Monitor heap usage over time. If heap grows steadily and Full GCs can no longer reclaim
+        it (Old Gen keeps growing after each GC), that's a leak. `jstat -gcutil <pid> 5000`
+        shows Old Gen % trending up.
+
+        **Step 2: Take a heap dump.**
+        ```bash
+        jmap -dump:live,format=b,file=heap.hprof <pid>
+        ```
+        `live` forces a Full GC first — shows only truly reachable objects.
+
+        **Step 3: Analyze with Eclipse MAT.**
+        - **Leak Suspects Report:** MAT auto-identifies objects with large retained heap
+        - **Dominator tree:** shows which objects retain the most memory (dominate the GC graph)
+        - **Path to GC roots:** for a suspicious object, show the reference chain keeping it alive
+
+        **Common causes by what MAT shows:**
+        - Large `HashMap` or `ArrayList` in a static field → static collection leak
+        - Many instances of the same class → object pool or cache not bounded
+        - `ClassLoader` instances accumulating → classloader leak (web app redeploy)
+        - Many `byte[]` or `char[]` → String interning or large byte buffer accumulation
+
+        **Step 4: Fix.**
+        - Use `WeakHashMap` for caches (entries evicted when key is no longer strongly referenced)
+        - Add `removeEventListener` / `unsubscribe` calls
+        - Call `ThreadLocal.remove()` at end of each task in thread pools
+        - Use bounded caches (Caffeine with `maximumSize`)
+
+    - id: S-03
+      question: "What is G1 GC and how do you tune it?"
+      answer: >
+        G1 (Garbage First) divides the heap into equal-sized **regions** (1MB–32MB).
+        Each region can be Eden, Survivor, Old, or Humongous (for objects > 50% of a region).
+        G1 selects which regions to collect based on garbage density (most garbage first —
+        hence "Garbage First"), aiming to meet the pause time target.
+
+        **Key G1 behaviors:**
+        - Mixed GC: after a concurrent Old Gen marking cycle, G1 collects both Young regions
+          and select Old regions in a single pause (mixed collection)
+        - Humongous objects: large objects allocated directly in Old Gen; frequent humongous
+          allocations trigger eager GC
+
+        **Tuning:**
+        ```
+        -XX:+UseG1GC                         # (default in Java 9+)
+        -XX:MaxGCPauseMillis=100             # Pause target (200ms default). G1 adapts.
+        -XX:G1HeapRegionSize=16m             # For heaps > 8GB, set explicitly
+        -XX:G1NewSizePercent=20              # Min Young Gen % (default 5)
+        -XX:G1MaxNewSizePercent=40           # Max Young Gen % (default 60)
+        -XX:ConcGCThreads=4                  # Concurrent marking threads
+        -XX:InitiatingHeapOccupancyPercent=45 # % Old Gen full before concurrent marking starts
+        ```
+
+        **Common G1 issues:**
+        - Frequent Evacuation Failures (GC can't find free regions) → heap too small or
+          humongous allocations
+        - To-space exhaustion → increase heap, check for memory leaks
+        - Long mixed GC pauses → reduce `-XX:G1MixedGCLiveThresholdPercent`
+
+    - id: S-04
+      question: "How do you use Java Flight Recorder (JFR) to diagnose a production performance issue?"
+      answer: >
+        JFR is a built-in profiler with < 2% overhead — safe to run in production continuously.
+
+        **Start recording on a running JVM:**
+        ```bash
+        jcmd <pid> JFR.start duration=120s filename=/tmp/app.jfr settings=profile
+        # Or via JVM flag at startup:
+        -XX:StartFlightRecording=duration=0,filename=/tmp/app.jfr,settings=profile
+        ```
+
+        **Key event categories to analyze in JMC (JDK Mission Control):**
+
+        **GC:** pause durations, allocation rates, promotion rates. See if GC pauses
+        correlate with application latency spikes.
+
+        **Method Profiling:** CPU flame graph showing hot methods. Find: CPU hotspots in
+        application code, unexpected library code consuming CPU, `String.format()` in hot paths.
+
+        **Lock Contention:** `java.util.concurrent.Lock` and `synchronized` contention.
+        Which locks block which threads? How long?
+
+        **Thread sleep/wait:** threads spending time in `TIMED_WAITING` — why? Blocking I/O?
+        Excessive `Thread.sleep()`?
+
+        **I/O:** file reads, socket reads/writes, their latencies. Find unexpected synchronous
+        I/O in hot paths.
+
+        **Allocation profiling:** `jfr settings=profile` enables allocation profiling. Find
+        which code paths allocate the most objects — high allocation rate = frequent Minor GC.
+
+        **async-profiler** is an alternative for CPU and allocation profiling with lower
+        overhead and flame graph output directly: `./profiler.sh -d 60 -f profile.html <pid>`.
+
+    - id: S-05
+      question: "Explain the difference between -Xms, -Xmx, and -XX:MaxRAMPercentage. Which should you use in containers?"
+      answer: >
+        **`-Xms`:** initial heap size. The JVM starts with this much heap allocated. If set
+        lower than `-Xmx`, the JVM may grow the heap dynamically (heap expansion can cause a
+        Full GC pause).
+
+        **`-Xmx`:** maximum heap size. The JVM will never exceed this. If exceeded,
+        `OutOfMemoryError: Java heap space` is thrown.
+
+        **Setting `-Xms == -Xmx`** (e.g., `-Xms4g -Xmx4g`): recommended in production.
+        The JVM pre-allocates the full heap at startup. Eliminates heap expansion GC pauses.
+        Gives a predictable, stable memory footprint.
+
+        **`-XX:MaxRAMPercentage`** (Java 10+): sets `-Xmx` as a percentage of available RAM.
+        The JVM reads the container cgroup memory limit (or physical RAM if no limit):
+        ```
+        -XX:MaxRAMPercentage=75.0   # heap = 75% of container memory limit
+        ```
+
+        **In containers: always use `MaxRAMPercentage` instead of hardcoded `-Xmx`.**
+        A Kubernetes pod with `memory: 2Gi` limit on one node may be rescheduled to a pod with
+        `memory: 4Gi` in the future. `-Xmx1536m` is now wrong. `-XX:MaxRAMPercentage=75.0`
+        adapts automatically.
+
+        **Recommended container config:**
+        ```
+        -XX:InitialRAMPercentage=50.0   # start with 50% allocated
+        -XX:MaxRAMPercentage=75.0       # cap at 75%
+        ```
+        Reserve 20–25% for: Metaspace, Code Cache, thread stacks, JVM overhead, off-heap buffers.
+
+    - id: S-06
+      question: "How do you analyze and fix thread contention in a Java application?"
+      answer: >
+        **Detection:**
+
+        **Thread dump analysis (`jstack <pid>` or `kill -3 <pid>`):**
+        Look for threads in `BLOCKED` state — they're waiting for a monitor lock.
+        ```
+        "http-nio-8080-exec-5" BLOCKED on lock held by "http-nio-8080-exec-1"
+          at com.example.OrderService.processOrder(OrderService.java:142)
+          waiting for <0x00000006cd45b890> (a java.util.HashMap)
+        ```
+        The lock holder and the contending threads are both visible. The object being locked
+        (`java.util.HashMap` in the example) points to the root cause.
+
+        **JFR lock contention:** JFR records lock events with duration and thread. JMC shows
+        a breakdown of where threads spent time blocked.
+
+        **Common fixes:**
+
+        **Replace synchronized collections:** `Collections.synchronizedMap(new HashMap<>())` →
+        `new ConcurrentHashMap<>()` (fine-grained segment locking, no global lock).
+
+        **Reduce lock scope:** hold locks for the minimum required time. Move non-critical code
+        outside the synchronized block.
+
+        **ReadWriteLock:** for read-heavy maps: `ReentrantReadWriteLock`. Multiple readers hold
+        the read lock simultaneously; writers get exclusive access.
+
+        **Lock-free structures:** `AtomicLong`, `AtomicReference`, `LongAdder` (better than
+        `AtomicLong` under contention for counters — uses striped counters internally).
+
+        **Virtual Threads (Java 21):** virtual threads block their carrier thread when they
+        enter a `synchronized` block (thread pinning). Use `ReentrantLock` instead of
+        `synchronized` in virtual thread code to avoid pinning.
+
+    - id: S-07
+      question: "What causes java.lang.OutOfMemoryError and how do you diagnose each type?"
+      answer: >
+        Each OOM type has a different cause:
+
+        **`OutOfMemoryError: Java heap space`**
+        Heap is full. Objects can't be allocated. Either: (1) legitimate large live set —
+        increase `-Xmx`; (2) memory leak — heap dump + MAT analysis; (3) allocation spike —
+        JFR allocation profiling.
+
+        **`OutOfMemoryError: GC overhead limit exceeded`**
+        JVM spent > 98% of time in GC reclaiming < 2% of heap (consecutive collections).
+        Nearly always a memory leak. Disable this check with
+        `-XX:-UseGCOverheadLimit` (buys time but doesn't fix the leak). Heap dump + analyze.
+
+        **`OutOfMemoryError: Metaspace`**
+        Too many classes loaded. Causes: (1) excessive dynamic class generation (cglib proxies,
+        Groovy scripts, bytecode generation frameworks creating unique classes per call);
+        (2) classloader leaks in web app redeploys. Increase `-XX:MaxMetaspaceSize` temporarily;
+        fix the classloader leak or class generation issue permanently.
+
+        **`OutOfMemoryError: Direct buffer memory`**
+        Off-heap `DirectByteBuffer` memory exhausted. Caused by: NIO networking, mapped files,
+        Netty buffers not released. Increase with `-XX:MaxDirectMemorySize`. Profile with JFR
+        native memory tracking. Check for unreleased buffers.
+
+        **`OutOfMemoryError: unable to create native thread`**
+        OS can't create more threads. Either: process has hit `ulimit -u` (thread limit per user);
+        or the 32-bit address space can't fit more thread stacks. Reduce thread count or stack
+        size (`-Xss256k`). In containers: check `pids.max` cgroup limit. Migrate to Virtual Threads.
+
+    - id: S-08
+      question: "How do Virtual Threads in Java 21 change how you write and size concurrent applications?"
+      answer: >
+        **Platform threads (before Java 21):** each Java thread = one OS thread.
+        OS threads are expensive (~1MB stack, kernel scheduling). Practical limit: thousands.
+        For I/O-bound services: threads block waiting for I/O → you need large thread pools
+        to handle many concurrent requests → high memory consumption.
+
+        **Virtual threads:** JVM-managed, extremely lightweight (~few KB). Millions can exist.
+        When a virtual thread blocks (I/O, sleep, lock), it unmounts from its carrier (OS) thread.
+        The carrier thread runs other virtual threads. When I/O completes, the virtual thread
+        remounts on any available carrier.
+
+        **Impact on code:** write synchronous, blocking code. Get async performance automatically.
+        No need for reactive programming (WebFlux, RxJava) just to handle concurrency.
+        ```java
+        // Spring Boot 3.2+ with virtual threads enabled:
+        spring.threads.virtual.enabled=true
+        // Tomcat now uses virtual threads for request handling
+        // Synchronous JDBC calls are fine — virtual threads handle blocking
+        ```
+
+        **Impact on sizing:** don't pool virtual threads — create one per task.
+        `Executors.newVirtualThreadPerTaskExecutor()`. Thread pool tuning for I/O-bound
+        services becomes unnecessary.
+
+        **What changes:**
+        - Thread pool sizing: no longer critical for I/O-bound services
+        - Memory: dramatically lower per-connection overhead
+        - CPU: carrier thread count = number of CPU cores (default); this is still the
+          parallelism limit for CPU-bound work
+
+        **What doesn't change:**
+        - CPU-bound work still limited by CPU cores
+        - Avoid `synchronized` in hot paths — use `ReentrantLock` to prevent carrier thread pinning
+        - Database connection pools still needed (limit connections to DB, not threads)
+
+  staff:
+    - id: ST-01
+      question: "A Spring Boot service is experiencing frequent P99 latency spikes in production every 30-60 seconds. How do you diagnose and fix this?"
+      answer: >
+        **Symptom pattern:** regular, periodic spikes → classic GC pause signature.
+        Irregular spikes → more likely lock contention or I/O.
+
+        **Step 1: Correlate with GC.**
+        Enable GC logging if not already on: `-Xlog:gc*:file=gc.log:time,uptime`.
+        Check if pause timestamps in the GC log align with latency spikes in APM (Datadog trace
+        waterfall will show a "wall" of requests finishing at the same time after a pause).
+
+        **Step 2: Identify GC type and duration.**
+        Parse `gc.log` (GCEasy.io). What kind of pauses? Major/Full GC at 30-60s intervals?
+        This means Old Gen is filling up every 30-60s → too much promotion from Young Gen.
+
+        **Diagnosis path A — Old Gen filling too fast (high allocation rate):**
+        JFR allocation profiling: which code paths allocate the most? Common culprits:
+        string concatenation in hot loops, large collections created per request, excessive
+        object creation in JSON serialization. Fix: optimize allocation-heavy paths.
+
+        **Diagnosis path B — Young Gen too small (objects promoted early):**
+        `jstat -gcutil` shows Young Gen % hitting 100% frequently. Increase Young Gen size
+        via `-XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=60`. More objects die in Young Gen.
+
+        **Diagnosis path C — Wrong GC algorithm:**
+        If using Parallel GC (default pre-Java 9): switch to G1 or ZGC.
+        G1 with `-XX:MaxGCPauseMillis=50` targets shorter, more frequent pauses instead of
+        one long Full GC every 30-60s. ZGC for sub-millisecond pauses.
+
+        **Resolution:** after tuning, rerun load test. Confirm P99 latency spikes disappear.
+        Metrics to watch: GC pause duration, GC frequency, heap utilization post-GC.
+      staff_add: >
+        If the spikes are NOT correlated with GC: next step is lock contention.
+        Take 5 thread dumps 5 seconds apart (`jstack <pid> > dump_$i.txt`). Look for threads
+        in BLOCKED state consistently across dumps — that's a hot lock. JFR lock profiling
+        gives more detail. Fix: ConcurrentHashMap, ReadWriteLock, or atomic variables.
+
+    - id: ST-02
+      question: "How do you right-size JVM memory for a Spring Boot service running in Kubernetes?"
+      answer: >
+        **Total JVM process memory is NOT just the heap:**
+        ```
+        Total memory = heap + metaspace + code cache + thread stacks + native overhead
+        ```
+
+        **Measure each component:**
+        - **Heap:** set with `-XX:MaxRAMPercentage=70`. Measure actual peak post-GC heap
+          usage under load (this is the live set). Heap should be 2-3× the live set.
+        - **Metaspace:** `jcmd <pid> VM.metaspace`. Default uncapped — cap with
+          `-XX:MaxMetaspaceSize=256m` (adjust based on class count; Spring Boot with many
+          features can need 200-400MB).
+        - **Code Cache:** `jcmd <pid> VM.flags | grep CodeCache`. Default 240-256MB in Java 11+.
+          Usually fine; check if code cache flush events appear in logs.
+        - **Thread stacks:** `thread_count × stack_size`. For 200 threads with 512KB stacks = 100MB.
+          `ps -o nlwp <pid>` shows thread count. Reduce with `-Xss256k` if needed.
+        - **Native overhead:** typically 50-100MB for JVM internals, JNI, DirectByteBuffers.
+
+        **Sizing formula:**
+        ```
+        Container memory limit = heap_max + metaspace_max + code_cache + thread_stacks + 100MB_overhead
+        Example: 1536MB (heap) + 256MB (meta) + 256MB (code) + 100MB (threads) + 100MB = ~2.2GB
+        → Set container limit: 2.5GB, heap MaxRAMPercentage: 65%
+        ```
+
+        **In practice:**
+        1. Run load test in staging with native memory tracking: `-XX:NativeMemoryTracking=summary`
+        2. `jcmd <pid> VM.native_memory summary` after warmup under load
+        3. Sum all components + 20% headroom = container memory limit
+        4. Set `MaxRAMPercentage` so heap fits within that budget
+
+    - id: ST-03
+      question: "How would you migrate a latency-sensitive Spring Boot service from platform threads to Virtual Threads safely?"
+      answer: >
+        **Preconditions check:**
+        - Java 21+ (Virtual Threads GA)
+        - Spring Boot 3.2+ (native VT support)
+        - Identify: does the service use `synchronized` blocks heavily? (pinning risk)
+        - Check: what connection pools does it use? (HikariCP 5.1+ is VT-compatible; older versions pin)
+
+        **Migration steps:**
+
+        **Step 1 — Enable VT for Tomcat only:**
+        ```yaml
+        spring.threads.virtual.enabled=true
+        ```
+        This makes Tomcat use virtual threads for HTTP request handling. No code changes needed.
+
+        **Step 2 — Identify pinning risks:**
+        ```
+        -Djdk.tracePinnedThreads=full
+        ```
+        Log statements like `Thread[#42,ForkJoinPool...] pinned` appear when a virtual thread
+        hits a `synchronized` block. Common culprits: JDBC drivers (fix: upgrade or use R2DBC),
+        old Spring Security synchronized blocks (fixed in modern versions).
+
+        **Step 3 — Fix critical pinning hot paths:**
+        Replace `synchronized(lock) { ... }` with `ReentrantLock`:
+        ```java
+        private final ReentrantLock lock = new ReentrantLock();
+        lock.lock(); try { ... } finally { lock.unlock(); }
+        ```
+
+        **Step 4 — Canary in staging with load test:**
+        Run the same load test with VT enabled. Compare: P50/P99 latency, throughput,
+        memory usage, thread count (now virtual threads, not platform threads).
+        JFR: check virtual thread mount/unmount events, look for unexpected pinning.
+
+        **Step 5 — Tune connection pool:**
+        With VT, thousands of virtual threads can concurrently request DB connections.
+        The DB connection pool (HikariCP) is still bounded (e.g., 10 connections).
+        Virtual threads queue waiting for connections — this is correct behavior.
+        Pool size doesn't need to match thread count; it should match DB concurrency capacity.
+
+  principal:
+    - id: P-01
+      question: "How do you build a JVM performance engineering practice for a 200-service microservices platform?"
+      answer: >
+        **The problem at scale:** 200 services, each with different heap configs, GC algorithms,
+        thread pool sizes — most set by copying a template from 2019. Incidents caused by GC
+        pauses, OOM kills, and thread exhaustion are common but not systematically tracked.
+
+        **Standardize baseline JVM config via a platform library:**
+        Publish a Java agent or configuration library that applies sensible defaults:
+        - G1 GC with ZGC opt-in flag per service
+        - `MaxRAMPercentage=70` (container-aware heap sizing)
+        - GC logging always on (`-Xlog:gc*`)
+        - JFR continuous recording enabled
+        - `HeapDumpOnOutOfMemoryError` with a defined path
+        - `MaxMetaspaceSize=512m` (cap prevents runaway class loading)
+        Services include one dependency / set one env var to get all of these. No JVM expertise
+        required from service teams for baseline correctness.
+
+        **Observability: GC metrics in Datadog/Prometheus:**
+        All services export JVM metrics via Micrometer (Spring Boot default):
+        `jvm.gc.pause` (pause duration), `jvm.memory.used`, `jvm.threads.live`, `jvm.gc.memory.promoted`.
+        Platform team provides: standard JVM dashboard per service, alert template for
+        OOM rate > 0/hour, GC pause P99 > 500ms, Old Gen utilization > 90%.
+        Teams opt in to alerts; platform team audits that all production services have alerts.
+
+        **Continuous heap sizing validation:**
+        Post-deploy analysis job: after each production deployment, capture
+        `jstat -gcutil` for 30 minutes. Report actual vs configured heap utilization.
+        Flag services where `Xmx` is > 3× live set (over-provisioned) or Old Gen > 80% (under-provisioned).
+        Monthly report: top 10 over- and under-provisioned services. Teams fix within one sprint.
+
+        **Performance regression testing in CI:**
+        Golden path: each service runs a 10-minute load test in CI. Collect: P99 latency,
+        GC pause P99, heap utilization, allocation rate. Compare to previous run baseline.
+        Alert if P99 latency increases > 10% or GC pause P99 increases > 20%.
+        This catches GC regressions before production.
+
+        **Virtual Thread migration program:**
+        Identify I/O-bound services (high thread count, low CPU utilization). Prioritize for
+        VT migration. Platform team provides a migration guide, pinning detection tooling,
+        and a 2-week office hours engagement per team. Track: service count migrated,
+        memory reduction per service (typical: 30-50% reduction in container memory).
+
+# ── SCENARIOS ─────────────────────────────────────────────────────────────────
+scenarios:
+  - title: "Diagnose OOMKilled Pods in Kubernetes"
+    problem: >
+      A Spring Boot service running in Kubernetes is being OOMKilled every 4-6 hours under
+      production load. The pod has `memory: 2Gi` limit. JVM is configured with `-Xmx1536m`.
+      After each kill, a new pod starts and the cycle repeats.
+    constraints:
+      - Cannot increase the pod memory limit (cost constraints)
+      - Java 17, G1 GC
+      - Service handles 500 req/s peak, response sizes are 2-50KB JSON
+    discussion:
+      - >
+        **Confirm it's a JVM OOM, not an OS OOM:**
+        Check Kubernetes events: `kubectl describe pod <pod>`. If `OOMKilled`, the container
+        exceeded its cgroup memory limit. The JVM was killed by the kernel before it could
+        throw `OutOfMemoryError`. This means the total JVM process memory (not just heap)
+        exceeded 2GB.
+      - >
+        **Measure total JVM memory footprint:**
+        Enable native memory tracking: `-XX:NativeMemoryTracking=summary`. After warmup:
+        `jcmd <pid> VM.native_memory summary`. This shows: heap, metaspace, code cache,
+        thread stacks, internal, native.
+        Common finding: 1536MB heap + 400MB metaspace + 256MB code cache + 100MB threads
+        + 150MB native = ~2.4GB — exceeds the 2GB limit.
+      - >
+        **Reduce non-heap memory:**
+        - Metaspace: add `-XX:MaxMetaspaceSize=256m`. If it hits this limit, investigate
+          classloader leak or excessive proxy/code generation.
+        - Code Cache: `-XX:ReservedCodeCacheSize=128m` if 240MB isn't needed.
+        - Thread stacks: `ps -o nlwp <pid>` shows thread count. If 400 threads × 1MB = 400MB,
+          add `-Xss256k` (400 × 256KB = 100MB).
+        - Direct memory: `-XX:MaxDirectMemorySize=128m` if Netty/NIO buffers are large.
+      - >
+        **Alternatively: reduce heap to fit:**
+        Switch from `-Xmx1536m` to `-XX:MaxRAMPercentage=65`. With 2GB container:
+        65% = 1.3GB heap. Non-heap: ~500MB. Total: ~1.8GB — fits within 2GB with 200MB headroom.
+        Run load test to confirm the 1.3GB heap is sufficient (live data set < 600MB?).
+      - >
+        **Enable HeapDumpOnOutOfMemoryError for next occurrence:**
+        `-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/dumps`. Mount a volume at `/dumps`.
+        If OOM recurs, retrieve the heap dump for MAT analysis to find the root cause.
+    red_flags:
+      - "Increasing pod memory limit without understanding why the JVM exceeds the current limit — treating symptoms not causes"
+      - "Assuming heap = total JVM memory — non-heap components (metaspace, code cache, threads) can be significant"
+      - "No HeapDumpOnOutOfMemoryError — every OOMKill destroys the evidence needed to diagnose the cause"
+
+  - title: "Optimize a Batch Processing Job with High GC Overhead"
+    problem: >
+      A Java batch job processes 10 million records from a database, transforms each, and
+      writes to S3. It runs nightly and takes 4 hours. Profiling shows 40% of CPU time
+      is spent in GC. The job runs on a single EC2 instance with 32 cores and 64GB RAM.
+      JVM config: -Xmx8g -XX:+UseG1GC.
+    constraints:
+      - Must complete within 2 hours
+      - Cannot change the batch framework (Spring Batch)
+      - Records are processed in chunks of 1000
+    discussion:
+      - >
+        **Root cause: 40% GC time.**
+        `jstat -gcutil <pid> 5000` during the run: Eden fills rapidly, Minor GC frequency
+        is very high. JFR allocation profiling: the chunk processing loop allocates large amounts
+        of temporary objects per record (parsing, transformation, intermediate collections).
+        High allocation rate → frequent Minor GC → CPU waste.
+      - >
+        **GC algorithm switch — Parallel GC for batch:**
+        Batch jobs prioritize throughput over latency. Switch to Parallel GC:
+        `-XX:+UseParallelGC -XX:ParallelGCThreads=16`. Parallel GC uses all GC threads simultaneously.
+        For batch: pauses are acceptable; maximum throughput matters. G1's overhead vs Parallel
+        GC is measurable for allocation-heavy batch workloads.
+      - >
+        **Increase heap to reduce GC frequency:**
+        64GB RAM, only 8GB heap. Increase to `-Xmx40g`. Larger heap → Eden fills less frequently
+        → fewer Minor GCs → more CPU for actual work. With 40GB heap: GC frequency drops significantly.
+      - >
+        **Object reuse — reduce allocation rate:**
+        In the chunk processor, create DTOs and temporary collections outside the per-record
+        loop and reuse them. Use `StringBuilder` instead of string concatenation. Use primitive
+        arrays instead of `List<Integer>` where possible. Reusing objects reduces allocation
+        rate → less GC.
+      - >
+        **Parallel processing:**
+        Spring Batch partitioned step: split 10M records into 16 partitions (one per CPU thread).
+        Each partition processes independently. Parallelism increases throughput proportionally.
+        With 32 cores, theoretical speedup: 8× → from 4 hours to 30 minutes (accounting for
+        GC, I/O, and coordination overhead, realistic gain: 4–6×).
+      - >
+        **Expected result:**
+        Combined effect of Parallel GC + larger heap + object reuse + parallelism:
+        GC overhead drops from 40% to < 10%; parallelism provides 4-6× speedup.
+        Target: under 1 hour. Validate with a benchmark on a subset (1% of data, scaled).
+    red_flags:
+      - "Using ZGC for a batch job — ZGC's concurrent overhead reduces throughput; Parallel GC is correct for batch"
+      - "Keeping heap at 8GB on a 64GB machine for a single batch job — memory is idle while GC overhead is high"
+      - "Optimizing single-threaded processing on a 32-core machine — parallelism is the largest available speedup"

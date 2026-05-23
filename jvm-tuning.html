@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JVM Tuning — Field Guide</title>
+<script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#d97706;--accent2:#0369a1;--accent3:#059669; --highlight-bg:#fffbeb;--highlight-text:#d97706;--highlight-border:#f59e0b; --your-exp-bg:rgba(5,150,105,.06);--your-exp-border:rgba(5,150,105,.2);--your-exp-text:#065f46; --acc-hover:rgba(217,119,6,.04);--acc-open-border:#d97706;--acc-open-bg:rgba(217,119,6,.03); --num-color:#d97706;--num-bg:rgba(217,119,6,.1); --tag-color:#d97706;--tag-bg:rgba(217,119,6,.08);--tag-border:rgba(217,119,6,.2); --flow-arrow:#d97706;--h1-from:#92400e;--h1-to:#d97706; --badge-color:#92400e;--stat-num:#d97706; --tab-active-color:#d97706;--tab-active-bg:rgba(217,119,6,.08);--tab-active-border:#d97706; --section-title:#d97706;--concept-title:#92400e; --cheat-head-bg:#92400e;--cheat-head-text:#ffffff;--cheat-key:#92400e; --cmd-bg:#fffbeb;--cmd-text:#92400e; }
+  [data-theme="dark"]{ --accent:#fbbf24;--accent2:#38bdf8;--accent3:#10b981; --highlight-bg:#451a03;--highlight-text:#fbbf24;--highlight-border:#f59e0b; --your-exp-bg:rgba(16,185,129,.1);--your-exp-border:rgba(16,185,129,.3);--your-exp-text:#6ee7b7; --acc-hover:rgba(251,191,36,.04);--acc-open-border:#fbbf24;--acc-open-bg:rgba(251,191,36,.03); --num-color:#fbbf24;--num-bg:rgba(251,191,36,.1); --tag-color:#fbbf24;--tag-bg:rgba(251,191,36,.08);--tag-border:rgba(251,191,36,.2); --flow-arrow:#fbbf24;--h1-from:#fbbf24;--h1-to:#f59e0b; --badge-color:#fbbf24;--stat-num:#fbbf24; --tab-active-color:#fbbf24;--tab-active-bg:rgba(251,191,36,.08);--tab-active-border:#fbbf24; --section-title:#fbbf24;--concept-title:#fbbf24; --cheat-head-bg:#451a03;--cheat-head-text:#fbbf24;--cheat-key:#fbbf24; --cmd-bg:#451a03;--cmd-text:#fbbf24; }
+  [data-theme="light"] .toggle-knob{background:#d97706;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#fbbf24;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Back navigation ─────────────────────────────────────────────────────── */
+.back-link{position:fixed;top:1.25rem;left:1.25rem;z-index:100;display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);text-decoration:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.back-link:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
+/* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
+.qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
+.qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
+.qa-search:focus{border-color:var(--tab-active-border,var(--text));}
+.qa-search::placeholder{color:var(--muted);}
+.expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
+.expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;cursor:pointer;transition:opacity .2s;}
+.cmd:hover{opacity:.75;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+  .back-link span{display:none;}
+}
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
+
+</style>
+</head>
+<body data-topic-id="jvm-tuning">
+
+<a class="back-link" href="index.html">← <span>Field Guide</span></a>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>JVM Tuning</h1>
+  <p class="subtitle">// GC algorithms · heap sizing · thread tuning · profiling · memory leaks · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="overview" role="button" tabindex="0" onclick="switchTab('overview',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('overview',this);event.preventDefault();}">Overview</div>
+  <div class="tab" data-tab="deepdive" role="button" tabindex="0" onclick="switchTab('deepdive',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('deepdive',this);event.preventDefault();}">Deep Dive</div>
+  <div class="tab" data-tab="qa" role="button" tabindex="0" onclick="switchTab('qa',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('qa',this);event.preventDefault();}">Q &amp; A</div>
+  <div class="tab" data-tab="scenarios" role="button" tabindex="0" onclick="switchTab('scenarios',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('scenarios',this);event.preventDefault();}">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">🏗️ JVM Memory Areas</div>
+      <div class="concept-body">
+        The JVM divides memory into distinct regions:
+<strong>Heap:</strong> where objects live. Divided into <strong>Young Generation</strong> (Eden + Survivor spaces S0/S1) and <strong>Old Generation</strong> (Tenured). Most objects die young (generational hypothesis) — GC exploits this by collecting Young Gen far more frequently.
+<strong>Metaspace</strong> (Java 8+, replaced PermGen): class metadata, method bytecode, interned strings. Grows dynamically (bounded by <code>-XX:MaxMetaspaceSize</code>). PermGen was fixed-size and a common source of <code>OutOfMemoryError: PermGen space</code> errors.
+<strong>Stack:</strong> per-thread. Holds stack frames (local variables, operand stack). Default 512KB–1MB per thread (<code>-Xss</code>). Many threads + large stacks = significant memory.
+<strong>Native/off-heap:</strong> used by NIO DirectBuffers, mapped files, JVM internals. Not managed by the GC — leaks are silent until the process crashes.
+<strong>Code Cache:</strong> JIT-compiled native code. Bounded by <code>-XX:ReservedCodeCacheSize</code> (default 240MB in Java 11+).
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">heap = GC-managed</span>
+          
+          <span class="tag green">metaspace = dynamic</span>
+          
+          <span class="tag orange">stack per thread</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">♻️ Garbage Collection Basics</div>
+      <div class="concept-body">
+        GC reclaims memory by identifying unreachable objects. Key concepts:
+<strong>Minor GC (Young Gen):</strong> fast (milliseconds). Runs frequently. Live objects copied from Eden to a Survivor space. Objects surviving enough GCs (threshold controlled by <code>-XX:MaxTenuringThreshold</code>) are promoted to Old Gen.
+<strong>Major/Full GC (Old Gen or full heap):</strong> slow (tens of milliseconds to seconds). Stop-The-World pauses freeze all application threads. Triggered when Old Gen fills up.
+<strong>Stop-The-World (STW):</strong> all application threads are paused while GC runs. For low-latency applications, minimizing STW pause duration is the primary goal.
+<strong>GC trade-off triangle:</strong> you can optimize for throughput (max CPU for the app), latency (minimize pause durations), or memory footprint (minimize heap size). You can't fully optimize all three simultaneously — choose your primary constraint first.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">Minor GC = fast</span>
+          
+          <span class="tag red">STW = latency killer</span>
+          
+          <span class="tag orange">throughput vs latency</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🗑️ GC Algorithms</div>
+      <div class="concept-body">
+        <strong>Serial GC</strong> (<code>-XX:+UseSerialGC</code>): single-threaded. Good for small heaps / single-core.
+<strong>Parallel GC</strong> (<code>-XX:+UseParallelGC</code>): multiple threads for GC. Maximizes throughput. High STW pauses. Good for batch processing where latency doesn't matter.
+<strong>G1 GC</strong> (<code>-XX:+UseG1GC</code>, default since Java 9): divides heap into equal-sized regions. Incremental collection — collects the most garbage-dense regions first. Targets a pause time goal (<code>-XX:MaxGCPauseMillis=200</code>). Good balance of throughput and latency. Best for most applications with heap &gt; 4GB.
+<strong>ZGC</strong> (<code>-XX:+UseZGC</code>, production since Java 15): ultra-low latency. Sub-millisecond pauses regardless of heap size (tested up to 16TB). Concurrent — most work done while app runs. Small throughput overhead (~15%). Best for latency-critical services.
+<strong>Shenandoah</strong> (Red Hat, similar to ZGC): also sub-millisecond concurrent GC. Available in OpenJDK builds.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">G1 = default, balanced</span>
+          
+          <span class="tag blue">ZGC = sub-ms latency</span>
+          
+          <span class="tag orange">Parallel = max throughput</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📏 Heap Sizing</div>
+      <div class="concept-body">
+        <code>-Xms</code> sets the initial heap size; <code>-Xmx</code> sets the maximum. Best practice: set <code>-Xms == -Xmx</code> in production to avoid heap expansion pauses and to give the JVM a predictable footprint. Heap expansion triggers a Full GC.
+<strong>Right-sizing:</strong> size the heap so the <strong>live data set</strong> (objects that survive a Full GC) fits comfortably. Rule of thumb: <code>Xmx = 2–3× live data set size</code>. Too small → frequent GC. Too large → long Full GC pauses (GC scans all of heap).
+<strong>Container awareness (Java 10+):</strong> the JVM now reads cgroup memory limits. <code>-XX:MaxRAMPercentage=75.0</code> sets heap to 75% of the container's memory limit. Default <code>MaxRAMPercentage</code> is 25% — too conservative for most Java apps. Set to 70–80%, leaving headroom for the JVM itself (Metaspace, Code Cache, threads, native).
+<strong>Young Gen sizing:</strong> <code>-XX:NewRatio=2</code> = Old Gen is 2× Young Gen (default for G1 this is managed automatically). Larger Young Gen → less frequent Minor GC but larger pauses.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">Xms=Xmx in prod</span>
+          
+          <span class="tag blue">MaxRAMPercentage in containers</span>
+          
+          <span class="tag orange">2-3x live data set</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔥 JIT Compilation</div>
+      <div class="concept-body">
+        The JVM interprets bytecode initially, then the JIT (Just-In-Time) compiler identifies hot methods (called frequently) and compiles them to native machine code.
+<strong>Two JIT tiers (HotSpot):</strong> - <strong>C1 (Client compiler):</strong> fast compilation, light optimization. Good for short-lived code. - <strong>C2 (Server compiler):</strong> slow compilation, aggressive optimization. Used for hot code paths. - <strong>Tiered compilation</strong> (default since Java 8): starts with C1, promotes hot methods to C2.
+<strong>JIT warmup:</strong> a freshly started JVM performs worse than a warmed-up one. The first 30–120 seconds may show higher latency and lower throughput while C2 is compiling hot methods. This affects: cold starts in serverless/containers, post-deploy canary tests.
+<strong>GraalVM Native Image:</strong> ahead-of-time (AOT) compile Java to a native binary. Zero warmup, much lower memory footprint, fast startup (milliseconds). Trade-off: no JIT optimization at runtime; some Java reflection/dynamic features need configuration; slower peak throughput than JIT after warmup. Best for CLI tools and serverless.
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">tiered compilation</span>
+          
+          <span class="tag orange">warmup = first 1-2 min</span>
+          
+          <span class="tag green">GraalVM for fast start</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📊 Profiling & Diagnostics</div>
+      <div class="concept-body">
+        <strong>Java Flight Recorder (JFR):</strong> low-overhead (&lt;2%) continuous profiling built into the JVM. Records: GC events, thread activity, CPU usage, I/O, lock contention, method profiling. Enable: <code>-XX:+FlightRecorder -XX:StartFlightRecording=duration=60s,filename=app.jfr</code>. Analyze with JDK Mission Control (JMC) or async-profiler.
+<strong>async-profiler:</strong> open-source CPU/allocation/lock profiler. Uses perf_events (Linux) for accurate CPU profiling. Generates flame graphs. Attach to running JVM: <code>./profiler.sh -d 30 -f profile.html &lt;pid&gt;</code>.
+<strong>GC log analysis:</strong> <code>-Xlog:gc*:file=gc.log:time,uptime:filecount=5,filesize=20m</code>. Tools: GCEasy.io (online parser), GCViewer (local).
+<strong>Heap dumps:</strong> <code>jmap -dump:live,format=b,file=heap.hprof &lt;pid&gt;</code>. Analyze with Eclipse MAT (Memory Analyzer Tool) or VisualVM. Find: largest retained objects, suspected memory leaks, duplicate string instances.
+<strong>Thread dumps:</strong> <code>jstack &lt;pid&gt;</code> or <code>kill -3 &lt;pid&gt;</code>. Shows all thread states. Find: deadlocks, threads blocked on locks, threads stuck in <code>WAITING</code>/<code>TIMED_WAITING</code>.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">JFR = low overhead</span>
+          
+          <span class="tag blue">async-profiler + flame graph</span>
+          
+          <span class="tag orange">MAT for heap dumps</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔒 Memory Leaks</div>
+      <div class="concept-body">
+        Memory leaks in Java occur when objects are still referenced (not GC-eligible) but are no longer needed. Common causes:
+<strong>Static collections:</strong> <code>static Map&lt;K, V&gt;</code> that grows unboundedly. Entries are never removed. Lives for the JVM lifetime.
+<strong>Listener/callback registration without deregistration:</strong> event listeners, MBean registrations, Guava EventBus subscribers. Object added to a registry; caller forgets to remove. Registry holds a strong reference.
+<strong>Thread-local variables:</strong> <code>ThreadLocal</code> values in a thread pool survive task completion. If a task sets a ThreadLocal and doesn't call <code>remove()</code>, the value leaks for the thread's lifetime.
+<strong>Classloader leaks:</strong> web app redeployment in an app server (Tomcat) — new classloader per deployment. If old classloader is referenced by a static field (JDBC driver, logging), it can't be GC'd. Causes Metaspace growth on redeployment.
+<strong>Off-heap (DirectByteBuffer):</strong> buffers acquired and not released. GC manages the wrapper object but the native memory is reclaimed only when the wrapper is GC'd. <code>sun.misc.Cleaner</code> eventually reclaims, but in OutOfMemoryError scenarios GC may not run often enough.
+        
+        
+        <div class="tags">
+          
+          <span class="tag red">static collections grow</span>
+          
+          <span class="tag orange">ThreadLocal.remove()</span>
+          
+          <span class="tag orange">classloader leaks</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🧵 Thread & Lock Tuning</div>
+      <div class="concept-body">
+        <strong>Thread pools:</strong> most Java web servers and frameworks use a thread pool. Threads are expensive (~512KB–1MB stack each). For 500 threads: 250–500MB stack memory. Tune pool size based on workload: <strong>CPU-bound</strong> tasks: <code>threads = CPU cores + 1</code>. <strong>I/O-bound</strong> tasks: <code>threads = CPU cores × (1 + wait_time / compute_time)</code>. Over-provisioning threads causes context switching overhead; under-provisioning causes queuing under load.
+<strong>Virtual Threads (Java 21 — Project Loom):</strong> lightweight threads managed by the JVM, not the OS. Millions of virtual threads are possible. Blocking I/O unmounts the virtual thread from its carrier (OS) thread and remounts when I/O completes. Dramatically simplifies I/O-bound services — write synchronous code, get async performance. Enable in Spring Boot 3.2: <code>spring.threads.virtual.enabled=true</code>.
+<strong>Lock contention:</strong> threads blocking on synchronized or locks reduces concurrency. Detect with thread dumps (<code>BLOCKED</code> state) or JFR lock contention events. Fix: reduce lock scope, use <code>ConcurrentHashMap</code> instead of <code>synchronized HashMap</code>, use <code>ReentrantReadWriteLock</code> for read-heavy maps, eliminate locks via immutability.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">Virtual Threads Java 21</span>
+          
+          <span class="tag red">BLOCKED = contention</span>
+          
+          <span class="tag blue">pool size by workload type</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Setting -Xmx too high in containers without cgroup awareness</span>
+      Before Java 10, the JVM did not read container cgroup memory limits. <code>-Xmx</code> defaulted to 25% of the physical host memory (not the container limit). A container with 2GB limit on a 64GB host would set heap to 16GB — exceeding the container limit and causing OOMKilled. Java 10+ respects cgroups. Always use <code>-XX:MaxRAMPercentage</code> instead of a fixed <code>-Xmx</code> in containerized deployments to dynamically set heap relative to the container's actual limit.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Ignoring GC pause times until production incidents</span>
+      GC pauses are invisible in normal application metrics but directly cause P99 latency spikes. A 500ms Full GC pause appears as a P99 timeout spike. Enable GC logging from day one: <code>-Xlog:gc*:file=gc.log:time,uptime</code>. Review GC logs in staging load tests. If P99 spikes under load correlate with GC events, tune before production.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Using System.gc() in application code</span>
+      <code>System.gc()</code> is a hint (not a command) to the JVM to run GC. In production it often triggers a Full GC, causing a STW pause. It's almost never the right solution. If you're calling it to reclaim memory, the real problem is a memory leak or incorrect heap sizing. Remove all <code>System.gc()</code> calls from application code.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Heap dumps in production without a plan</span>
+      A heap dump from a large JVM (e.g., 8GB heap) takes several seconds of STW time and produces an 8GB file. Triggering this on a production pod without planning is a significant availability risk. Have a plan: dedicated diagnostic pod, reduced traffic during dump, sufficient disk space, secure transfer of the file (it contains production data).
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Thread pool starvation with blocking I/O</span>
+      A reactive framework (Spring WebFlux) uses a small event loop thread pool (1 thread per CPU core). Performing blocking I/O (JDBC, file I/O) on event loop threads blocks the entire thread pool — all other requests are starved. Either use async drivers (R2DBC for databases) or offload blocking calls to a separate thread pool (<code>Schedulers.boundedElastic()</code> in Reactor).
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use JVM When</div>
+      <ul>
+        
+        <li>Diagnosing P99 latency spikes correlated with GC pauses in production</li>
+        
+        <li>Sizing a new Java service for deployment in Kubernetes containers</li>
+        
+        <li>Investigating memory growth (heap or native) trending upward over time</li>
+        
+        <li>Optimizing throughput or startup time for latency-sensitive or serverless Java workloads</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use JVM When</div>
+      <ul>
+        
+        <li>Premature optimization — profile first, tune second. Measure the actual bottleneck before adjusting JVM flags.</li>
+        
+        <li>Non-JVM services — these concepts are specific to Java, Kotlin, Scala, Groovy on the HotSpot/OpenJDK JVM</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Key JVM Flags</div>
+      <table>
+        
+        <tr><td>-Xms / -Xmx</td><td>Initial / maximum heap size. Set equal in prod (-Xms4g -Xmx4g) to avoid expansion pauses.</td></tr>
+        
+        <tr><td>-XX:MaxRAMPercentage</td><td>Set heap as % of container RAM limit (Java 10+). Use 70-75% in containers. Replaces -Xmx.</td></tr>
+        
+        <tr><td>-XX:+UseG1GC</td><td>Enable G1 GC (default since Java 9). Balanced throughput/latency. Good for most apps.</td></tr>
+        
+        <tr><td>-XX:+UseZGC</td><td>Enable ZGC (Java 15+ for production). Sub-millisecond GC pauses. Use for latency-critical services.</td></tr>
+        
+        <tr><td>-XX:MaxGCPauseMillis</td><td>G1 pause time target (default 200ms). Not a guarantee. Lower = more frequent GC cycles.</td></tr>
+        
+        <tr><td>-XX:G1HeapRegionSize</td><td>G1 region size (1MB–32MB). Auto-calculated. For large heaps: -XX:G1HeapRegionSize=16m.</td></tr>
+        
+        <tr><td>-XX:+FlightRecorder</td><td>Enable JFR continuous profiling (<2% overhead). Available in production.</td></tr>
+        
+        <tr><td>-Xlog:gc*:file=gc.log:time,uptime:filecount=5,filesize=20m</td><td>Enable GC logging to rotating files. Essential for diagnosing GC issues.</td></tr>
+        
+        <tr><td>-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp</td><td>Automatically take heap dump on OOM. Critical for post-mortem analysis.</td></tr>
+        
+        <tr><td>-XX:+PrintCompilation</td><td>Log JIT compilation events. Use for diagnosing warmup or deoptimization issues.</td></tr>
+        
+        <tr><td>-XX:+UseStringDeduplication</td><td>G1 only. JVM deduplicates identical String objects. Reduces heap for string-heavy apps.</td></tr>
+        
+        <tr><td>-Xss</td><td>Thread stack size (default 512KB-1MB). Reduce for apps with thousands of threads: -Xss256k.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">GC Algorithm Selection Guide</div>
+      <table>
+        
+        <tr><td>Serial (-XX:+UseSerialGC)</td><td>Single-threaded GC. Heap < 100MB. Single-core. CLI tools, small containers. Not for web services.</td></tr>
+        
+        <tr><td>Parallel (-XX:+UseParallelGC)</td><td>Multi-threaded GC, stop-the-world. Max throughput. Batch processing, ETL. High STW pauses (seconds for large heaps). Default before Java 9.</td></tr>
+        
+        <tr><td>G1 (-XX:+UseG1GC)</td><td>Default since Java 9. Region-based. Targets pause time goal. Good balance. Best for: Heap 4GB–32GB, mixed workloads, web services. Tune: -XX:MaxGCPauseMillis=100.</td></tr>
+        
+        <tr><td>ZGC (-XX:+UseZGC)</td><td>Sub-millisecond concurrent GC. Heap up to 16TB. Java 15+ production-ready. 5-15% throughput overhead. Best for: latency SLOs < 10ms, very large heaps, trading systems.</td></tr>
+        
+        <tr><td>Shenandoah (-XX:+UseShenandoahGC)</td><td>Like ZGC. Concurrent compaction. Available in OpenJDK, not Oracle JDK. Good alternative to ZGC.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Memory Troubleshooting Commands</div>
+      <table>
+        
+        <tr><td>jps</td><td>List JVM processes and PIDs on local machine.</td></tr>
+        
+        <tr><td>jstat -gcutil <pid> 1000</td><td>GC statistics every 1 second: Eden%, Old%, Metaspace%, GC count, GC time.</td></tr>
+        
+        <tr><td>jmap -heap <pid></td><td>Print heap summary: GC algorithm, heap configuration, heap usage by region.</td></tr>
+        
+        <tr><td>jmap -histo:live <pid> | head -30</td><td>Histogram of live objects by class. Forces GC first. Use with caution in production.</td></tr>
+        
+        <tr><td>jmap -dump:live,format=b,file=heap.hprof <pid></td><td>Full heap dump. Large heap = large file + STW pause. Analyze with Eclipse MAT.</td></tr>
+        
+        <tr><td>jstack <pid></td><td>Thread dump: all thread states, stack traces. Find deadlocks, BLOCKED threads.</td></tr>
+        
+        <tr><td>jcmd <pid> VM.flags</td><td>Print all active JVM flags including defaults. Verify your -XX flags took effect.</td></tr>
+        
+        <tr><td></td><td></td></tr>
+        
+        <tr><td>jcmd <pid> GC.heap_info</td><td>Print current heap usage without causing GC.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Virtual Threads (Java 21)</div>
+      <table>
+        
+        <tr><td>What they are</td><td>Lightweight threads managed by JVM scheduler, not OS threads. Millions can exist vs thousands of platform threads.</td></tr>
+        
+        <tr><td>How they work</td><td>Virtual thread mounts on a carrier (OS) thread. On blocking I/O, it unmounts (carrier is free). Remounts when I/O completes. OS thread never blocks.</td></tr>
+        
+        <tr><td>Enable in Spring Boot</td><td>spring.threads.virtual.enabled=true (Spring Boot 3.2+). Tomcat/Jetty request threads become virtual.</td></tr>
+        
+        <tr><td>Best for</td><td>High-concurrency I/O-bound services. Eliminates need to tune thread pool sizes for I/O-bound work.</td></tr>
+        
+        <tr><td>Limitations</td><td>Don't use for CPU-intensive tasks (no parallelism benefit). Avoid synchronized blocks (pins carrier thread). Use ReentrantLock instead.</td></tr>
+        
+        <tr><td>Monitoring</td><td>JFR virtual thread events. JDK Mission Control. jstack shows virtual threads.</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">GC Algorithm Trade-offs</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Pause type</td>
+            
+            <td>STW</td>
+            
+            <td>STW</td>
+            
+            <td>STW (incremental)</td>
+            
+            <td>Concurrent (~sub-ms)</td>
+            
+            <td>Concurrent (~sub-ms)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Pause duration</td>
+            
+            <td>High (seconds)</td>
+            
+            <td>High (seconds)</td>
+            
+            <td>Medium (10-200ms)</td>
+            
+            <td>Sub-millisecond</td>
+            
+            <td>Sub-millisecond</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Throughput</td>
+            
+            <td>Low</td>
+            
+            <td>Highest</td>
+            
+            <td>High</td>
+            
+            <td>High (~5-15% overhead)</td>
+            
+            <td>High</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Memory overhead</td>
+            
+            <td>Low</td>
+            
+            <td>Low</td>
+            
+            <td>Medium</td>
+            
+            <td>Higher</td>
+            
+            <td>Higher</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Heap scalability</td>
+            
+            <td>< 100MB</td>
+            
+            <td>< 16GB</td>
+            
+            <td>4GB–32GB</td>
+            
+            <td>Up to 16TB</td>
+            
+            <td>Up to 2TB</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>JVM threads</td>
+            
+            <td>1</td>
+            
+            <td>N (parallel)</td>
+            
+            <td>N (parallel+concurrent)</td>
+            
+            <td>N (concurrent)</td>
+            
+            <td>N (concurrent)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Java version</td>
+            
+            <td>All</td>
+            
+            <td>All</td>
+            
+            <td>Java 7+ (default 9+)</td>
+            
+            <td>Java 11+ (prod 15+)</td>
+            
+            <td>Java 11+ (Red Hat builds)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best use case</td>
+            
+            <td>CLI tools</td>
+            
+            <td>Batch/ETL</td>
+            
+            <td>Most web services</td>
+            
+            <td>Latency-critical</td>
+            
+            <td>Alternative to ZGC</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
+  <div class="qa-controls">
+    <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
+    <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
+  </div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="S-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">Explain the JVM generational garbage collection model. Why does it improve performance?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>Generational GC is based on the <strong>weak generational hypothesis</strong>: most objects die young. In a typical web application, objects created to serve a request (request objects, DTOs, parsed JSON) become garbage as soon as the request completes — usually within milliseconds. Very few objects (caches, connection pools, application state) live long.
+<strong>Generations:</strong> - <strong>Young Gen (Eden + Survivor S0/S1):</strong> new objects allocated in Eden.
+  When Eden fills: Minor GC copies live objects to a Survivor space; dead objects are
+  reclaimed. Very fast because most objects are already dead — GC only copies the few
+  live objects (copying collection: cost proportional to live objects, not heap size).
+- <strong>Old Gen (Tenured):</strong> objects surviving <code>MaxTenuringThreshold</code> Minor GCs are promoted.
+  Major GC collects Old Gen — slower because more objects survive, and the heap is larger.</p>
+<p><strong>Why it works:</strong> - Minor GC is fast (milliseconds) and frequent. - Major GC is slow but rare — only triggered when Old Gen fills up. - Total GC overhead is low because most garbage is collected cheaply in Young Gen.
+<strong>Tuning implication:</strong> if Minor GC is frequent and Old Gen grows quickly, objects are being promoted too aggressively. Symptoms: frequent Minor GCs followed by a rapid Full GC. Fix: increase Young Gen size (<code>-Xmn</code> or <code>-XX:NewRatio</code>) or reduce promotion rate by fixing allocation patterns.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jvm-tuning','S-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">How do you diagnose and resolve a memory leak in a Java application?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Step 1: Confirm it's a leak (not just a large live set).</strong> Monitor heap usage over time. If heap grows steadily and Full GCs can no longer reclaim it (Old Gen keeps growing after each GC), that's a leak. <code>jstat -gcutil &lt;pid&gt; 5000</code> shows Old Gen % trending up.
+<strong>Step 2: Take a heap dump.</strong> <code>bash jmap -dump:live,format=b,file=heap.hprof &lt;pid&gt;</code> <code>live</code> forces a Full GC first — shows only truly reachable objects.
+<strong>Step 3: Analyze with Eclipse MAT.</strong> - <strong>Leak Suspects Report:</strong> MAT auto-identifies objects with large retained heap - <strong>Dominator tree:</strong> shows which objects retain the most memory (dominate the GC graph) - <strong>Path to GC roots:</strong> for a suspicious object, show the reference chain keeping it alive
+<strong>Common causes by what MAT shows:</strong> - Large <code>HashMap</code> or <code>ArrayList</code> in a static field → static collection leak - Many instances of the same class → object pool or cache not bounded - <code>ClassLoader</code> instances accumulating → classloader leak (web app redeploy) - Many <code>byte[]</code> or <code>char[]</code> → String interning or large byte buffer accumulation
+<strong>Step 4: Fix.</strong> - Use <code>WeakHashMap</code> for caches (entries evicted when key is no longer strongly referenced) - Add <code>removeEventListener</code> / <code>unsubscribe</code> calls - Call <code>ThreadLocal.remove()</code> at end of each task in thread pools - Use bounded caches (Caffeine with <code>maximumSize</code>)</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jvm-tuning','S-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">What is G1 GC and how do you tune it?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>G1 (Garbage First) divides the heap into equal-sized <strong>regions</strong> (1MB–32MB). Each region can be Eden, Survivor, Old, or Humongous (for objects &gt; 50% of a region). G1 selects which regions to collect based on garbage density (most garbage first — hence "Garbage First"), aiming to meet the pause time target.
+<strong>Key G1 behaviors:</strong> - Mixed GC: after a concurrent Old Gen marking cycle, G1 collects both Young regions
+  and select Old regions in a single pause (mixed collection)
+- Humongous objects: large objects allocated directly in Old Gen; frequent humongous
+  allocations trigger eager GC</p>
+<p><strong>Tuning:</strong> <code>-XX:+UseG1GC                         # (default in Java 9+) -XX:MaxGCPauseMillis=100             # Pause target (200ms default). G1 adapts. -XX:G1HeapRegionSize=16m             # For heaps &gt; 8GB, set explicitly -XX:G1NewSizePercent=20              # Min Young Gen % (default 5) -XX:G1MaxNewSizePercent=40           # Max Young Gen % (default 60) -XX:ConcGCThreads=4                  # Concurrent marking threads -XX:InitiatingHeapOccupancyPercent=45 # % Old Gen full before concurrent marking starts</code>
+<strong>Common G1 issues:</strong> - Frequent Evacuation Failures (GC can't find free regions) → heap too small or
+  humongous allocations
+- To-space exhaustion → increase heap, check for memory leaks - Long mixed GC pauses → reduce <code>-XX:G1MixedGCLiveThresholdPercent</code></p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jvm-tuning','S-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-04">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">How do you use Java Flight Recorder (JFR) to diagnose a production performance issue?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">JFR is a built-in profiler with &lt; 2% overhead — safe to run in production continuously.
+<strong>Start recording on a running JVM:</strong> <code>bash jcmd &lt;pid&gt; JFR.start duration=120s filename=/tmp/app.jfr settings=profile # Or via JVM flag at startup: -XX:StartFlightRecording=duration=0,filename=/tmp/app.jfr,settings=profile</code>
+<strong>Key event categories to analyze in JMC (JDK Mission Control):</strong>
+<strong>GC:</strong> pause durations, allocation rates, promotion rates. See if GC pauses correlate with application latency spikes.
+<strong>Method Profiling:</strong> CPU flame graph showing hot methods. Find: CPU hotspots in application code, unexpected library code consuming CPU, <code>String.format()</code> in hot paths.
+<strong>Lock Contention:</strong> <code>java.util.concurrent.Lock</code> and <code>synchronized</code> contention. Which locks block which threads? How long?
+<strong>Thread sleep/wait:</strong> threads spending time in <code>TIMED_WAITING</code> — why? Blocking I/O? Excessive <code>Thread.sleep()</code>?
+<strong>I/O:</strong> file reads, socket reads/writes, their latencies. Find unexpected synchronous I/O in hot paths.
+<strong>Allocation profiling:</strong> <code>jfr settings=profile</code> enables allocation profiling. Find which code paths allocate the most objects — high allocation rate = frequent Minor GC.
+<strong>async-profiler</strong> is an alternative for CPU and allocation profiling with lower overhead and flame graph output directly: <code>./profiler.sh -d 60 -f profile.html &lt;pid&gt;</code>.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jvm-tuning','S-04',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-05">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">Explain the difference between -Xms, -Xmx, and -XX:MaxRAMPercentage. Which should you use in containers?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong><code>-Xms</code>:</strong> initial heap size. The JVM starts with this much heap allocated. If set lower than <code>-Xmx</code>, the JVM may grow the heap dynamically (heap expansion can cause a Full GC pause).
+<strong><code>-Xmx</code>:</strong> maximum heap size. The JVM will never exceed this. If exceeded, <code>OutOfMemoryError: Java heap space</code> is thrown.
+<strong>Setting <code>-Xms == -Xmx</code></strong> (e.g., <code>-Xms4g -Xmx4g</code>): recommended in production. The JVM pre-allocates the full heap at startup. Eliminates heap expansion GC pauses. Gives a predictable, stable memory footprint.
+<strong><code>-XX:MaxRAMPercentage</code></strong> (Java 10+): sets <code>-Xmx</code> as a percentage of available RAM. The JVM reads the container cgroup memory limit (or physical RAM if no limit): <code>-XX:MaxRAMPercentage=75.0   # heap = 75% of container memory limit</code>
+<strong>In containers: always use <code>MaxRAMPercentage</code> instead of hardcoded <code>-Xmx</code>.</strong> A Kubernetes pod with <code>memory: 2Gi</code> limit on one node may be rescheduled to a pod with <code>memory: 4Gi</code> in the future. <code>-Xmx1536m</code> is now wrong. <code>-XX:MaxRAMPercentage=75.0</code> adapts automatically.
+<strong>Recommended container config:</strong> <code>-XX:InitialRAMPercentage=50.0   # start with 50% allocated -XX:MaxRAMPercentage=75.0       # cap at 75%</code> Reserve 20–25% for: Metaspace, Code Cache, thread stacks, JVM overhead, off-heap buffers.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jvm-tuning','S-05',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-06">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">How do you analyze and fix thread contention in a Java application?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Detection:</strong>
+<strong>Thread dump analysis (<code>jstack &lt;pid&gt;</code> or <code>kill -3 &lt;pid&gt;</code>):</strong> Look for threads in <code>BLOCKED</code> state — they're waiting for a monitor lock. <code>"http-nio-8080-exec-5" BLOCKED on lock held by "http-nio-8080-exec-1"
+  at com.example.OrderService.processOrder(OrderService.java:142)
+  waiting for &lt;0x00000006cd45b890&gt; (a java.util.HashMap)</code> The lock holder and the contending threads are both visible. The object being locked (<code>java.util.HashMap</code> in the example) points to the root cause.
+<strong>JFR lock contention:</strong> JFR records lock events with duration and thread. JMC shows a breakdown of where threads spent time blocked.
+<strong>Common fixes:</strong>
+<strong>Replace synchronized collections:</strong> <code>Collections.synchronizedMap(new HashMap&lt;&gt;())</code> → <code>new ConcurrentHashMap&lt;&gt;()</code> (fine-grained segment locking, no global lock).
+<strong>Reduce lock scope:</strong> hold locks for the minimum required time. Move non-critical code outside the synchronized block.
+<strong>ReadWriteLock:</strong> for read-heavy maps: <code>ReentrantReadWriteLock</code>. Multiple readers hold the read lock simultaneously; writers get exclusive access.
+<strong>Lock-free structures:</strong> <code>AtomicLong</code>, <code>AtomicReference</code>, <code>LongAdder</code> (better than <code>AtomicLong</code> under contention for counters — uses striped counters internally).
+<strong>Virtual Threads (Java 21):</strong> virtual threads block their carrier thread when they enter a <code>synchronized</code> block (thread pinning). Use <code>ReentrantLock</code> instead of <code>synchronized</code> in virtual thread code to avoid pinning.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jvm-tuning','S-06',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-07">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">What causes java.lang.OutOfMemoryError and how do you diagnose each type?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Each OOM type has a different cause:
+<strong><code>OutOfMemoryError: Java heap space</code></strong> Heap is full. Objects can't be allocated. Either: (1) legitimate large live set — increase <code>-Xmx</code>; (2) memory leak — heap dump + MAT analysis; (3) allocation spike — JFR allocation profiling.
+<strong><code>OutOfMemoryError: GC overhead limit exceeded</code></strong> JVM spent &gt; 98% of time in GC reclaiming &lt; 2% of heap (consecutive collections). Nearly always a memory leak. Disable this check with <code>-XX:-UseGCOverheadLimit</code> (buys time but doesn't fix the leak). Heap dump + analyze.
+<strong><code>OutOfMemoryError: Metaspace</code></strong> Too many classes loaded. Causes: (1) excessive dynamic class generation (cglib proxies, Groovy scripts, bytecode generation frameworks creating unique classes per call); (2) classloader leaks in web app redeploys. Increase <code>-XX:MaxMetaspaceSize</code> temporarily; fix the classloader leak or class generation issue permanently.
+<strong><code>OutOfMemoryError: Direct buffer memory</code></strong> Off-heap <code>DirectByteBuffer</code> memory exhausted. Caused by: NIO networking, mapped files, Netty buffers not released. Increase with <code>-XX:MaxDirectMemorySize</code>. Profile with JFR native memory tracking. Check for unreleased buffers.
+<strong><code>OutOfMemoryError: unable to create native thread</code></strong> OS can't create more threads. Either: process has hit <code>ulimit -u</code> (thread limit per user); or the 32-bit address space can't fit more thread stacks. Reduce thread count or stack size (<code>-Xss256k</code>). In containers: check <code>pids.max</code> cgroup limit. Migrate to Virtual Threads.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jvm-tuning','S-07',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-08">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-08</span>
+        <span class="acc-question">How do Virtual Threads in Java 21 change how you write and size concurrent applications?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Platform threads (before Java 21):</strong> each Java thread = one OS thread. OS threads are expensive (~1MB stack, kernel scheduling). Practical limit: thousands. For I/O-bound services: threads block waiting for I/O → you need large thread pools to handle many concurrent requests → high memory consumption.
+<strong>Virtual threads:</strong> JVM-managed, extremely lightweight (~few KB). Millions can exist. When a virtual thread blocks (I/O, sleep, lock), it unmounts from its carrier (OS) thread. The carrier thread runs other virtual threads. When I/O completes, the virtual thread remounts on any available carrier.
+<strong>Impact on code:</strong> write synchronous, blocking code. Get async performance automatically. No need for reactive programming (WebFlux, RxJava) just to handle concurrency. <code>java // Spring Boot 3.2+ with virtual threads enabled: spring.threads.virtual.enabled=true // Tomcat now uses virtual threads for request handling // Synchronous JDBC calls are fine — virtual threads handle blocking</code>
+<strong>Impact on sizing:</strong> don't pool virtual threads — create one per task. <code>Executors.newVirtualThreadPerTaskExecutor()</code>. Thread pool tuning for I/O-bound services becomes unnecessary.
+<strong>What changes:</strong> - Thread pool sizing: no longer critical for I/O-bound services - Memory: dramatically lower per-connection overhead - CPU: carrier thread count = number of CPU cores (default); this is still the
+  parallelism limit for CPU-bound work</p>
+<p><strong>What doesn't change:</strong> - CPU-bound work still limited by CPU cores - Avoid <code>synchronized</code> in hot paths — use <code>ReentrantLock</code> to prevent carrier thread pinning - Database connection pools still needed (limit connections to DB, not threads)</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jvm-tuning','S-08',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="ST-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">A Spring Boot service is experiencing frequent P99 latency spikes in production every 30-60 seconds. How do you diagnose and fix this?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Symptom pattern:</strong> regular, periodic spikes → classic GC pause signature. Irregular spikes → more likely lock contention or I/O.
+<strong>Step 1: Correlate with GC.</strong> Enable GC logging if not already on: <code>-Xlog:gc*:file=gc.log:time,uptime</code>. Check if pause timestamps in the GC log align with latency spikes in APM (Datadog trace waterfall will show a "wall" of requests finishing at the same time after a pause).
+<strong>Step 2: Identify GC type and duration.</strong> Parse <code>gc.log</code> (GCEasy.io). What kind of pauses? Major/Full GC at 30-60s intervals? This means Old Gen is filling up every 30-60s → too much promotion from Young Gen.
+<strong>Diagnosis path A — Old Gen filling too fast (high allocation rate):</strong> JFR allocation profiling: which code paths allocate the most? Common culprits: string concatenation in hot loops, large collections created per request, excessive object creation in JSON serialization. Fix: optimize allocation-heavy paths.
+<strong>Diagnosis path B — Young Gen too small (objects promoted early):</strong> <code>jstat -gcutil</code> shows Young Gen % hitting 100% frequently. Increase Young Gen size via <code>-XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=60</code>. More objects die in Young Gen.
+<strong>Diagnosis path C — Wrong GC algorithm:</strong> If using Parallel GC (default pre-Java 9): switch to G1 or ZGC. G1 with <code>-XX:MaxGCPauseMillis=50</code> targets shorter, more frequent pauses instead of one long Full GC every 30-60s. ZGC for sub-millisecond pauses.
+<strong>Resolution:</strong> after tuning, rerun load test. Confirm P99 latency spikes disappear. Metrics to watch: GC pause duration, GC frequency, heap utilization post-GC.</div>
+        
+        <div class="staff-add">If the spikes are NOT correlated with GC: next step is lock contention. Take 5 thread dumps 5 seconds apart (<code>jstack &lt;pid&gt; &gt; dump_$i.txt</code>). Look for threads in BLOCKED state consistently across dumps — that's a hot lock. JFR lock profiling gives more detail. Fix: ConcurrentHashMap, ReadWriteLock, or atomic variables.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jvm-tuning','ST-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">How do you right-size JVM memory for a Spring Boot service running in Kubernetes?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Total JVM process memory is NOT just the heap:</strong> <code>Total memory = heap + metaspace + code cache + thread stacks + native overhead</code>
+<strong>Measure each component:</strong> - <strong>Heap:</strong> set with <code>-XX:MaxRAMPercentage=70</code>. Measure actual peak post-GC heap
+  usage under load (this is the live set). Heap should be 2-3× the live set.
+- <strong>Metaspace:</strong> <code>jcmd &lt;pid&gt; VM.metaspace</code>. Default uncapped — cap with
+  <code>-XX:MaxMetaspaceSize=256m</code> (adjust based on class count; Spring Boot with many
+  features can need 200-400MB).
+- <strong>Code Cache:</strong> <code>jcmd &lt;pid&gt; VM.flags | grep CodeCache</code>. Default 240-256MB in Java 11+.
+  Usually fine; check if code cache flush events appear in logs.
+- <strong>Thread stacks:</strong> <code>thread_count × stack_size</code>. For 200 threads with 512KB stacks = 100MB.
+  <code>ps -o nlwp &lt;pid&gt;</code> shows thread count. Reduce with <code>-Xss256k</code> if needed.
+- <strong>Native overhead:</strong> typically 50-100MB for JVM internals, JNI, DirectByteBuffers.
+<strong>Sizing formula:</strong> <code>Container memory limit = heap_max + metaspace_max + code_cache + thread_stacks + 100MB_overhead Example: 1536MB (heap) + 256MB (meta) + 256MB (code) + 100MB (threads) + 100MB = ~2.2GB → Set container limit: 2.5GB, heap MaxRAMPercentage: 65%</code>
+<strong>In practice:</strong> 1. Run load test in staging with native memory tracking: <code>-XX:NativeMemoryTracking=summary</code> 2. <code>jcmd &lt;pid&gt; VM.native_memory summary</code> after warmup under load 3. Sum all components + 20% headroom = container memory limit 4. Set <code>MaxRAMPercentage</code> so heap fits within that budget</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jvm-tuning','ST-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">How would you migrate a latency-sensitive Spring Boot service from platform threads to Virtual Threads safely?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Preconditions check:</strong> - Java 21+ (Virtual Threads GA) - Spring Boot 3.2+ (native VT support) - Identify: does the service use <code>synchronized</code> blocks heavily? (pinning risk) - Check: what connection pools does it use? (HikariCP 5.1+ is VT-compatible; older versions pin)
+<strong>Migration steps:</strong>
+<strong>Step 1 — Enable VT for Tomcat only:</strong> <code>yaml spring.threads.virtual.enabled=true</code> This makes Tomcat use virtual threads for HTTP request handling. No code changes needed.
+<strong>Step 2 — Identify pinning risks:</strong> <code>-Djdk.tracePinnedThreads=full</code> Log statements like <code>Thread[#42,ForkJoinPool...] pinned</code> appear when a virtual thread hits a <code>synchronized</code> block. Common culprits: JDBC drivers (fix: upgrade or use R2DBC), old Spring Security synchronized blocks (fixed in modern versions).
+<strong>Step 3 — Fix critical pinning hot paths:</strong> Replace <code>synchronized(lock) { ... }</code> with <code>ReentrantLock</code>: <code>java private final ReentrantLock lock = new ReentrantLock(); lock.lock(); try { ... } finally { lock.unlock(); }</code>
+<strong>Step 4 — Canary in staging with load test:</strong> Run the same load test with VT enabled. Compare: P50/P99 latency, throughput, memory usage, thread count (now virtual threads, not platform threads). JFR: check virtual thread mount/unmount events, look for unexpected pinning.
+<strong>Step 5 — Tune connection pool:</strong> With VT, thousands of virtual threads can concurrently request DB connections. The DB connection pool (HikariCP) is still bounded (e.g., 10 connections). Virtual threads queue waiting for connections — this is correct behavior. Pool size doesn't need to match thread count; it should match DB concurrency capacity.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jvm-tuning','ST-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="P-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How do you build a JVM performance engineering practice for a 200-service microservices platform?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>The problem at scale:</strong> 200 services, each with different heap configs, GC algorithms, thread pool sizes — most set by copying a template from 2019. Incidents caused by GC pauses, OOM kills, and thread exhaustion are common but not systematically tracked.
+<strong>Standardize baseline JVM config via a platform library:</strong> Publish a Java agent or configuration library that applies sensible defaults: - G1 GC with ZGC opt-in flag per service - <code>MaxRAMPercentage=70</code> (container-aware heap sizing) - GC logging always on (<code>-Xlog:gc*</code>) - JFR continuous recording enabled - <code>HeapDumpOnOutOfMemoryError</code> with a defined path - <code>MaxMetaspaceSize=512m</code> (cap prevents runaway class loading) Services include one dependency / set one env var to get all of these. No JVM expertise required from service teams for baseline correctness.
+<strong>Observability: GC metrics in Datadog/Prometheus:</strong> All services export JVM metrics via Micrometer (Spring Boot default): <code>jvm.gc.pause</code> (pause duration), <code>jvm.memory.used</code>, <code>jvm.threads.live</code>, <code>jvm.gc.memory.promoted</code>. Platform team provides: standard JVM dashboard per service, alert template for OOM rate &gt; 0/hour, GC pause P99 &gt; 500ms, Old Gen utilization &gt; 90%. Teams opt in to alerts; platform team audits that all production services have alerts.
+<strong>Continuous heap sizing validation:</strong> Post-deploy analysis job: after each production deployment, capture <code>jstat -gcutil</code> for 30 minutes. Report actual vs configured heap utilization. Flag services where <code>Xmx</code> is &gt; 3× live set (over-provisioned) or Old Gen &gt; 80% (under-provisioned). Monthly report: top 10 over- and under-provisioned services. Teams fix within one sprint.
+<strong>Performance regression testing in CI:</strong> Golden path: each service runs a 10-minute load test in CI. Collect: P99 latency, GC pause P99, heap utilization, allocation rate. Compare to previous run baseline. Alert if P99 latency increases &gt; 10% or GC pause P99 increases &gt; 20%. This catches GC regressions before production.
+<strong>Virtual Thread migration program:</strong> Identify I/O-bound services (high thread count, low CPU utilization). Prioritize for VT migration. Platform team provides a migration guide, pinning detection tooling, and a 2-week office hours engagement per team. Track: service count migrated, memory reduction per service (typical: 30-50% reduction in container memory).</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jvm-tuning','P-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">Diagnose OOMKilled Pods in Kubernetes</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A Spring Boot service running in Kubernetes is being OOMKilled every 4-6 hours under production load. The pod has <code>memory: 2Gi</code> limit. JVM is configured with <code>-Xmx1536m</code>. After each kill, a new pod starts and the cycle repeats.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Cannot increase the pod memory limit (cost constraints)</li><li>Java 17, G1 GC</li><li>Service handles 500 req/s peak, response sizes are 2-50KB JSON</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Confirm it's a JVM OOM, not an OS OOM:</strong> Check Kubernetes events: <code>kubectl describe pod &lt;pod&gt;</code>. If <code>OOMKilled</code>, the container exceeded its cgroup memory limit. The JVM was killed by the kernel before it could throw <code>OutOfMemoryError</code>. This means the total JVM process memory (not just heap) exceeded 2GB.</li><li><strong>Measure total JVM memory footprint:</strong> Enable native memory tracking: <code>-XX:NativeMemoryTracking=summary</code>. After warmup: <code>jcmd &lt;pid&gt; VM.native_memory summary</code>. This shows: heap, metaspace, code cache, thread stacks, internal, native. Common finding: 1536MB heap + 400MB metaspace + 256MB code cache + 100MB threads + 150MB native = ~2.4GB — exceeds the 2GB limit.</li><li><strong>Reduce non-heap memory:</strong> - Metaspace: add <code>-XX:MaxMetaspaceSize=256m</code>. If it hits this limit, investigate
+  classloader leak or excessive proxy/code generation.
+- Code Cache: <code>-XX:ReservedCodeCacheSize=128m</code> if 240MB isn't needed. - Thread stacks: <code>ps -o nlwp &lt;pid&gt;</code> shows thread count. If 400 threads × 1MB = 400MB,
+  add <code>-Xss256k</code> (400 × 256KB = 100MB).
+- Direct memory: <code>-XX:MaxDirectMemorySize=128m</code> if Netty/NIO buffers are large.</li><li><strong>Alternatively: reduce heap to fit:</strong> Switch from <code>-Xmx1536m</code> to <code>-XX:MaxRAMPercentage=65</code>. With 2GB container: 65% = 1.3GB heap. Non-heap: ~500MB. Total: ~1.8GB — fits within 2GB with 200MB headroom. Run load test to confirm the 1.3GB heap is sufficient (live data set &lt; 600MB?).</li><li><strong>Enable HeapDumpOnOutOfMemoryError for next occurrence:</strong> <code>-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/dumps</code>. Mount a volume at <code>/dumps</code>. If OOM recurs, retrieve the heap dump for MAT analysis to find the root cause.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Increasing pod memory limit without understanding why the JVM exceeds the current limit — treating symptoms not causes</li><li>Assuming heap = total JVM memory — non-heap components (metaspace, code cache, threads) can be significant</li><li>No HeapDumpOnOutOfMemoryError — every OOMKill destroys the evidence needed to diagnose the cause</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Optimize a Batch Processing Job with High GC Overhead</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A Java batch job processes 10 million records from a database, transforms each, and writes to S3. It runs nightly and takes 4 hours. Profiling shows 40% of CPU time is spent in GC. The job runs on a single EC2 instance with 32 cores and 64GB RAM. JVM config: -Xmx8g -XX:+UseG1GC.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Must complete within 2 hours</li><li>Cannot change the batch framework (Spring Batch)</li><li>Records are processed in chunks of 1000</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Root cause: 40% GC time.</strong> <code>jstat -gcutil &lt;pid&gt; 5000</code> during the run: Eden fills rapidly, Minor GC frequency is very high. JFR allocation profiling: the chunk processing loop allocates large amounts of temporary objects per record (parsing, transformation, intermediate collections). High allocation rate → frequent Minor GC → CPU waste.</li><li><strong>GC algorithm switch — Parallel GC for batch:</strong> Batch jobs prioritize throughput over latency. Switch to Parallel GC: <code>-XX:+UseParallelGC -XX:ParallelGCThreads=16</code>. Parallel GC uses all GC threads simultaneously. For batch: pauses are acceptable; maximum throughput matters. G1's overhead vs Parallel GC is measurable for allocation-heavy batch workloads.</li><li><strong>Increase heap to reduce GC frequency:</strong> 64GB RAM, only 8GB heap. Increase to <code>-Xmx40g</code>. Larger heap → Eden fills less frequently → fewer Minor GCs → more CPU for actual work. With 40GB heap: GC frequency drops significantly.</li><li><strong>Object reuse — reduce allocation rate:</strong> In the chunk processor, create DTOs and temporary collections outside the per-record loop and reuse them. Use <code>StringBuilder</code> instead of string concatenation. Use primitive arrays instead of <code>List&lt;Integer&gt;</code> where possible. Reusing objects reduces allocation rate → less GC.</li><li><strong>Parallel processing:</strong> Spring Batch partitioned step: split 10M records into 16 partitions (one per CPU thread). Each partition processes independently. Parallelism increases throughput proportionally. With 32 cores, theoretical speedup: 8× → from 4 hours to 30 minutes (accounting for GC, I/O, and coordination overhead, realistic gain: 4–6×).</li><li><strong>Expected result:</strong> Combined effect of Parallel GC + larger heap + object reuse + parallelism: GC overhead drops from 40% to &lt; 10%; parallelism provides 4-6× speedup. Target: under 1 hour. Validate with a benchmark on a subset (1% of data, scaled).</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Using ZGC for a batch job — ZGC's concurrent overhead reduces throughput; Parallel GC is correct for batch</li><li>Keeping heap at 8GB on a 64GB machine for a single batch job — memory is idle while GC overhead is high</li><li>Optimizing single-threaded processing on a 32-core machine — parallelism is the largest available speedup</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>// ── Theme (localStorage persistence) ─────────────────────────────────────
+function toggleTheme() {
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  h.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+// ── Tabs (with URL hash sync) ─────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+  history.replaceState(null, '', '#' + name);
+}
+
+// ── Accordion (JS-driven scrollHeight animation) ───────────────────────────
+function setAccOpen(item, open) {
+  const body = item.querySelector('.acc-body');
+  if (open) {
+    item.classList.add('open');
+    const h = body.scrollHeight;
+    body.style.maxHeight = h + 'px';
+    function onEnd(e) {
+      if (e.propertyName !== 'max-height') return;
+      body.removeEventListener('transitionend', onEnd);
+      if (item.classList.contains('open')) body.style.maxHeight = 'none';
+    }
+    body.addEventListener('transitionend', onEnd);
+  } else {
+    if (!body.style.maxHeight || body.style.maxHeight === 'none') {
+      body.style.maxHeight = body.scrollHeight + 'px';
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      item.classList.remove('open');
+      body.style.maxHeight = '0';
+    }));
+  }
+}
+
+function toggleAcc(header) {
+  setAccOpen(header.parentElement, !header.parentElement.classList.contains('open'));
+}
+
+// ── Expand / collapse all Q&A ─────────────────────────────────────────────
+function toggleAllAcc(btn) {
+  const items = [...document.querySelectorAll('#qa .acc-item')].filter(i => i.style.display !== 'none');
+  const allOpen = items.every(i => i.classList.contains('open'));
+  items.forEach(i => setAccOpen(i, !allOpen));
+  btn.textContent = allOpen ? 'Expand All' : 'Collapse All';
+}
+
+// ── Q&A keyword filter ────────────────────────────────────────────────────
+function filterQA(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.acc-item').forEach(item => {
+    const text = item.querySelector('.acc-question').textContent.toLowerCase();
+    item.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+  // Reset expand-all label whenever filter changes
+  const btn = document.querySelector('.expand-all-btn');
+  if (btn) btn.textContent = 'Expand All';
+}
+
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
+// ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
+document.addEventListener('DOMContentLoaded', function () {
+  // Sync toggle label with the actual current theme
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const label = document.getElementById('toggle-label');
+  if (label) label.textContent = isDark ? 'LIGHT MODE' : 'DARK MODE';
+
+  // Restore active tab from URL hash
+  const hash = location.hash.slice(1);
+  const validTabs = ['overview', 'deepdive', 'qa', 'scenarios'];
+  if (hash && validTabs.includes(hash)) {
+    const tab = document.querySelector(`.tab[data-tab="${hash}"]`);
+    if (tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(hash).classList.add('active');
+    }
+  }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
+
+  // Copy-to-clipboard on CLI command blocks
+  document.querySelectorAll('.cmd').forEach(cmd => {
+    cmd.title = 'Click to copy';
+    cmd.addEventListener('click', function () {
+      navigator.clipboard.writeText(this.textContent.trim()).then(() => {
+        const orig = this.style.opacity;
+        this.style.opacity = '0.4';
+        setTimeout(() => { this.style.opacity = orig; }, 600);
+      }).catch(() => {});
+    });
+  });
+});
+</script>
+</body>
+</html>

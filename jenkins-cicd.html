@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jenkins / CI-CD — Field Guide</title>
+<script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#be185d;--accent2:#0369a1;--accent3:#059669; --highlight-bg:#fdf2f8;--highlight-text:#be185d;--highlight-border:#ec4899; --your-exp-bg:rgba(5,150,105,.06);--your-exp-border:rgba(5,150,105,.2);--your-exp-text:#065f46; --acc-hover:rgba(190,24,93,.04);--acc-open-border:#be185d;--acc-open-bg:rgba(190,24,93,.03); --num-color:#be185d;--num-bg:rgba(190,24,93,.1); --tag-color:#be185d;--tag-bg:rgba(190,24,93,.08);--tag-border:rgba(190,24,93,.2); --flow-arrow:#be185d;--h1-from:#831843;--h1-to:#be185d; --badge-color:#831843;--stat-num:#be185d; --tab-active-color:#be185d;--tab-active-bg:rgba(190,24,93,.08);--tab-active-border:#be185d; --section-title:#be185d;--concept-title:#831843; --cheat-head-bg:#831843;--cheat-head-text:#ffffff;--cheat-key:#831843; --cmd-bg:#fdf2f8;--cmd-text:#831843; }
+  [data-theme="dark"]{ --accent:#f9a8d4;--accent2:#38bdf8;--accent3:#10b981; --highlight-bg:#500724;--highlight-text:#f9a8d4;--highlight-border:#ec4899; --your-exp-bg:rgba(16,185,129,.1);--your-exp-border:rgba(16,185,129,.3);--your-exp-text:#6ee7b7; --acc-hover:rgba(249,168,212,.04);--acc-open-border:#f9a8d4;--acc-open-bg:rgba(249,168,212,.03); --num-color:#f9a8d4;--num-bg:rgba(249,168,212,.1); --tag-color:#f9a8d4;--tag-bg:rgba(249,168,212,.08);--tag-border:rgba(249,168,212,.2); --flow-arrow:#f9a8d4;--h1-from:#f9a8d4;--h1-to:#ec4899; --badge-color:#f9a8d4;--stat-num:#f9a8d4; --tab-active-color:#f9a8d4;--tab-active-bg:rgba(249,168,212,.08);--tab-active-border:#f9a8d4; --section-title:#f9a8d4;--concept-title:#f9a8d4; --cheat-head-bg:#500724;--cheat-head-text:#f9a8d4;--cheat-key:#f9a8d4; --cmd-bg:#500724;--cmd-text:#f9a8d4; }
+  [data-theme="light"] .toggle-knob{background:#be185d;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#f9a8d4;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Back navigation ─────────────────────────────────────────────────────── */
+.back-link{position:fixed;top:1.25rem;left:1.25rem;z-index:100;display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);text-decoration:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.back-link:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
+/* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
+.qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
+.qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
+.qa-search:focus{border-color:var(--tab-active-border,var(--text));}
+.qa-search::placeholder{color:var(--muted);}
+.expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
+.expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;cursor:pointer;transition:opacity .2s;}
+.cmd:hover{opacity:.75;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+  .back-link span{display:none;}
+}
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
+
+</style>
+</head>
+<body data-topic-id="jenkins-cicd">
+
+<a class="back-link" href="index.html">← <span>Field Guide</span></a>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>Jenkins / CI-CD</h1>
+  <p class="subtitle">// pipelines · stages · agents · GitOps · deployment strategies · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="overview" role="button" tabindex="0" onclick="switchTab('overview',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('overview',this);event.preventDefault();}">Overview</div>
+  <div class="tab" data-tab="deepdive" role="button" tabindex="0" onclick="switchTab('deepdive',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('deepdive',this);event.preventDefault();}">Deep Dive</div>
+  <div class="tab" data-tab="qa" role="button" tabindex="0" onclick="switchTab('qa',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('qa',this);event.preventDefault();}">Q &amp; A</div>
+  <div class="tab" data-tab="scenarios" role="button" tabindex="0" onclick="switchTab('scenarios',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('scenarios',this);event.preventDefault();}">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">🔁 CI vs CD vs CD</div>
+      <div class="concept-body">
+        <strong>Continuous Integration (CI):</strong> every code commit triggers an automated build and test run. The goal is to detect integration failures early. All developers merge to a shared branch frequently (at least daily). CI is a practice, not just a tool.
+<strong>Continuous Delivery (CD):</strong> every successful CI build produces a deployable artifact. Deployment to production is automated up to a manual approval gate — you <em>can</em> deploy at any time with one click. The artifact is always production-ready.
+<strong>Continuous Deployment (CDs):</strong> every successful CI build is automatically deployed to production with no manual gate. Requires high test confidence, feature flags for risk mitigation, and fast rollback capability. Used by companies like Netflix, GitHub.
+The difference between Delivery and Deployment is the human approval step. Most organizations target Continuous Delivery; Continuous Deployment is adopted incrementally as confidence in automated quality gates grows.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">CI = integrate often</span>
+          
+          <span class="tag blue">Delivery = manual gate</span>
+          
+          <span class="tag orange">Deployment = fully automated</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📋 Jenkins Declarative Pipeline</div>
+      <div class="concept-body">
+        Jenkins Pipelines defined in a <code>Jenkinsfile</code> (committed to the repo) are the standard. Two syntaxes: <strong>Declarative</strong> (structured, easier to read, required <code>pipeline {}</code> block) and <strong>Scripted</strong> (Groovy DSL, full flexibility, harder to read). Prefer Declarative — use <code>script {}</code> blocks for complex Groovy logic within a Declarative pipeline.
+<code>groovy pipeline {
+  agent { label 'linux' }
+  stages {
+    stage('Build') {
+      steps { sh 'mvn package -DskipTests' }
+    }
+    stage('Test') {
+      steps { sh 'mvn test' }
+      post { always { junit 'target/surefire-reports/*.xml' } }
+    }
+    stage('Deploy') {
+      when { branch 'main' }
+      steps { sh './deploy.sh production' }
+    }
+  }
+}</code>
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">Jenkinsfile in repo</span>
+          
+          <span class="tag blue">Declarative preferred</span>
+          
+          <span class="tag orange">when{} for conditions</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🖥️ Agents & Executors</div>
+      <div class="concept-body">
+        Jenkins has a <strong>controller</strong> (formerly master) that orchestrates builds, and <strong>agents</strong> (formerly slaves) that execute them. Never run builds on the controller — it's a security and stability risk.
+<strong>Agent types:</strong> <code>any</code> (any available agent), <code>label 'linux'</code> (agents with that label), <code>docker { image 'maven:3.9' }</code> (run in a container on the agent), <code>kubernetes {}</code> (spin up a pod per build — highly scalable, ephemeral).
+<strong>Kubernetes agents (Jenkins Kubernetes Plugin):</strong> Each build spawns a fresh Kubernetes pod with a <code>jnlp</code> container (Jenkins agent) plus any tool containers you declare. Pod is destroyed after build. Enables: unlimited parallel builds (cluster scales), clean environments per build, no agent config drift.
+<strong>Agent labeling:</strong> tag agents by capability (<code>docker</code>, <code>gpu</code>, <code>windows</code>, <code>high-mem</code>). Pipeline steps request the right label — no manual assignment needed.
+        
+        
+        <div class="tags">
+          
+          <span class="tag red">never build on controller</span>
+          
+          <span class="tag green">k8s agents = ephemeral</span>
+          
+          <span class="tag blue">label by capability</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🚀 Deployment Strategies</div>
+      <div class="concept-body">
+        <strong>Rolling update:</strong> replace instances one by one. Kubernetes default. Zero downtime if health checks pass. Risk: both v1 and v2 serve traffic simultaneously — must be backward-compatible.
+<strong>Blue/Green:</strong> maintain two identical environments. Switch traffic from Blue (current) to Green (new) instantly. Rollback = switch back. Cost: double the infrastructure. Eliminates version coexistence but requires full duplicate stack.
+<strong>Canary:</strong> route a small % of traffic (1–5%) to new version. Monitor error rate and latency. Progressively increase to 100%. Rollback by routing all traffic back to stable. Best risk management. Requires a traffic-splitting mechanism (Nginx, Istio, AWS ALB).
+<strong>Feature flags:</strong> deploy code to 100% of users but control feature activation per user/segment. Decouple deployment from release. Allows dark launches (code deployed, feature off) and targeted rollouts (5% of users, internal team only).
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">steps</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">canary = lowest risk</span>
+          
+          <span class="tag blue">blue/green = fast rollback</span>
+          
+          <span class="tag orange">feature flags decouple</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔐 Pipeline Security</div>
+      <div class="concept-body">
+        <strong>Secrets management:</strong> never hardcode credentials in Jenkinsfiles or pipeline config. Use Jenkins Credentials Store (username/password, secret text, SSH key, certificates). Reference with <code>withCredentials([string(credentialsId: 'aws-key', variable: 'AWS_KEY')])</code>. Better: integrate with Vault or AWS SSM — Jenkins fetches secrets at runtime, they're never stored in Jenkins.
+<strong>Pipeline permissions:</strong> use Matrix Authorization Plugin or Role-Based Strategy. Developers can trigger builds; only ops can approve production deployments. Use <code>input</code> step for manual approval gates: <code>groovy stage('Deploy Production') {
+  input { message 'Deploy to production?'; ok 'Deploy'; submitter 'ops-team' }
+  steps { sh './deploy.sh prod' }
+}</code>
+<strong>Script approval:</strong> Declarative pipelines limit Groovy by default. <code>script {}</code> blocks with new Groovy methods require admin approval (Script Security plugin). This prevents malicious Jenkinsfiles from calling arbitrary system commands.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">credentials store</span>
+          
+          <span class="tag blue">input for approvals</span>
+          
+          <span class="tag red">no secrets in code</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📦 Artifact Management</div>
+      <div class="concept-body">
+        CI produces <strong>artifacts</strong> — JAR files, Docker images, Helm charts, ZIPs. These must be versioned, stored, and traceable.
+<strong>Versioning strategy:</strong> tag artifacts with the git commit SHA and/or semantic version. <code>image:${BUILD_NUMBER}-${GIT_COMMIT[0..7]}</code>. Never use <code>:latest</code> in production artifacts.
+<strong>Artifact repositories:</strong> Nexus or Artifactory for JARs/Maven artifacts; ECR/GCR/ Docker Hub for Docker images; Helm repository (ChartMuseum, OCI registry) for Helm charts.
+<strong>Traceability:</strong> link artifact → git commit → CI build → deployment. Record in: <code>MANIFEST.MF</code> (JAR), Docker image labels (<code>LABEL git.commit=${GIT_COMMIT}</code>), deployment annotation in Kubernetes. Essential for incident response: "which commit is running in prod?"
+<strong>Retention policy:</strong> keep last N builds' artifacts in the artifact store. Prune older ones. Exception: release artifacts (tagged versions) are kept indefinitely.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">git SHA in artifact tag</span>
+          
+          <span class="tag red">never :latest in prod</span>
+          
+          <span class="tag blue">traceability commit→deploy</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🌿 GitOps</div>
+      <div class="concept-body">
+        GitOps uses Git as the single source of truth for infrastructure and application configuration. The desired state (Kubernetes manifests, Helm values, Terraform) lives in Git. An operator (Argo CD, Flux) continuously reconciles the actual cluster state with the desired state in Git.
+<strong>Push model (traditional CI/CD):</strong> CI pipeline pushes changes to the cluster. CI needs cluster credentials. The cluster is driven from outside.
+<strong>Pull model (GitOps):</strong> an operator inside the cluster pulls from Git and applies changes. The cluster pulls its own config. No cluster credentials needed in CI. More secure, self-healing (if someone manually changes the cluster, the operator reverts).
+<strong>Argo CD:</strong> watches a Git repo for changes in Kubernetes manifests. On change, syncs the cluster. Supports: multi-cluster, RBAC, health status, rollback to any Git commit, SSO. Each application in Argo CD points to a path in a Git repo (or Helm chart) and a target cluster + namespace.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">Git = source of truth</span>
+          
+          <span class="tag blue">pull model = no CI creds</span>
+          
+          <span class="tag orange">Argo CD / Flux</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🧪 Quality Gates</div>
+      <div class="concept-body">
+        Quality gates are automated checks that must pass before a pipeline proceeds. Common gates:
+<strong>Code quality:</strong> SonarQube/SonarCloud analysis — coverage threshold (e.g., &gt; 80%), no new critical bugs, no new security vulnerabilities. Block merge on gate failure.
+<strong>Security scanning:</strong> OWASP Dependency Check (CVE scan of dependencies), Trivy (Docker image CVE scan), SAST (static analysis security testing — Semgrep, Checkmarx).
+<strong>Test gates:</strong> unit tests pass (100%), integration tests pass, contract tests pass (Pact), performance regression test (&lt; 10% latency increase vs baseline).
+<strong>Policy gates (OPA/Conftest):</strong> validate Kubernetes manifests, Terraform plans, Dockerfile against policy rules before applying. Prevents: missing resource limits, containers running as root, missing required labels.
+<strong>Approval gates:</strong> manual approval from a specific team (security, QA, ops) before deploying to production. Logged with who approved and when.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">gate = fail fast</span>
+          
+          <span class="tag blue">SonarQube quality gate</span>
+          
+          <span class="tag orange">policy as code</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Long-running monolithic pipelines</span>
+      A single pipeline running all stages sequentially (build → unit test → integration test → security scan → deploy) that takes 45 minutes gives developers feedback too slowly. Parallelize independent stages. Run fast checks (lint, unit tests) first; fail early. Reserve slow checks (integration tests, security scans) for post-merge or parallel jobs.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Storing secrets in Jenkinsfiles or environment variables logged by CI</span>
+      <code>echo $SECRET_KEY</code> in a pipeline step prints the secret to the build log, which is often accessible to all developers. Jenkins masks credentials injected via the Credentials Store, but only if you use <code>withCredentials{}</code> properly. Never <code>echo</code> credentials. Use <code>--add-host</code> or environment files passed via secrets manager instead of printing values.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Flaky tests breaking CI reliability</span>
+      Flaky tests (pass sometimes, fail sometimes without code changes) erode trust in CI. Developers start re-running failed builds without investigating. The CI pipeline becomes a noise generator. Track test flakiness (ReportPortal, Allure). Quarantine known-flaky tests to a separate non-blocking suite. Fix or delete them — do not tolerate them in the blocking pipeline.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">No artifact promotion — rebuilding for each environment</span>
+      Building fresh artifacts for each environment (dev, staging, prod) means what you tested in staging is not what runs in prod. Always build once, promote the same artifact. The artifact (Docker image, JAR) built on CI is tagged with the commit SHA and promoted to production. Environment-specific config comes from Kubernetes ConfigMaps/Secrets or environment variables — not from re-building.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Missing rollback strategy in the pipeline</span>
+      Deploying to production without an automated rollback path is high risk. Before writing the deploy step, define how to roll back. In Kubernetes: <code>kubectl rollout undo</code>. In GitOps: revert the Git commit in the environment repo. The rollback should be a one-command operation from the CI/CD tool — not a 30-minute manual process.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use CI/CD When</div>
+      <ul>
+        
+        <li>Any software project where manual building, testing, and deployment steps exist — automate them</li>
+        
+        <li>Teams with multiple developers merging to shared branches where integration conflicts must be caught early</li>
+        
+        <li>Multi-environment deployments (dev → staging → production) requiring consistent, repeatable processes</li>
+        
+        <li>Organizations needing audit trails of what was deployed, when, by whom, and from what commit</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use CI/CD When</div>
+      <ul>
+        
+        <li>Throwaway scripts or one-off experiments where the overhead of a pipeline exceeds the benefit</li>
+        
+        <li>Purely exploratory data science notebooks where reproducibility is not a current priority</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Jenkins Pipeline Syntax Reference</div>
+      <table>
+        
+        <tr><td>agent</td><td>Where to run: any, none, label 'x', docker{image}, kubernetes{yaml}. Stage-level agent overrides pipeline-level.</td></tr>
+        
+        <tr><td>stages / stage</td><td>Sequence of named stages. Each stage runs steps. Visible in Blue Ocean / Stage View.</td></tr>
+        
+        <tr><td>steps</td><td>Actual work: sh, bat, script, checkout, withCredentials, input, build, echo.</td></tr>
+        
+        <tr><td>post</td><td>Run after stage/pipeline: always (cleanup), success, failure, unstable, changed. Use for: JUnit publish, Slack notify, cleanup.</td></tr>
+        
+        <tr><td>when</td><td>Conditional execution: branch('main'), environment(name:'ENV',value:'prod'), expression{}, not{}, allOf{}, anyOf{}.</td></tr>
+        
+        <tr><td>parallel</td><td>Run stages in parallel: parallel { stage('A'){...} stage('B'){...} }. Significant time savings for independent stages.</td></tr>
+        
+        <tr><td>input</td><td>Pause for human approval: input(message:'Deploy?', ok:'Yes', submitter:'ops-team'). Logs who approved.</td></tr>
+        
+        <tr><td>environment</td><td>Declare env vars for the block: environment { DEPLOY_ENV = 'prod' }. Access as env.DEPLOY_ENV.</td></tr>
+        
+        <tr><td>options</td><td>Build settings: timeout(time:30,unit:'MINUTES'), retry(3), timestamps(), skipDefaultCheckout().</td></tr>
+        
+        <tr><td>parameters</td><td>Pipeline parameters: string, boolean, choice. Access as params.PARAM_NAME.</td></tr>
+        
+        <tr><td>triggers</td><td>Auto-trigger: cron('H 2 * * 1-5'), pollSCM('H/5 * * * *'), upstream(projects:'job', threshold:SUCCESS).</td></tr>
+        
+        <tr><td>withCredentials</td><td>Inject credentials: withCredentials([string(credentialsId:'id',variable:'VAR')]){sh 'use $VAR'}. Masked in logs.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Deployment Strategy Comparison</div>
+      <table>
+        
+        <tr><td>Recreate</td><td>Stop all v1, start all v2. Downtime during transition. Use only for non-prod or when version coexistence is impossible.</td></tr>
+        
+        <tr><td>Rolling</td><td>Replace instances incrementally. Kubernetes default. Zero downtime. v1 and v2 serve traffic simultaneously — requires backward compatibility.</td></tr>
+        
+        <tr><td>Blue/Green</td><td>Two full environments. Instant cutover. Fast rollback (switch DNS/LB back). Double infrastructure cost. No version coexistence.</td></tr>
+        
+        <tr><td>Canary</td><td>Route small % to new version. Progressive rollout. Lowest risk. Requires traffic splitting (Istio, nginx, ALB). Best for high-traffic services.</td></tr>
+        
+        <tr><td>Shadow</td><td>Duplicate live traffic to new version (no user-visible impact). Compare responses. No production risk. High infra cost. Use before canary for risky changes.</td></tr>
+        
+        <tr><td>A/B Testing</td><td>Route different user segments to different versions. Business experiment, not just risk mitigation. Requires feature flag / routing by header/cookie.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">GitHub Actions vs Jenkins vs GitLab CI</div>
+      <table>
+        
+        <tr><td>Config format</td><td>GitHub: YAML in .github/workflows/. Jenkins: Groovy in Jenkinsfile. GitLab: YAML in .gitlab-ci.yml.</td></tr>
+        
+        <tr><td>Hosting</td><td>GitHub Actions: SaaS (GitHub-hosted runners + self-hosted). Jenkins: self-hosted only. GitLab: SaaS + self-hosted.</td></tr>
+        
+        <tr><td>Runners/Agents</td><td>GitHub: GitHub-hosted (Ubuntu/Windows/Mac) + self-hosted. Jenkins: controller+agents, Kubernetes pods. GitLab: shared runners + self-hosted.</td></tr>
+        
+        <tr><td>Secret management</td><td>GitHub: Secrets in repo/org settings. Jenkins: Credentials Store + Vault integration. GitLab: CI/CD variables (masked, protected).</td></tr>
+        
+        <tr><td>Marketplace/plugins</td><td>GitHub: 20k+ Actions in Marketplace. Jenkins: 1800+ plugins (mature, some unmaintained). GitLab: native features + includes.</td></tr>
+        
+        <tr><td>Multi-repo pipelines</td><td>GitHub: reusable workflows. Jenkins: shared libraries, multibranch pipelines. GitLab: include + extends across projects.</td></tr>
+        
+        <tr><td>Cost</td><td>GitHub: free for public; paid by minutes for private (2k free/month). Jenkins: infra cost only. GitLab: free tier + paid tiers.</td></tr>
+        
+        <tr><td>Best for</td><td>GitHub: teams already on GitHub, OSS. Jenkins: existing enterprise installs, complex pipelines. GitLab: integrated DevSecOps platform.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">GitOps Tools Comparison</div>
+      <table>
+        
+        <tr><td>Argo CD</td><td>Kubernetes-native. Rich UI. App-of-apps pattern. Sync waves. RBAC. SSO. Multi-cluster. Most popular GitOps tool.</td></tr>
+        
+        <tr><td>Flux</td><td>CNCF graduated. CLI-driven. Stronger multi-tenancy. Kustomize and Helm support. Notification controller. Leaner than Argo CD.</td></tr>
+        
+        <tr><td>Argo Rollouts</td><td>Progressive delivery controller (canary, blue/green) for Kubernetes. Integrates with Argo CD and Istio/Nginx for traffic splitting.</td></tr>
+        
+        <tr><td>Jenkins X</td><td>Full GitOps platform built on Jenkins + Tekton. Opinionated, complex. Less popular than Argo/Flux.</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">💻 CLI Commands</div>
+      <div class="cmd-block">
+        
+        <div class="cmd-group">
+          <div class="cmd-label"></div>
+          
+          <span class="cmd">{'cmd': 'java -jar jenkins-cli.jar -s http://jenkins:8080 build my-job -s -v', 'desc': 'Trigger build and wait for completion with verbose output'}</span>
+          
+          <span class="cmd">{'cmd': 'java -jar jenkins-cli.jar -s http://jenkins:8080 console my-job 42', 'desc': 'Get console output of build #42'}</span>
+          
+          <span class="cmd">{'cmd': 'java -jar jenkins-cli.jar -s http://jenkins:8080 list-jobs', 'desc': 'List all jobs'}</span>
+          
+          <span class="cmd">{'cmd': 'java -jar jenkins-cli.jar -s http://jenkins:8080 reload-configuration', 'desc': 'Reload Jenkins config from disk'}</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label"></div>
+          
+          <span class="cmd">{'cmd': 'argocd app list', 'desc': 'List all Argo CD applications and their sync status'}</span>
+          
+          <span class="cmd">{'cmd': 'argocd app sync my-app --prune', 'desc': 'Sync application with Git; prune resources removed from Git'}</span>
+          
+          <span class="cmd">{'cmd': 'argocd app rollback my-app 42', 'desc': 'Rollback to history revision 42'}</span>
+          
+          <span class="cmd">{'cmd': 'argocd app set my-app --sync-policy automated --auto-prune', 'desc': 'Enable automated sync and pruning for an application'}</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
+  <div class="qa-controls">
+    <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
+    <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
+  </div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="S-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">What is the difference between Continuous Integration, Continuous Delivery, and Continuous Deployment?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Continuous Integration:</strong> developers merge code to a shared branch frequently (daily or more). Every merge triggers an automated build and test run. Failures are fixed immediately. The goal: detect integration issues early, keep the main branch always buildable.
+<strong>Continuous Delivery:</strong> the CI pipeline produces a deployable artifact that is always production-ready. Deployment to production is automated but triggered by a human (manual approval gate or button click). The organization <em>can</em> deploy at any time — the decision is business-driven, not technical.
+<strong>Continuous Deployment:</strong> extends CD by removing the manual gate. Every commit that passes all automated tests is automatically deployed to production. Requires extremely high test confidence, feature flags for risk management, and instant rollback capability.
+<strong>The spectrum:</strong> most orgs target Continuous Delivery — automated all the way to staging, with a manual approval for production. Netflix, GitHub, and others practice Continuous Deployment. The distinction is cultural (trust in automation) as much as technical.
+<strong>Key enabler for both:</strong> small, frequent commits. Deploying once a week makes each deploy high-risk. Deploying 10 times a day makes each change small and easy to roll back.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jenkins-cicd','S-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">Explain the structure of a Jenkins Declarative Pipeline. What are the key sections?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>A Declarative Pipeline has a mandatory <code>pipeline {}</code> wrapper. Key sections:
+```groovy pipeline {
+  agent { label 'linux' }           // Where to run
+  options {
+    timeout(time: 30, unit: 'MINUTES')
+    timestamps()
+  }
+  environment { APP_ENV = 'staging' }  // Pipeline-wide env vars</p>
+<p>stages {
+    stage('Build') {
+      steps {
+        sh 'mvn package -DskipTests'
+        stash name: 'artifact', includes: 'target/<em>.jar'
+      }
+    }
+    stage('Test') {
+      parallel {                      // Parallel sub-stages
+        stage('Unit') { steps { sh 'mvn test' } }
+        stage('Lint') { steps { sh 'mvn checkstyle:check' } }
+      }
+      post { always { junit 'target/surefire-reports/</em><em>/</em>.xml' } }
+    }
+    stage('Deploy') {
+      when { branch 'main' }          // Condition
+      input { message 'Deploy?'; submitter 'ops' }
+      steps {
+        unstash 'artifact'
+        withCredentials([string(credentialsId: 'deploy-key', variable: 'KEY')]) {
+          sh './deploy.sh $KEY'
+        }
+      }
+    }
+  }
+  post {
+    success { slackSend message: "Build ${BUILD_NUMBER} succeeded" }
+    failure { slackSend color: 'danger', message: "Build failed" }
+  }
+} <code>``
+Key sections:</code>agent<code>(execution environment),</code>options<code>(timeout, retry, timestamps),</code>environment<code>(env vars),</code>stages<code>(ordered stages),</code>parallel<code>(concurrent stages),</code>when<code>(conditions),</code>input<code>(approval gate),</code>post` (cleanup/notification).</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jenkins-cicd','S-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">How would you implement a multi-environment promotion pipeline (dev → staging → production)?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Build once, promote the same artifact</strong> — this is the core principle. Do not rebuild for each environment. The artifact tested in staging must be identical to what's deployed in production.
+<strong>Pipeline structure:</strong> <code>groovy stages {
+  stage('Build &amp; Test') {
+    steps {
+      sh 'mvn verify'
+      sh "docker build -t myapp:${GIT_COMMIT} ."
+      sh "docker push myapp:${GIT_COMMIT}"
+    }
+  }
+  stage('Deploy Dev') {
+    steps { sh "kubectl set image deployment/app app=myapp:${GIT_COMMIT} -n dev" }
+  }
+  stage('Integration Tests') {
+    steps { sh "mvn verify -Pintegration -Dbase.url=https://dev.internal" }
+  }
+  stage('Deploy Staging') {
+    steps { sh "kubectl set image deployment/app app=myapp:${GIT_COMMIT} -n staging" }
+  }
+  stage('Smoke Tests Staging') {
+    steps { sh './smoke-test.sh staging' }
+  }
+  stage('Deploy Production') {
+    when { branch 'main' }
+    input { message 'Approve prod deploy?'; submitter 'ops-team' }
+    steps { sh "kubectl set image deployment/app app=myapp:${GIT_COMMIT} -n prod" }
+  }
+}</code>
+<strong>Environment config:</strong> Kubernetes ConfigMaps and Secrets per namespace provide environment-specific config. The image is the same; only the config differs.
+<strong>Rollback:</strong> <code>kubectl rollout undo deployment/app -n prod</code> reverts to the previous image. In GitOps: revert the image tag commit in the environment repo.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jenkins-cicd','S-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-04">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">What is GitOps and how does it differ from traditional CI/CD push deployments?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Traditional push CI/CD:</strong> the CI pipeline builds the artifact and calls <code>kubectl apply</code> or similar to push the change to the cluster. The pipeline needs cluster credentials. If the pipeline is down, deployments can't happen. Drift between desired and actual state is possible (someone <code>kubectl edit</code>s something manually — no record, no revert).
+<strong>GitOps:</strong> a Git repository is the single source of truth for the desired cluster state (Kubernetes manifests, Helm values). An operator (Argo CD, Flux) runs inside the cluster, watches the Git repo, and continuously reconciles the cluster to match Git.
+<strong>Key differences:</strong> - <strong>No cluster credentials in CI:</strong> the operator pulls from Git; CI only pushes to Git
+  (updates the image tag in manifests). Much smaller attack surface.
+- <strong>Self-healing:</strong> if someone manually changes something in the cluster, the operator
+  reverts it to match Git. Drift is eliminated.
+- <strong>Audit trail in Git:</strong> every deployment is a Git commit with author, timestamp, and
+  diff. Rollback = <code>git revert</code>; Argo CD syncs the revert automatically.
+- <strong>Separation of concerns:</strong> CI (build and test) → updates Git manifest.
+  GitOps operator → deploys from Git to cluster. Two separate tools, two separate concerns.</p>
+<p><strong>In practice:</strong> CI builds <code>myapp:abc123</code>, updates <code>deployment.yaml</code> image tag to <code>abc123</code>, commits to the infra repo. Argo CD sees the commit and syncs the cluster.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jenkins-cicd','S-04',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-05">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">How do you implement a canary deployment strategy in a CI/CD pipeline?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Requirements:</strong> traffic splitting mechanism (Kubernetes + Istio, nginx-ingress, AWS ALB weighted target groups) and automated rollback trigger.
+<strong>Pipeline flow:</strong> 1. Build and push <code>myapp:v1.2.0</code> 2. Deploy canary: create a separate <code>myapp-canary</code> Deployment with <code>replicas: 1</code>
+   running v1.2.0. Existing <code>myapp</code> Deployment still runs v1.1.0 at <code>replicas: 9</code>.
+3. Configure Istio VirtualService: <code>weight: 10</code> to canary, <code>weight: 90</code> to stable. 4. Observe metrics for 10 minutes: error rate, P99 latency on canary pods
+   (Datadog/Prometheus monitor scoped to canary pod label).
+5. <strong>Gate check:</strong> if canary error rate &gt; 1% → automated rollback (delete canary deployment,
+   reset weights to 100% stable). If metrics are healthy → continue.
+6. Progressive promotion: 10% → 25% → 50% → 100%. At each step, repeat the metric gate. 7. Full promotion: update stable Deployment to v1.2.0, remove canary Deployment, reset weights.
+<strong>Automated rollback in the pipeline:</strong> <code>groovy stage('Canary Monitor') {
+  steps {
+    script {
+      def errorRate = sh(script: './check-canary-error-rate.sh', returnStdout: true).trim()
+      if (errorRate.toFloat() &gt; 1.0) {
+        sh './rollback-canary.sh'
+        error "Canary rollback: error rate ${errorRate}%"
+      }
+    }
+  }
+}</code>
+<strong>Argo Rollouts</strong> automates this entire flow with built-in Prometheus/Datadog metric analysis and automatic promotion/rollback.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jenkins-cicd','S-05',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-06">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">How do you handle secrets in a CI/CD pipeline securely?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Anti-patterns:</strong> - Hardcoding secrets in <code>Jenkinsfile</code> or <code>.github/workflows/*.yml</code> - Storing secrets in environment variables that get logged (<code>echo $SECRET</code>) - Committing <code>.env</code> files with production credentials
+<strong>Jenkins Credentials Store:</strong> Store credentials in Jenkins (encrypted at rest). Reference in pipeline: <code>groovy withCredentials([
+  string(credentialsId: 'aws-access-key', variable: 'AWS_KEY'),
+  usernamePassword(credentialsId: 'db-creds', usernameVariable: 'DB_USER', passwordVariable: 'DB_PASS')
+]) {
+  sh 'aws s3 cp ... --aws-access-key-id $AWS_KEY'
+}</code> Jenkins masks the credential values in logs (replaces with <code>****</code>).
+<strong>Better: HashiCorp Vault:</strong> Jenkins fetches secrets from Vault at runtime using the Jenkins Vault plugin. Vault credentials are short-lived, audited, and rotated automatically. No secrets stored in Jenkins at all.
+<strong>GitHub Actions:</strong> Store in repo/org Secrets (encrypted, masked in logs). Access as <code>${{ secrets.MY_SECRET }}</code>. Never expose in <code>echo</code> steps. Use OIDC (OpenID Connect) with AWS/GCP — no static credentials at all; GitHub Actions exchanges an OIDC token for temporary cloud credentials.
+<strong>Principle:</strong> treat pipeline secrets like any other production secrets. Audit access. Rotate regularly. Prefer short-lived credentials over long-lived API keys.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jenkins-cicd','S-06',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-07">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">How do you reduce flaky tests in a CI pipeline?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Identify flaky tests:</strong> Track pass/fail rates per test over N runs. Tests that pass &lt; 98% without code changes are candidates. Tools: Gradle Test Retry Plugin, pytest-rerunfailures, ReportPortal, GitHub Actions test summary.
+<strong>Common causes and fixes:</strong>
+<strong>Time-dependent tests:</strong> <code>Thread.sleep(500)</code> hoping a background process finishes. Fix: use <code>await().atMost(5, SECONDS).until(condition)</code> (Awaitility).
+<strong>Shared test state:</strong> static variables modified by tests; database not cleaned between tests. Fix: <code>@BeforeEach</code> resets state; use <code>@Transactional</code> + rollback for DB tests; Testcontainers for fully isolated DBs per test run.
+<strong>Port conflicts:</strong> tests hardcode <code>localhost:8080</code>; parallel test runs clash. Fix: use random ports (<code>@LocalServerPort</code> in Spring Boot tests).
+<strong>Order-dependent tests:</strong> test B passes only after test A ran. Fix: each test must set up its own preconditions; never rely on test execution order.
+<strong>Quarantine strategy:</strong> move known-flaky tests to a <code>@Flaky</code> suite that runs separately and doesn't block the main pipeline. Alert the owning team. Give them 1 sprint to fix before the test is deleted. Deleting a flaky test &gt; ignoring it.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jenkins-cicd','S-07',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-08">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-08</span>
+        <span class="acc-question">What is 'shift left' in the context of CI/CD pipelines?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>Shift left means moving quality and security checks earlier in the development process — further left on the timeline from development → testing → staging → production.
+<strong>Why:</strong> the cost of fixing a bug or vulnerability increases dramatically the later it's found. A bug caught in a pre-commit hook costs minutes. The same bug caught in production costs hours of incident response, potential data loss, and reputation damage.
+<strong>Shift-left practices:</strong>
+<strong>Pre-commit (developer machine):</strong> - Git hooks (pre-commit, Husky): run linters, formatters, secret scanners (git-secrets)
+  before the commit is even created.</p>
+<p><strong>PR / CI:</strong> - Unit tests, static analysis (Checkstyle, SpotBugs), SAST (Semgrep, Checkmarx) - Dependency CVE scan (OWASP, Snyk) on every PR — not just nightly - Contract tests (Pact) on every PR — catch API breaking changes before merge
+<strong>Pre-staging:</strong> - DAST (Dynamic Application Security Testing) against a staging environment - Performance test to catch regressions before production
+<strong>Outcome:</strong> production incidents decrease because issues are caught and fixed when context is fresh and the cost is low. Developer velocity increases because late-stage bugs don't cause emergency rollbacks.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jenkins-cicd','S-08',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="ST-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">How do you design a CI/CD platform for 50 teams to use self-service with governance and cost control?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Core challenge:</strong> 50 teams need autonomy to ship fast, but the platform must enforce security, compliance, and cost guardrails without becoming a bottleneck.
+<strong>Paved road approach:</strong> Provide pre-built pipeline templates for common patterns: Spring Boot service, React SPA, Python ML model. Teams use the template (one-line include/reference) and get: - Build, test, Docker image build, scan, push - Security gates (SAST, Trivy, OWASP) - Argo CD GitOps deployment - Standard observability (Datadog integration) Without knowing any of the implementation details. Teams who need custom steps can extend the template, not replace it.
+<strong>Jenkins shared libraries / GitHub Actions reusable workflows:</strong> Platform team maintains <code>company/pipeline-library</code>. Teams call <code>@Library('pipeline-library') import company.StandardPipeline</code>. Updates to the library apply to all teams' pipelines on next run.
+<strong>Self-service infra:</strong> Teams create new pipelines via a portal (click-ops or <code>terraform apply</code>). No platform team approval needed for standard pipelines. Non-standard pipelines require review.
+<strong>Governance gates (non-negotiable):</strong> - All builds must pass security scan (CVE gate, SAST) - All production deployments must come from a signed artifact (cosign) - All prod deploys require approval from two engineers (enforced via GitHub protected branches + Argo CD sync policy) - Audit log of every deployment: who triggered, what artifact, what commit
+<strong>Cost control:</strong> - CI runner quotas per team (GitHub Actions: billing by minutes) - Build timeout enforced by shared library (default 30 min; teams can request extension) - Monthly cost report per team; alert when budget exceeded</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jenkins-cicd','ST-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">How do you implement database schema migrations safely in a CI/CD pipeline?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Core principle: backward-compatible migrations.</strong> Because rolling deployments mean v1 and v2 of the application run simultaneously against the same database, schema changes must be compatible with both versions during the transition period.
+<strong>Expand-Contract pattern:</strong> - Phase 1 (Expand): add new column as nullable with default. Both v1 (ignores new column)
+  and v2 (uses new column) can coexist.
+- Phase 2 (Migrate): backfill data; application code fully uses new column. - Phase 3 (Contract): make column NOT NULL; remove old column. Only after all v1 instances
+  are gone.</p>
+<p><strong>Migration tools in the pipeline:</strong> Flyway or Liquibase. Migrations are SQL files versioned in Git alongside application code. The application runs migrations on startup (<code>spring.flyway.enabled=true</code>) OR a pipeline step runs them before deployment: <code>groovy stage('DB Migrate') {
+  steps { sh 'flyway -url=$DB_URL -user=$DB_USER migrate' }
+} stage('Deploy') {
+  steps { sh 'kubectl rollout ...' }
+}</code>
+<strong>Safety in CI:</strong> - Run migrations against a copy of production data in staging before touching prod - Migration dry-run: <code>flyway validate</code> to check migration files match DB state - Rollback: Flyway Community doesn't support undo; design migrations to be forward-only.
+  "Undo" migrations are a new migration that reverts the schema change.</p>
+<p><strong>Never:</strong> run DDL in the middle of a rolling deployment. Add a column before deploying new code; remove an old column only after all old code is gone.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jenkins-cicd','ST-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">How do you handle a failed production deployment in a CI/CD pipeline?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>The goal:</strong> restore service within minutes, investigate without pressure, prevent recurrence.
+<strong>Automated detection:</strong> The pipeline's deployment step must verify success before marking the job green. Kubernetes: wait for the rollout to complete and all pods to pass health checks: <code>kubectl rollout status deployment/myapp -n prod --timeout=5m</code>. If this times out or pods enter CrashLoopBackOff → deployment step fails.
+<strong>Automated rollback (preferred):</strong> If the deploy step fails: <code>kubectl rollout undo deployment/myapp -n prod</code>. In GitOps: revert the image tag commit in the environment repo; Argo CD auto-syncs the revert. Pipeline sends alert: "Deploy v1.2.0 failed. Rolled back to v1.1.9. See [runbook]." Total time to restored service: 2–5 minutes.
+<strong>Post-incident (within 24h):</strong> - Root cause: what failed? Health check? OOMKilled? DB migration? Config error? - Canary deployment: if this had been a 5% canary, would the health check have caught it
+  before 100% rollout? If yes, add canary as a required step.
+- Add the specific failure mode to the test suite (regression test). - Update the runbook with the specific failure pattern and resolution.
+<strong>Never:</strong> hotfix directly on the cluster without going through the pipeline. Hotfixes in prod that aren't in Git create drift; the next deploy overwrites the hotfix. Fast-track a hotfix through the pipeline — keep the golden path intact even under pressure.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jenkins-cicd','ST-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="P-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How do you design a DORA-metrics-driven engineering improvement program using CI/CD telemetry?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>DORA four key metrics</strong> (from the State of DevOps research) measure software delivery performance:
+<strong>Deployment Frequency:</strong> how often deploys happen per service. Elite: multiple times/day. High: daily–weekly. Medium: weekly–monthly. Low: monthly+. Measure: count deploy events per service per week (Argo CD sync history, Jenkins build log).
+<strong>Lead Time for Changes:</strong> time from code commit to running in production. Elite: &lt; 1 hour. High: &lt; 1 day. Medium: &lt; 1 week. Low: &gt; 1 month. Measure: commit timestamp → production deploy timestamp. Extract from Git + deploy events.
+<strong>Change Failure Rate:</strong> % of deployments causing incidents/rollbacks. Elite: 0–15%. High: 0–15%. Medium: 16–30%. Low: &gt; 30%. Measure: link PagerDuty incidents to the preceding deploy (within 1 hour).
+<strong>Failed Deployment Recovery Time (MTTR):</strong> time from incident start to service restored. Elite: &lt; 1 hour. High: &lt; 1 day. Low: &gt; 1 week. Measure: PagerDuty alert → resolution timestamp.
+<strong>Operationalizing the metrics:</strong> - Dashboard: DORA metrics per team, per service, trending over 90 days - Monthly engineering all-hands: publish org-wide DORA percentile — celebrate improvements - Targeted improvement programs: teams in "Low" tier get a platform engineer embedded for one quarter - Connecting to practices: slow lead time → investigate pipeline stages (where is it waiting?);
+  high CFR → invest in canary deployments and better tests; long MTTR → invest in observability and runbooks</p>
+<p><strong>Anti-pattern:</strong> using DORA metrics for individual performance evaluation. They measure system outcomes, not individual effort. A team in a "Low" tier may be working on critical compliance infrastructure with mandatory change windows — context matters.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('jenkins-cicd','P-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">Design a CI/CD Pipeline for a Spring Boot Microservice</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Design a complete CI/CD pipeline for a Spring Boot microservice deployed to Kubernetes. Requirements: automated build and test on every PR, Docker image build and push, deployment to dev automatically on merge to main, staging after manual approval, production after a second approval. Rollback must be possible in under 5 minutes.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>GitHub Actions for CI, Argo CD for GitOps CD</li><li>ECR for Docker images</li><li>SonarCloud for code quality gate</li><li>No production deploys without two-person approval</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>PR pipeline (.github/workflows/pr.yml):</strong> Trigger: pull_request. Steps: checkout → setup Java 21 (actions/setup-java) → Maven cache (actions/cache, ~/.m2) → <code>mvn verify</code> (unit + integration tests) → SonarCloud analysis → Trivy image scan → post build summary. Gate: all must pass before merge is allowed (branch protection rules).</li><li><strong>Main branch pipeline (.github/workflows/main.yml):</strong> Trigger: push to main. Steps: <code>mvn package -DskipTests</code> → <code>docker build -t ecr/myapp:${GITHUB_SHA}</code> → <code>docker push</code> → update <code>infra/dev/deployment.yaml</code> image tag to <code>${GITHUB_SHA}</code> → commit + push to infra repo. Argo CD detects the commit and syncs dev automatically.</li><li><strong>Staging promotion:</strong> Manual workflow dispatch or GitHub Environment with required reviewers. Job: update <code>infra/staging/deployment.yaml</code> image tag → commit → Argo CD syncs staging. GitHub Environment "staging" requires one reviewer from the <code>qa-team</code>.</li><li><strong>Production promotion:</strong> GitHub Environment "production" requires two reviewers from <code>ops-team</code>. Includes deployment protection rules (only from main branch, time window restrictions). After approval: update <code>infra/prod/deployment.yaml</code> → Argo CD syncs with sync wave annotation to run DB migration before app deployment.</li><li><strong>Rollback:</strong> Argo CD History tab → select previous revision → Rollback. Argo CD updates the deployment; Kubernetes rolls out the previous image. Under 3 minutes. Alternatively: <code>git revert</code> the image tag commit in the infra repo → Argo CD auto-syncs.</li><li><strong>OIDC for AWS auth:</strong> no static AWS credentials in GitHub secrets. Configure OIDC trust between GitHub Actions and AWS IAM. Actions exchange GitHub OIDC token for temporary ECR push credentials. Credentials are short-lived (15 min), scoped to ECR push only, audited in CloudTrail.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Building a new Docker image for staging/production instead of promoting the same image from dev — what you tested is not what you deploy</li><li>Static AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in GitHub secrets — use OIDC for short-lived credentials</li><li>No rollback plan — rolling out to 100% with no way to undo quickly</li><li>SonarCloud quality gate not blocking PR merge — analysis without enforcement is theater</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Recover from a Broken CI/CD Pipeline Blocking All Deployments</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">It's Friday afternoon. A Jenkins pipeline change broke the shared library used by all 50 teams' pipelines. Every build is now failing with <code>NoSuchMethodError</code> in the shared library. No team can deploy. A critical security patch needs to go to production today.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Shared Jenkins library is used by all 50 pipelines</li><li>The security patch is ready and tested — only deployment is blocked</li><li>Cannot deploy directly to the cluster bypassing the pipeline (SOC 2 requirement)</li><li>The pipeline engineer who made the change is unavailable</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Immediate: revert the shared library change.</strong> Find the breaking commit in the shared library repo: <code>git log --oneline -10</code>. <code>git revert HEAD --no-edit</code> → push to main. Jenkins automatically uses the latest library version (or pin to a specific tag in consuming pipelines). Verify: re-run one pipeline to confirm it passes.</li><li><strong>Emergency deploy the security patch:</strong> Once the library is reverted, the security patch's pipeline runs normally. Deploy through the standard pipeline (now unblocked). This maintains the audit trail.</li><li><strong>Root cause analysis (next week):</strong> The shared library had no automated tests. The breaking change was tested manually by one person against one pipeline. Fix: add a test suite for the shared library (run all pipelines in dry-run mode against the new library version in a staging Jenkins). Require PR approval from two people for shared library changes.</li><li><strong>Library versioning:</strong> Don't pin all pipelines to <code>main</code> of the shared library — that means every library change immediately affects all 50 teams. Version the library with semantic versioning. Pipelines pin to a major version: <code>@Library('company-lib@v2')</code>. Breaking changes bump the major version; teams upgrade at their own pace. A breaking change in v2 only affects pipelines that opted into v2.</li><li><strong>Circuit breaker for the platform:</strong> If the shared library pipeline itself is the gate, the platform team needs a "break-glass" procedure: documented, approved, audited way to do an emergency deploy without the standard pipeline. Requires CISO approval and is logged. Used only in genuine emergencies — not as a shortcut.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Deploying directly to the cluster via kubectl bypassing the pipeline — violates SOC 2 controls</li><li>Not reverting first before investigating root cause — restoring service is the first priority</li><li>Shared library pinned to 'main' with no versioning — one bad commit breaks all 50 teams</li><li>No test suite for the shared library — changes are tested manually in production</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>// ── Theme (localStorage persistence) ─────────────────────────────────────
+function toggleTheme() {
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  h.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+// ── Tabs (with URL hash sync) ─────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+  history.replaceState(null, '', '#' + name);
+}
+
+// ── Accordion (JS-driven scrollHeight animation) ───────────────────────────
+function setAccOpen(item, open) {
+  const body = item.querySelector('.acc-body');
+  if (open) {
+    item.classList.add('open');
+    const h = body.scrollHeight;
+    body.style.maxHeight = h + 'px';
+    function onEnd(e) {
+      if (e.propertyName !== 'max-height') return;
+      body.removeEventListener('transitionend', onEnd);
+      if (item.classList.contains('open')) body.style.maxHeight = 'none';
+    }
+    body.addEventListener('transitionend', onEnd);
+  } else {
+    if (!body.style.maxHeight || body.style.maxHeight === 'none') {
+      body.style.maxHeight = body.scrollHeight + 'px';
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      item.classList.remove('open');
+      body.style.maxHeight = '0';
+    }));
+  }
+}
+
+function toggleAcc(header) {
+  setAccOpen(header.parentElement, !header.parentElement.classList.contains('open'));
+}
+
+// ── Expand / collapse all Q&A ─────────────────────────────────────────────
+function toggleAllAcc(btn) {
+  const items = [...document.querySelectorAll('#qa .acc-item')].filter(i => i.style.display !== 'none');
+  const allOpen = items.every(i => i.classList.contains('open'));
+  items.forEach(i => setAccOpen(i, !allOpen));
+  btn.textContent = allOpen ? 'Expand All' : 'Collapse All';
+}
+
+// ── Q&A keyword filter ────────────────────────────────────────────────────
+function filterQA(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.acc-item').forEach(item => {
+    const text = item.querySelector('.acc-question').textContent.toLowerCase();
+    item.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+  // Reset expand-all label whenever filter changes
+  const btn = document.querySelector('.expand-all-btn');
+  if (btn) btn.textContent = 'Expand All';
+}
+
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
+// ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
+document.addEventListener('DOMContentLoaded', function () {
+  // Sync toggle label with the actual current theme
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const label = document.getElementById('toggle-label');
+  if (label) label.textContent = isDark ? 'LIGHT MODE' : 'DARK MODE';
+
+  // Restore active tab from URL hash
+  const hash = location.hash.slice(1);
+  const validTabs = ['overview', 'deepdive', 'qa', 'scenarios'];
+  if (hash && validTabs.includes(hash)) {
+    const tab = document.querySelector(`.tab[data-tab="${hash}"]`);
+    if (tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(hash).classList.add('active');
+    }
+  }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
+
+  // Copy-to-clipboard on CLI command blocks
+  document.querySelectorAll('.cmd').forEach(cmd => {
+    cmd.title = 'Click to copy';
+    cmd.addEventListener('click', function () {
+      navigator.clipboard.writeText(this.textContent.trim()).then(() => {
+        const orig = this.style.opacity;
+        this.style.opacity = '0.4';
+        setTimeout(() => { this.style.opacity = orig; }, 600);
+      }).catch(() => {});
+    });
+  });
+});
+</script>
+</body>
+</html>

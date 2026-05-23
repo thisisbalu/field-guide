@@ -1,0 +1,799 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Datadog — Interview Field Guide Content
+# Edit this file to update the guide. Run: python generate.py datadog
+# ══════════════════════════════════════════════════════════════════════════════
+
+meta:
+  id: datadog
+  title: Datadog
+  title_short: Datadog
+  subtitle: "// metrics · APM · logs · traces · dashboards · monitors · alerting · senior → principal"
+  description: "Cloud observability platform unifying metrics, traces, and logs for full-stack monitoring."
+  category: Observability
+  icon: "📊"
+
+colors:
+  toggle_light: "#7c3aed"
+  toggle_dark: "#c4b5fd"
+  light_vars: >-
+    --accent:#7c3aed;--accent2:#d95a1e;--accent3:#059669;
+    --highlight-bg:#f5f3ff;--highlight-text:#7c3aed;--highlight-border:#8b5cf6;
+    --your-exp-bg:rgba(5,150,105,.06);--your-exp-border:rgba(5,150,105,.2);--your-exp-text:#065f46;
+    --acc-hover:rgba(124,58,237,.04);--acc-open-border:#7c3aed;--acc-open-bg:rgba(124,58,237,.03);
+    --num-color:#7c3aed;--num-bg:rgba(124,58,237,.1);
+    --tag-color:#7c3aed;--tag-bg:rgba(124,58,237,.08);--tag-border:rgba(124,58,237,.2);
+    --flow-arrow:#7c3aed;--h1-from:#4c1d95;--h1-to:#7c3aed;
+    --badge-color:#4c1d95;--stat-num:#7c3aed;
+    --tab-active-color:#7c3aed;--tab-active-bg:rgba(124,58,237,.08);--tab-active-border:#7c3aed;
+    --section-title:#7c3aed;--concept-title:#4c1d95;
+    --cheat-head-bg:#4c1d95;--cheat-head-text:#ffffff;--cheat-key:#4c1d95;
+    --cmd-bg:#f5f3ff;--cmd-text:#4c1d95;
+  dark_vars: >-
+    --accent:#c4b5fd;--accent2:#ff9d6b;--accent3:#10b981;
+    --highlight-bg:#2e1065;--highlight-text:#c4b5fd;--highlight-border:#8b5cf6;
+    --your-exp-bg:rgba(16,185,129,.1);--your-exp-border:rgba(16,185,129,.3);--your-exp-text:#6ee7b7;
+    --acc-hover:rgba(196,181,253,.04);--acc-open-border:#c4b5fd;--acc-open-bg:rgba(196,181,253,.03);
+    --num-color:#c4b5fd;--num-bg:rgba(196,181,253,.1);
+    --tag-color:#c4b5fd;--tag-bg:rgba(196,181,253,.08);--tag-border:rgba(196,181,253,.2);
+    --flow-arrow:#c4b5fd;--h1-from:#c4b5fd;--h1-to:#8b5cf6;
+    --badge-color:#c4b5fd;--stat-num:#c4b5fd;
+    --tab-active-color:#c4b5fd;--tab-active-bg:rgba(196,181,253,.08);--tab-active-border:#c4b5fd;
+    --section-title:#c4b5fd;--concept-title:#c4b5fd;
+    --cheat-head-bg:#2e1065;--cheat-head-text:#c4b5fd;--cheat-key:#c4b5fd;
+    --cmd-bg:#2e1065;--cmd-text:#c4b5fd;
+
+# ── OVERVIEW ──────────────────────────────────────────────────────────────────
+overview:
+  concepts:
+    - title: "📈 Metrics"
+      body: >
+        Datadog collects metrics via the **Datadog Agent** running on hosts/containers, or via
+        integrations (AWS CloudWatch, Kubernetes metrics-server) and custom code using the
+        **StatsD API** or **DogStatsD** (Datadog's extended protocol supporting tags).
+
+        Four metric types: **Count** (discrete events — requests, errors), **Rate** (count
+        per second — automatically calculated), **Gauge** (point-in-time value — memory, queue
+        depth, CPU), **Histogram** (distribution of values — latency; generates p50, p75, p90,
+        p95, p99, max, avg, count automatically).
+
+        All metrics support **tags** (key:value pairs like `env:prod`, `service:orders`,
+        `region:us-east-1`). Tags are the primary grouping and filtering mechanism. Metrics
+        are stored for 15 months; high-resolution (1-second) retained for 15 hours.
+      tags:
+        - {text: "histogram → percentiles", color: green}
+        - {text: "tags for dimensions", color: blue}
+        - {text: "DogStatsD UDP", color: orange}
+
+    - title: "🔍 APM & Distributed Tracing"
+      body: >
+        Datadog APM instruments services to capture **traces** — a tree of **spans** representing
+        each operation (HTTP request, DB query, cache call, downstream service call).
+        Auto-instrumentation via language agents (Java agent, dd-trace-py) instruments
+        popular frameworks without code changes. Manual instrumentation adds custom spans.
+
+        **Key APM views:**
+        - **Service Map:** topology of all services and their dependencies
+        - **Flame graph:** waterfall of spans within a trace — identify bottlenecks
+        - **Service Page:** throughput, latency (P50/P95/P99), error rate per service
+        - **Trace search:** query traces by service, operation, tag, duration
+
+        **Trace sampling:** 100% trace ingestion is expensive. Datadog uses **head-based**
+        sampling (Tracing Without Limits — ingests all, stores sampled) with **retention
+        filters** to keep traces matching specific criteria (all errors, slow traces, specific users).
+      tags:
+        - {text: "auto-instrumentation", color: green}
+        - {text: "flame graph", color: blue}
+        - {text: "retention filters", color: orange}
+
+    - title: "📋 Log Management"
+      body: >
+        Logs are collected by the Datadog Agent (tail log files, Docker/Kubernetes log driver),
+        via Lambda forwarder (AWS), or by direct API (`/_log` endpoint).
+
+        **Log pipeline:** raw logs → parsing (Grok patterns extract structured fields) →
+        enrichment (add host/service tags) → indexing or archiving. Not all logs need to be
+        indexed (expensive) — route low-value logs to archives (S3) with Flex Logs.
+
+        **Log attributes:** extracted structured fields (status_code, duration, user_id) become
+        searchable facets. **Reserved attributes** automatically map to Datadog conventions:
+        `status` → log level, `message`, `host`, `service`, `source`, `timestamp`.
+
+        **Log-Trace correlation:** Datadog auto-injects `dd.trace_id` and `dd.span_id` into
+        logs (via MDC in Java). Click a trace span → "View Logs" shows all logs from that
+        exact request. Critical for debugging distributed failures.
+      tags:
+        - {text: "Grok parsing", color: blue}
+        - {text: "trace correlation", color: green}
+        - {text: "archive for cost", color: orange}
+
+    - title: "🖥️ Dashboards"
+      body: >
+        Dashboards visualize metrics, traces, and logs in a single pane. Widget types:
+        **Timeseries** (line/bar graphs over time), **Toplist** (ranked list — top services
+        by error rate), **Heatmap** (distribution over time), **Service Level Objective (SLO)**
+        widget, **Log Stream** (live logs), **Trace List**, **Iframe**, and **Note**.
+
+        **Dashboard best practices:**
+        - One dashboard per service (golden signals: latency, traffic, errors, saturation)
+        - Template variables (`$env`, `$service`) make dashboards reusable across environments
+        - Use **Formula & Functions** for derived metrics (error rate = `errors / requests`)
+        - Share dashboards via public URL or embed via iframe
+        - **Screenboards** (freeform layout, good for NOC walls) vs **Timeboards** (time-synced,
+          good for deep investigation — changing time range applies to all widgets)
+      tags:
+        - {text: "golden signals", color: green}
+        - {text: "template variables", color: blue}
+        - {text: "timeboards for investigation", color: orange}
+
+    - title: "🚨 Monitors & Alerting"
+      body: >
+        Monitors define alerting conditions on any Datadog data. Types: **Metric monitor**
+        (threshold, anomaly, change, forecast), **APM monitor** (error rate, latency),
+        **Log monitor** (match count), **Composite monitor** (AND/OR of other monitors),
+        **SLO alert** (burn rate), **Synthetics alert** (browser/API test failures).
+
+        **Alert states:** OK → Warning → Alert → No Data. Each transition can notify.
+
+        **Notification routing:** integrate with PagerDuty, Slack, Opsgenie, email. Use
+        `@team-oncall` in monitor messages. **Priority P1–P5** classifies severity.
+
+        **Monitor best practices:**
+        - Alert on symptoms (latency up, error rate up), not causes (CPU up)
+        - Set Warning before Alert to give early warning
+        - Always include runbook link and context in alert message
+        - Suppress flapping with `require` full evaluation windows before alerting
+        - Use **downtime** to suppress alerts during planned maintenance
+      tags:
+        - {text: "symptom not cause", color: green}
+        - {text: "anomaly detection", color: blue}
+        - {text: "SLO burn rate alerts", color: orange}
+
+    - title: "🎯 SLIs, SLOs & Error Budgets"
+      body: >
+        Datadog supports SLO tracking natively. Define an **SLI** (Service Level Indicator)
+        from a monitor or metric ratio. Set the **SLO target** (e.g., 99.9% availability).
+        Datadog calculates the **error budget** (remaining downtime budget in the compliance window).
+
+        Two SLO types: **Monitor-based** — SLO derived from monitor OK/Alert state over time.
+        **Metric-based** — SLO derived from a ratio of good events / total events
+        (e.g., `successful_requests / total_requests`). More accurate than monitor-based.
+
+        **Burn rate alerts:** alert when the error budget is being consumed faster than
+        sustainable. A burn rate of 1 = consuming budget at exactly the pace to exhaust it
+        by window end. Alert at burn rate 14.4 (1-hour budget burn at 30-day window).
+        Allows catching incidents early without waiting for the SLO to actually breach.
+      tags:
+        - {text: "metric-based SLO", color: green}
+        - {text: "burn rate alerts", color: orange}
+        - {text: "error budget", color: blue}
+
+    - title: "🔬 Synthetics & RUM"
+      body: >
+        **Synthetics** proactively monitors APIs and UIs from external locations:
+        - **API tests:** HTTP, gRPC, TCP, DNS, SSL health checks on a schedule from global
+          PoPs. Alert before users notice.
+        - **Browser tests:** Selenium-like test recorded in a browser. Runs the full user
+          journey (login → checkout) on a schedule. Catches JS errors, layout issues.
+        - **Multistep API tests:** chain of API calls simulating a workflow.
+
+        **Real User Monitoring (RUM):** captures real user browser sessions — page load time,
+        Core Web Vitals (LCP, FID, CLS), JS errors, user actions. Correlates with backend
+        traces (RUM → APM → Logs) for end-to-end visibility into user-facing performance.
+
+        **CI Visibility:** Synthetic tests can run in CI pipelines. RUM can be used in
+        staging environments to catch frontend regressions before production.
+      tags:
+        - {text: "Synthetics = proactive", color: green}
+        - {text: "RUM = real users", color: blue}
+        - {text: "global PoPs", color: orange}
+
+    - title: "💰 Cost Management"
+      body: >
+        Datadog pricing is based on: **hosts** (agents running), **APM hosts**, **indexed logs**
+        (GB ingested × retention), **custom metrics** (cardinality), **Synthetics** (test runs),
+        **RUM sessions**. Costs can escalate quickly if not managed.
+
+        **Cost levers:**
+        - **Custom metrics:** each unique tag combination = one metric. High-cardinality tags
+          (user_id, request_id) on metrics explode cardinality and cost. Use tags for dimensions
+          that have bounded cardinality (env, service, region — not user_id).
+        - **Log indexing:** only index logs you actively query. Archive the rest to S3 (Flex Logs
+          for occasional ad-hoc queries). Use log sampling for high-volume debug logs.
+        - **APM sampling:** Tracing Without Limits ingests all; retention filters reduce storage.
+        - **Metrics aggregation:** use rollups to retain aggregated historical data; raw 1-second
+          metrics roll up to 1-minute after 15 hours.
+      tags:
+        - {text: "cardinality = cost", color: red}
+        - {text: "archive logs", color: orange}
+        - {text: "tag governance", color: blue}
+
+  gotchas:
+    - title: "High-cardinality tags on metrics"
+      body: >
+        Every unique combination of tag values on a metric counts as a separate custom metric.
+        Adding `user_id` as a tag to a request metric with 1M users creates 1M custom metrics —
+        potentially thousands of dollars per month. Tags on metrics must have bounded cardinality
+        (env, service, region, status_code are good; user_id, request_id, order_id are not).
+        Use traces and logs for high-cardinality analysis.
+
+    - title: "Alert fatigue from noisy monitors"
+      body: >
+        Monitors that fire too often lose their urgency — on-call engineers start ignoring alerts.
+        Common causes: thresholds too tight, no evaluation window (single data point triggers),
+        alerting on symptoms with too much volatility. Fix: use longer evaluation windows,
+        anomaly detection for variable metrics, composite monitors to AND conditions, and regular
+        alert review to silence or tune noisy monitors.
+
+    - title: "Missing log-trace correlation"
+      body: >
+        Distributed debugging requires jumping between traces and logs for the same request.
+        This only works if the trace ID is injected into log statements. Java: Datadog agent
+        auto-injects into SLF4J MDC. Other languages may require manual injection. Without it,
+        you have logs and traces as separate, disconnected data streams.
+
+    - title: "Sampling traces and missing critical errors"
+      body: >
+        Head-based sampling configured too aggressively (e.g., 1% sampling) means 99% of
+        error traces are never stored. Use tail-based sampling (retention filters) to always
+        keep traces with errors and slow traces, regardless of the sampling rate for normal traffic.
+
+    - title: "Dashboard scope too broad"
+      body: >
+        A single dashboard showing all services at once makes it impossible to identify which
+        service has an issue. Build service-scoped dashboards using template variables.
+        Reserve the global overview dashboard for executive SLO summary only.
+
+  when_to_use:
+    - "Full-stack observability across cloud infrastructure, containers, and application code"
+    - "Unified platform where correlating metrics, traces, and logs in one tool matters"
+    - "SLO tracking and error budget management for reliability engineering"
+    - "Proactive monitoring with Synthetics and anomaly detection before users are impacted"
+
+  when_not_to_use:
+    - "Cost-sensitive environments — Datadog can be expensive at scale; Prometheus + Grafana + Loki is a common open-source alternative"
+    - "Heavily regulated environments where sending telemetry to a SaaS vendor is prohibited"
+    - "Very simple single-service deployments where a basic hosted metrics solution suffices"
+    - "When deep OpenTelemetry-native tooling (Jaeger, Tempo, Prometheus) is already well-established"
+
+# ── DEEP DIVE ─────────────────────────────────────────────────────────────────
+deep_dive:
+  tables:
+    - title: "Metric Types"
+      full_width: false
+      rows:
+        - key: "COUNT"
+          value: "Number of events in a flush interval. Resets each interval. Use for: requests, errors, logins. Submit: statsd.increment('requests')"
+        - key: "RATE"
+          value: "COUNT per second. Datadog calculates automatically from COUNT. Normalized across flush intervals."
+        - key: "GAUGE"
+          value: "Point-in-time value. Last value wins in flush interval. Use for: memory, CPU, queue depth, active connections."
+        - key: "HISTOGRAM"
+          value: "Distribution of values per flush interval. Generates: .avg, .count, .median, .95percentile, .max. Use for: latency, response sizes."
+        - key: "DISTRIBUTION"
+          value: "Like histogram but aggregated globally (not per-agent). Accurate percentiles across hosts. Preferred for latency at scale. Counts as custom metric per percentile."
+        - key: "SET"
+          value: "Count of unique values per flush interval. Use for: unique users, unique IPs. submit: statsd.set('users', user_id)"
+
+    - title: "APM Concepts"
+      full_width: false
+      rows:
+        - key: "Trace"
+          value: "Complete request journey across all services. Has a trace_id. Composed of spans."
+        - key: "Span"
+          value: "One unit of work (HTTP call, DB query, function). Has span_id, parent_span_id, start, duration, resource, service, error flag."
+        - key: "Service"
+          value: "Logical grouping of spans. Configured via DD_SERVICE env var or tracer config. Appears as a node in the Service Map."
+        - key: "Resource"
+          value: "The specific operation within a service. For HTTP: 'GET /orders/{id}'. For DB: the SQL query template."
+        - key: "Sampling rate"
+          value: "Fraction of traces ingested. Default: automatic (prioritize errors and slow traces). Override per service with DD_TRACE_SAMPLE_RATE=0.1."
+        - key: "Retention filter"
+          value: "Server-side rule keeping specific traces: all errors, P95 latency outliers, specific service. Ingestion and indexing are billed separately."
+        - key: "Continuous Profiler"
+          value: "CPU/memory/lock profiles captured continuously and linked to traces. Identifies hot code paths without separate profiling sessions."
+
+    - title: "Monitor Types"
+      full_width: false
+      rows:
+        - key: "Threshold"
+          value: "Alert when metric crosses a static threshold for N minutes. Simple and predictable. Needs manual tuning for seasonal traffic."
+        - key: "Change"
+          value: "Alert when metric changes by X% or X units compared to N minutes/hours ago. Good for detecting sudden spikes."
+        - key: "Anomaly"
+          value: "ML-based. Alert when metric deviates from expected pattern (learned from historical data). Good for cyclical metrics (day-of-week patterns)."
+        - key: "Forecast"
+          value: "Predicts when metric will cross threshold in the future. Use for capacity planning (disk will fill in 3 days)."
+        - key: "Outlier"
+          value: "Alert when one entity (host, container) behaves differently from its peers. Good for detecting bad pods in a fleet."
+        - key: "Composite"
+          value: "Boolean combination of other monitors. 'Alert when error rate is high AND latency is high'. Reduces false positives."
+        - key: "SLO Alert"
+          value: "Alert on burn rate: error budget consumed faster than safe rate. Two-window burn rate: fast (1hr) + slow (5hr) for precision + recall."
+
+    - title: "DogStatsD Metric Submission"
+      full_width: false
+      rows:
+        - key: "Increment count"
+          value: "statsd.increment('orders.created', tags=['env:prod','region:us-east'])"
+        - key: "Gauge"
+          value: "statsd.gauge('queue.depth', queue.size(), tags=['queue:orders'])"
+        - key: "Histogram"
+          value: "statsd.histogram('request.duration', elapsed_ms, tags=['service:api'])"
+        - key: "Distribution"
+          value: "statsd.distribution('db.query.time', query_ms, tags=['table:orders'])"
+        - key: "Timed decorator (Python)"
+          value: "@statsd.timed('function.duration', tags=['func:checkout'])"
+        - key: "Event"
+          value: "statsd.event('Deploy complete', 'v1.4.2 deployed', alert_type='info', tags=['env:prod'])"
+        - key: "Service check"
+          value: "statsd.service_check('payment.health', statsd.OK, tags=['env:prod'])"
+
+  comparison:
+    title: "Datadog vs Prometheus+Grafana vs New Relic vs Dynatrace"
+    columns: ["Dimension", "Datadog", "Prometheus + Grafana", "New Relic", "Dynatrace"]
+    rows:
+      - ["Type", "SaaS, fully managed", "Open-source, self-hosted", "SaaS, fully managed", "SaaS, fully managed"]
+      - ["Metrics", "Agent + integrations", "Scrape-based pull model", "Agent + integrations", "OneAgent auto-discovery"]
+      - ["APM", "dd-trace language agents", "OpenTelemetry + Tempo", "Language agents", "OneAgent (auto, no code)"]
+      - ["Logs", "Agent + pipeline", "Loki (label-based)", "Logs UI", "Log management"]
+      - ["Dashboards", "Polished, built-in", "Grafana (powerful, complex)", "Polished", "Polished, auto-generated"]
+      - ["Alerting", "Monitors + PD/Slack", "Alertmanager", "Alert conditions", "Davis AI (auto-detect)"]
+      - ["Auto-instrumentation", "Good (agents)", "Manual/OTel needed", "Good", "Best (OneAgent bytecode)"]
+      - ["Cost model", "Per host + custom metrics", "Infrastructure cost only", "Per GB ingested", "Per host (DEM/APM)"]
+      - ["Best for", "All-in-one, fast time to value", "Cost control, OSS ecosystem", "Simple setup", "Enterprise, AI-ops"]
+
+# ── Q & A ─────────────────────────────────────────────────────────────────────
+qa:
+  senior:
+    - id: S-01
+      question: "What are the four golden signals and how would you monitor them in Datadog?"
+      answer: >
+        Google SRE's four golden signals are the minimum viable set of metrics for any service:
+
+        **Latency:** time to serve a request. Track P50, P95, P99 — not just average.
+        Datadog: APM Service Page shows latency distribution; metric `trace.http.request.duration`
+        histogram; custom distribution metric from your code.
+
+        **Traffic:** demand on the system. Requests per second, events per second, active users.
+        Datadog: `trace.http.request.hits` (from APM); custom COUNT metric.
+
+        **Errors:** rate of failing requests. 5xx rate, exception rate, business error rate.
+        Datadog: `trace.http.request.errors` from APM; log-based monitor on ERROR-level logs;
+        custom COUNT metric tagged with `status:error`.
+
+        **Saturation:** how "full" the service is. CPU, memory, thread pool utilization,
+        queue depth. Datadog: system metrics from the agent (`system.cpu.user`, `system.mem.used`);
+        JVM metrics (`jvm.heap_memory`, `jvm.thread_count`); custom gauge for queue depth.
+
+        **Dashboard template:** one timeseries widget per signal, scoped with `$service`
+        template variable. Add SLO widget showing error budget. This becomes the default
+        on-call dashboard for every service.
+
+    - id: S-02
+      question: "How do you set up and tune a monitor to avoid alert fatigue?"
+      answer: >
+        **Alert fatigue causes:** threshold too tight (every spike alerts), no evaluation
+        window (single point triggers), alerting on volatile proxy metrics (CPU), no
+        priority differentiation.
+
+        **Tuning steps:**
+        1. **Alert on symptoms, not causes.** `error_rate > 1%` is a symptom. `cpu > 80%` is
+           a cause (CPU high doesn't always mean user impact). Users experience latency and
+           errors — monitor those directly.
+        2. **Set evaluation window.** Don't alert on a single data point. Alert if `error_rate > 1%`
+           for the last 5 minutes (sustained, not a blip).
+        3. **Warning before Alert.** Warning at 0.5% error rate, Alert at 1%. Gives early signal
+           without waking on-call immediately.
+        4. **Use anomaly detection** for metrics with variable baseline (traffic is lower at 3am;
+           anomaly detection knows this and doesn't fire for normal low-traffic lulls).
+        5. **Composite monitors.** Alert only when `error_rate > 1% AND latency_p99 > 2s`.
+           Single signal spikes don't page; correlated signals do.
+        6. **Include runbook** in alert message: link to runbook, recent deploys (via event overlay),
+           related dashboards.
+        7. **Review monthly:** mute monitors that fired > 5 times with no action. That's noise.
+
+    - id: S-03
+      question: "How does Datadog APM sampling work? What's the difference between head-based and tail-based sampling?"
+      answer: >
+        **Head-based sampling:** the sampling decision is made at the start of the trace
+        (first span). A percentage of traces are sampled in; the rest are dropped entirely.
+        Problem: a 1% head-based sample means 99% of error traces are never captured —
+        you're flying blind on most incidents.
+
+        **Tail-based sampling (Datadog "Tracing Without Limits"):**
+        - Datadog ingests ALL spans from all services
+        - After the trace is complete (or within a window), a decision is made on what to store
+        - **Retention filters** define what's kept: "keep all traces with errors", "keep all
+          traces > 5s P95", "keep 5% of healthy traces"
+        - Errors and outliers are always kept; normal traffic is sampled down
+
+        **In practice:**
+        - Default: Datadog's adaptive sampling ingests 100% up to a volume limit, then
+          applies intelligent sampling prioritizing errors
+        - `DD_TRACE_SAMPLE_RATE=0.1` sets the head-based rate for a service (10% of traces
+          enter Datadog at all). Combine with `DD_TRACE_ANALYTICS_ENABLED=true` so key spans
+          are still counted for metrics even when the trace is dropped.
+
+        **Recommendation:** let Datadog manage sampling with retention filters. Manually
+        forcing low sample rates saves cost but blind-spots errors.
+
+    - id: S-04
+      question: "How do you implement custom metrics in a Java Spring Boot application using Datadog?"
+      answer: >
+        **Option 1: DogStatsD (UDP)**
+        ```java
+        @Bean
+        public StatsDClient statsd() {
+            return new NonBlockingStatsDClientBuilder()
+                .prefix("myapp")
+                .hostname("localhost") // or DD_AGENT_HOST env
+                .port(8125)
+                .build();
+        }
+
+        // In service:
+        statsd.incrementCounter("orders.created", "env:prod", "payment:card");
+        statsd.recordHistogramValue("checkout.duration", durationMs, "region:us-east");
+        statsd.recordGaugeValue("cart.items", cart.size());
+        ```
+
+        **Option 2: Micrometer (Spring Boot Actuator)**
+        Spring Boot auto-configures Micrometer. Add `micrometer-registry-datadog` dependency.
+        All existing `@Timed`, `MeterRegistry` metrics automatically ship to Datadog.
+        ```yaml
+        management.datadog.metrics.export.api-key: ${DD_API_KEY}
+        management.datadog.metrics.export.step: 10s
+        ```
+
+        **Option 3: dd-trace Java agent custom spans**
+        ```java
+        Tracer tracer = GlobalTracer.get();
+        Span span = tracer.buildSpan("payment.process").start();
+        span.setTag("payment.method", "card");
+        span.setTag("amount", amount);
+        // ... do work ...
+        span.finish();
+        ```
+
+        **Tag discipline:** never add high-cardinality tags (user_id, order_id) to metrics.
+        Use traces for per-request detail; metrics for aggregated signals.
+
+    - id: S-05
+      question: "How do you correlate a Datadog alert with the root cause across metrics, traces, and logs?"
+      answer: >
+        **Structured investigation workflow:**
+
+        1. **Alert fires** → click the alert notification → lands on the triggered monitor with
+           the anomalous time window highlighted.
+
+        2. **Metrics context:** look at the timeseries in the monitor. Add correlated metrics
+           to a dashboard (error rate + latency + DB connection pool + downstream error rate).
+           When did it start? What else changed at the same time?
+
+        3. **Event overlay:** add deployment events to the dashboard (`@deployment.env:prod`).
+           Did the metric change right after a deploy?
+
+        4. **Traces:** from the APM service page, filter to the error time window. Sort by
+           error rate. Open a sample failing trace. The flame graph shows exactly which span
+           failed and what the error was.
+
+        5. **Logs:** from the failing span, click "View Related Logs". Datadog uses the
+           `trace_id` injected in logs to show only log lines from that exact request.
+           The stack trace or error message is there.
+
+        6. **Infrastructure correlation:** from the span, pivot to the host/container metrics —
+           was the container OOMKilled? Was the DB instance at 100% CPU?
+
+        This flow — Alert → Metrics → Traces → Logs → Infrastructure — is the structured
+        on-call investigation path. The critical enabler is `trace_id` propagated into logs.
+
+    - id: S-06
+      question: "How would you set up SLOs and burn rate alerts in Datadog?"
+      answer: >
+        **Step 1: Define the SLI**
+        Use a metric-based SLO (more accurate than monitor-based):
+        - Good events: `sum:trace.http.request.hits{service:orders,http.status_code:2xx}.as_count()`
+        - Total events: `sum:trace.http.request.hits{service:orders}.as_count()`
+        - SLI = good / total
+
+        **Step 2: Set SLO target**
+        - Target: 99.9% (43.8 minutes downtime/month)
+        - Window: 30 days rolling
+        - Error budget: 0.1% of requests = allowed failures
+
+        **Step 3: Burn rate alert**
+        Alert when error budget is being consumed too fast.
+        Multi-window burn rate (Datadog SLO alert):
+        - Fast burn: burn rate > 14.4 over 1-hour window (consumes 2% error budget in 1 hour)
+        - Slow burn: burn rate > 6 over 6-hour window (consumes 5% error budget in 6 hours)
+        Alert if EITHER fires — catches both sudden spikes and slow degradation.
+
+        **Step 4: SLO widget in dashboard**
+        Add SLO widget showing: current burn rate, error budget remaining (%), and time to
+        exhaustion. This is the team's reliability health at a glance.
+
+        Burn rate = 1 means consuming budget at exactly the sustainable rate. Burn rate 14.4
+        means you'll exhaust a 30-day budget in ~2 days. Page immediately.
+
+    - id: S-07
+      question: "How do you monitor Kubernetes workloads with Datadog?"
+      answer: >
+        **Datadog Agent as DaemonSet:** deploy the Datadog Agent as a DaemonSet (one pod per
+        node). It collects: node metrics (CPU, memory, disk), container metrics (via cgroups),
+        Kubernetes state metrics (pod status, deployments, replica counts) via
+        `cluster-agent`, and application logs.
+
+        **Cluster Agent:** a separate deployment providing: Kubernetes state metrics
+        (aggregated, not per-node), HPA (Horizontal Pod Autoscaler) custom metrics support,
+        and admission controller for auto-injecting APM config into pods.
+
+        **Auto-discovery:** agent discovers pods and applies integrations based on annotations:
+        ```yaml
+        annotations:
+          ad.datadoghq.com/app.check_names: '["http_check"]'
+          ad.datadoghq.com/app.init_configs: '[{}]'
+          ad.datadoghq.com/app.instances: '[{"url": "http://%%host%%:8080/health"}]'
+        ```
+
+        **APM injection:** enable `DD_APM_INSTRUMENTATION_ENABLED=true` on the Cluster Agent.
+        Admission controller automatically injects the APM init container and env vars into
+        new pods — no Dockerfile changes needed.
+
+        **Key Kubernetes monitors:**
+        - Pod restarts > 3 in 15 minutes (CrashLoopBackOff signal)
+        - Deployment unavailable replicas > 0 (rollout failure)
+        - Node not ready (node problem)
+        - HPA at max replicas for 30 minutes (capacity ceiling hit)
+
+    - id: S-08
+      question: "How would you use Datadog to investigate a P99 latency spike in production?"
+      answer: >
+        **1. Identify when and which service:**
+        Open the APM Service Catalog. Sort by P99 latency change. The spiking service is
+        immediately visible. Note the start time.
+
+        **2. Check for recent deploys:**
+        On the service page, enable the deployment tracking overlay. If a deploy happened
+        right before the spike, that's the primary suspect.
+
+        **3. Trace analysis:**
+        Filter traces to the spike window. Sort by duration (slowest first). Open the slowest
+        trace. The flame graph shows exactly which span is slow — is it a DB query, a
+        downstream service call, or the application code itself?
+
+        **4. If it's a DB span:**
+        - Click the DB span → "View in DBM" (Database Monitoring)
+        - See exact SQL, execution plan, lock waits, query normalization
+        - Check if a slow query recently appeared (lock contention, missing index, data growth)
+
+        **5. If it's a downstream service span:**
+        - The child service has its own spans — navigate into them
+        - Check if the downstream had an infrastructure event (deploy, scaling, node issue)
+
+        **6. If it's the app itself:**
+        - Enable Continuous Profiler. The flame graph shows hot code paths at the P99 window.
+        - Look for GC pauses in JVM metrics (`jvm.gc.pause_time` spike matches latency spike?)
+
+        **7. Infrastructure correlation:**
+        Was the host/pod at capacity? Check CPU, memory, thread pool metrics in the same
+        time window. OOMKilled pods cause latency spikes as requests queue during restart.
+
+  staff:
+    - id: ST-01
+      question: "How do you design a Datadog tagging strategy for a 50-service microservices platform?"
+      answer: >
+        **Foundation: Unified Service Tagging**
+        Datadog's three required tags: `env` (prod/staging/dev), `service` (service name),
+        `version` (deploy version/git SHA). Apply to ALL telemetry — metrics, traces, logs.
+        This enables: filtering by environment, correlating a deploy version with a latency
+        spike, filtering logs to a single service.
+
+        **Implementation:**
+        - Kubernetes: set `DD_ENV`, `DD_SERVICE`, `DD_VERSION` env vars from pod labels
+        - Helm: standard values block in all service charts
+        - Java agent: `DD_TRACE_GLOBAL_TAGS=env:${ENV},service:${SERVICE}`
+
+        **Additional tag taxonomy:**
+        - `team:` (e.g., `team:checkout`) — route alerts to the right team
+        - `region:` / `az:` — identify regional issues
+        - `tier:` (critical/standard) — priority-based alert routing
+        - `feature_flag:` on spans — compare performance with flag on vs off
+
+        **Governance rules:**
+        - Banned on metrics: `user_id`, `request_id`, `order_id`, `trace_id` (unbounded cardinality)
+        - Allowed on traces/logs: any cardinality (stored per-event, not per-combination)
+        - Tag values must be lowercase, snake_case, bounded (< 1000 unique values on metrics)
+
+        **Tag governance in practice:**
+        - OPA/Conftest policy in CI that validates `DD_ENV`, `DD_SERVICE`, `DD_VERSION` are
+          set in Kubernetes manifests before merge
+        - Custom metric registry: teams register new metric names + tag schema; reviewed
+          for cardinality before shipping to production
+
+    - id: ST-02
+      question: "How do you build a reliability culture using Datadog SLOs across multiple teams?"
+      answer: >
+        **Start with SLO definitions per service:**
+        Each service team defines: availability SLO (% successful requests), latency SLO
+        (P99 < threshold). Agreed with product — not set by engineering alone.
+        Capture in code: SLO definitions in Terraform (Datadog provider) so they're version-
+        controlled and reviewed like any infrastructure change.
+
+        **Error budget as a prioritization tool:**
+        Error budget remaining drives the conversation between reliability and feature work:
+        - Budget > 50% remaining: ship features, take risks
+        - Budget < 20% remaining: feature freeze, reliability sprint
+        - Budget exhausted: incident post-mortem, no new features until replenished
+
+        **Monthly SLO review:**
+        Dashboard showing all services' SLOs, error budget consumed this month, and burn rate
+        trend. Shared with engineering leadership and product. Makes reliability visible and
+        creates organizational pressure to fix chronic low-error-budget services.
+
+        **Burn rate alerts as the primary paging mechanism:**
+        Replace ad-hoc threshold monitors with burn rate alerts for all customer-facing services.
+        P1 alert: burn rate > 14.4 (exhausts budget in 2 days). P2: burn rate > 6 (exhausts in 5 days).
+        On-call is called for budget-threatening burns, not every blip.
+
+        **Chaos engineering validation:**
+        Quarterly chaos game days: inject failures into prod-like staging, validate that
+        SLO burn rate alerts fire within expected windows. Builds confidence in the alerting
+        stack before a real incident.
+
+    - id: ST-03
+      question: "How do you control Datadog costs at scale as ingestion grows?"
+      answer: >
+        **Identify the spend drivers:**
+        Use Datadog's Cost Estimator and the `datadog_estimated_usage` metrics to understand
+        current spend breakdown: hosts, APM hosts, custom metrics, indexed logs, Synthetics.
+
+        **Custom metrics (often the biggest surprise):**
+        - Audit with `datadog.estimated_usage.metrics.custom` grouped by metric name
+        - Find the offenders: metrics with cardinality > 10k are suspect
+        - Fix: remove high-cardinality tags (user_id, request_id) from metrics
+        - Use Log-based metrics: extract a metric from logs (count ERROR logs by service) —
+          cheaper than emitting from code if the log already exists
+
+        **Log cost control:**
+        - Audit: which services generate the most log volume? (`@source` facet)
+        - Sampling: high-volume debug logs — `DD_LOG_LEVEL=INFO` in prod; sample DEBUG at 10%
+        - Exclusion filters: drop health check logs, static asset logs (always 200, no signal)
+        - Flex Logs: archive instead of index; query ad-hoc when needed
+
+        **APM cost control:**
+        - APM host count = hosts running the tracer. Audit unexpected services with APM enabled.
+        - Ingestion volume: set `DD_TRACE_SAMPLE_RATE=0.1` on high-throughput services;
+          always keep errors via retention filter.
+
+        **Infrastructure hygiene:**
+        - Agent running on stopped/terminated instances still counts as a host for ~2 hours.
+          Ensure proper agent shutdown in auto-scaling termination hooks.
+
+  principal:
+    - id: P-01
+      question: "How do you design an observability platform strategy for an engineering org with 100+ services across 20 teams?"
+      answer: >
+        **The core problem:** 20 teams, each instrumenting differently — some using Datadog,
+        some using home-grown logging, inconsistent tagging, no shared dashboards.
+        The result: every incident requires different investigation paths per service.
+
+        **Standardize on OpenTelemetry as the instrumentation layer:**
+        Instrument with OTel SDKs; export to Datadog (or any backend) via the OTel Collector.
+        This decouples instrumentation from the vendor — if you switch from Datadog to Grafana
+        Cloud in 3 years, the instrumentation stays. Teams write OTel; the platform team
+        decides the backend.
+
+        **Platform team responsibilities:**
+        - Maintain the OTel Collector fleet (DaemonSet in Kubernetes, aggregation layer)
+        - Provide language-specific base libraries that wrap OTel with company conventions
+          (auto-set service name from pod labels, inject correlation IDs, apply tag governance)
+        - Manage Datadog org: API keys, access controls, cost budgets per team
+        - Maintain golden path dashboards (one template per service type: HTTP service,
+          Kafka consumer, batch job)
+
+        **Paved roads:**
+        - Helm chart for all services includes the Datadog agent sidecar config automatically
+        - Golden Prometheus recording rules and Datadog monitors deployed via Terraform module
+          — teams include the module, get standard monitors for free
+        - Runbook templates in a shared repo; monitors link to them
+
+        **SLO governance:**
+        - All customer-facing services must have a published SLO
+        - SLO definitions live in a central Terraform repository, reviewed by the SRE team
+        - Monthly SLO review with engineering VPs: burn rate trends, error budget health
+
+        **Cost governance:**
+        - Monthly cost allocation report per team (custom metric cardinality, log volume, APM hosts)
+        - Budget alerts: team lead is notified if their team's estimated monthly cost exceeds budget
+        - Cardinality governance: PR check validates new metrics for tag cardinality before merge
+
+# ── SCENARIOS ─────────────────────────────────────────────────────────────────
+scenarios:
+  - title: "Instrument a New Microservice for Production Readiness"
+    problem: >
+      A new payment-service is being deployed to production. Before go-live, you need to
+      ensure full observability: metrics, traces, logs, a service dashboard, and monitors
+      that will page on-call if the service degrades.
+    constraints:
+      - Java Spring Boot service running in Kubernetes
+      - Must follow company unified service tagging standard (env, service, version)
+      - SLO: 99.9% availability, P99 latency < 500ms
+      - On-call is shared; alert message must be actionable without deep service knowledge
+    discussion:
+      - >
+        **Unified service tagging:** set `DD_ENV`, `DD_SERVICE=payment-service`, `DD_VERSION=${GIT_SHA}`
+        as Kubernetes pod env vars (via Helm values). Apply the same labels as pod labels for
+        auto-discovery. This ensures all telemetry (metrics, traces, logs) is correlated
+        by service and version.
+      - >
+        **APM auto-instrumentation:** add the Datadog Java agent to the pod
+        (`-javaagent:/dd-java-agent.jar`). It auto-instruments Spring Boot HTTP endpoints,
+        JDBC, and common libraries. No code changes needed for basic tracing.
+      - >
+        **Custom business metrics via Micrometer:**
+        Add `micrometer-registry-datadog`. Instrument critical business operations:
+        payment success/failure counters, payment amount distribution, fraud score histogram.
+        Tag all metrics with `payment_method` (bounded cardinality).
+      - >
+        **Log configuration:** ensure logs output JSON with `trace_id` and `span_id` fields
+        (Datadog Java agent injects these into MDC automatically with Logback). Set log level
+        INFO in prod. Ship via Kubernetes log pipeline (Datadog agent DaemonSet tails pod logs).
+      - >
+        **Dashboard:** create from the "Service" template. Add: request rate, error rate,
+        P50/P95/P99 latency, payment success rate, downstream dependency health (bank API),
+        JVM metrics (heap, GC, threads). Set `$env` template variable.
+      - >
+        **Monitors:** (1) Error rate > 0.1% for 5 min → P1 alert to payment-oncall PagerDuty.
+        (2) P99 latency > 400ms for 5 min → P2 alert. (3) Payment success rate < 99% for 10 min → P1.
+        (4) SLO burn rate > 14.4 → P1. Each monitor message includes: runbook link, dashboard link,
+        "check recent deploys at `{{deploy_link}}`", escalation path.
+    red_flags:
+      - "No SLO defined before go-live — you can't know if you're meeting reliability targets"
+      - "Alerting on CPU/memory instead of error rate and latency — CPU high doesn't mean users are impacted"
+      - "No trace_id in logs — trace correlation is impossible during incidents"
+      - "No business metric (payment success rate) — technical metrics alone miss business impact"
+
+  - title: "Diagnose a Production Incident Using Datadog"
+    problem: >
+      PagerDuty fires at 2am: checkout-service error rate spiked from 0.1% to 8% over 10
+      minutes. Revenue impact is ~$50k/minute. You have Datadog APM, metrics, and logs.
+      Walk through the investigation.
+    constraints:
+      - 30-minute SLA to restore service or escalate
+      - Checkout calls: inventory-service, pricing-service, payment-service, fraud-service
+      - A new version (v1.8.4) was deployed 25 minutes ago
+    discussion:
+      - >
+        **First 2 minutes — establish scope:**
+        Open the Datadog alert → checkout-service APM service page. Confirm: error rate 8%,
+        P99 latency up from 200ms to 4.2s. Started 25 minutes ago. Check deployment event
+        overlay: v1.8.4 deployed 25 minutes ago. Likely cause.
+      - >
+        **Minutes 2–5 — isolate the failing operation:**
+        On the APM service page, group by `resource` (endpoint). Which endpoint has 8% errors?
+        `POST /checkout`. Click → top error traces. Open a failing trace.
+      - >
+        **Minutes 5–10 — trace analysis:**
+        Flame graph: checkout-service → payment-service span shows red (error). Payment-service
+        spans fail in 4.1s then return 503. The downstream payment-service is the failure point.
+        Switch to payment-service APM page. It also shows error spike from the same time.
+        Check payment-service deployment: v2.1.0 deployed 25 minutes ago simultaneously.
+      - >
+        **Minutes 10–15 — log analysis:**
+        Click a failing payment-service span → "View Logs". Error message:
+        `NullPointerException in FraudCheckService.evaluate() line 142`. New code in v2.1.0
+        introduced a null check bug in fraud evaluation.
+      - >
+        **Decision — rollback:**
+        Root cause confirmed: payment-service v2.1.0 NPE in fraud check. Rollback payment-service
+        to v2.0.9. Checkout-service needs no changes. Initiate rollback via Kubernetes:
+        `kubectl rollout undo deployment/payment-service`. Monitor error rate — drops to 0.1%
+        within 3 minutes.
+      - >
+        **Post-incident:** 15-minute correction time. Post-mortem: missing null check in v2.1.0,
+        insufficient unit test coverage, no canary deployment. Action items: add null check test,
+        implement canary with automatic rollback on error rate > 1%.
+    red_flags:
+      - "Checking infrastructure (CPU, memory) before traces — traces tell you what failed; infra tells you why"
+      - "Not checking deployment events overlay first — most production incidents correlate with a recent deploy"
+      - "Investigating checkout-service deeply before confirming the error is in a downstream — the root cause was payment-service"

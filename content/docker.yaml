@@ -1,0 +1,717 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Docker — Interview Field Guide Content
+# Edit this file to update the guide. Run: python generate.py docker
+# ══════════════════════════════════════════════════════════════════════════════
+
+meta:
+  id: docker
+  title: Docker
+  title_short: Docker
+  subtitle: "// containers · images · Dockerfile · networking · volumes · compose · security · senior → principal"
+  description: "Container runtime for packaging, distributing, and running applications in isolated environments."
+  category: Infrastructure
+  icon: "🐳"
+
+colors:
+  toggle_light: "#1d4ed8"
+  toggle_dark: "#60a5fa"
+  light_vars: >-
+    --accent:#1d4ed8;--accent2:#d95a1e;--accent3:#059669;
+    --highlight-bg:#eff6ff;--highlight-text:#1d4ed8;--highlight-border:#3b82f6;
+    --your-exp-bg:rgba(5,150,105,.06);--your-exp-border:rgba(5,150,105,.2);--your-exp-text:#065f46;
+    --acc-hover:rgba(29,78,216,.04);--acc-open-border:#1d4ed8;--acc-open-bg:rgba(29,78,216,.03);
+    --num-color:#1d4ed8;--num-bg:rgba(29,78,216,.1);
+    --tag-color:#1d4ed8;--tag-bg:rgba(29,78,216,.08);--tag-border:rgba(29,78,216,.2);
+    --flow-arrow:#1d4ed8;--h1-from:#1e3a8a;--h1-to:#1d4ed8;
+    --badge-color:#1e3a8a;--stat-num:#1d4ed8;
+    --tab-active-color:#1d4ed8;--tab-active-bg:rgba(29,78,216,.08);--tab-active-border:#1d4ed8;
+    --section-title:#1d4ed8;--concept-title:#1e3a8a;
+    --cheat-head-bg:#1e3a8a;--cheat-head-text:#ffffff;--cheat-key:#1e3a8a;
+    --cmd-bg:#eff6ff;--cmd-text:#1e3a8a;
+  dark_vars: >-
+    --accent:#60a5fa;--accent2:#ff9d6b;--accent3:#10b981;
+    --highlight-bg:#1e3a8a;--highlight-text:#60a5fa;--highlight-border:#3b82f6;
+    --your-exp-bg:rgba(16,185,129,.1);--your-exp-border:rgba(16,185,129,.3);--your-exp-text:#6ee7b7;
+    --acc-hover:rgba(96,165,250,.04);--acc-open-border:#60a5fa;--acc-open-bg:rgba(96,165,250,.03);
+    --num-color:#60a5fa;--num-bg:rgba(96,165,250,.1);
+    --tag-color:#60a5fa;--tag-bg:rgba(96,165,250,.08);--tag-border:rgba(96,165,250,.2);
+    --flow-arrow:#60a5fa;--h1-from:#60a5fa;--h1-to:#3b82f6;
+    --badge-color:#60a5fa;--stat-num:#60a5fa;
+    --tab-active-color:#60a5fa;--tab-active-bg:rgba(96,165,250,.08);--tab-active-border:#60a5fa;
+    --section-title:#60a5fa;--concept-title:#60a5fa;
+    --cheat-head-bg:#1e3a8a;--cheat-head-text:#60a5fa;--cheat-key:#60a5fa;
+    --cmd-bg:#1e3a8a;--cmd-text:#60a5fa;
+
+# ── OVERVIEW ──────────────────────────────────────────────────────────────────
+overview:
+  concepts:
+    - title: "📦 Images & Layers"
+      body: >
+        A Docker image is a read-only stack of **layers**, each created by a Dockerfile
+        instruction (`RUN`, `COPY`, `ADD`). Layers are content-addressed (SHA256) and
+        cached: if a layer hasn't changed, Docker reuses the cache. This makes builds fast
+        but also means **layer order matters** — put infrequently changing instructions
+        (install dependencies) before frequently changing ones (copy source code).
+        A container is an image plus a thin writable layer on top.
+        Images are stored in a registry (Docker Hub, ECR, GCR); pulled by digest or tag.
+        Tags are mutable (`:latest` can point to any image); digests are immutable
+        (`image@sha256:abc123`). Always pin by digest in production.
+      tags:
+        - {text: "immutable layers", color: blue}
+        - {text: "layer cache", color: green}
+        - {text: "pin by digest", color: orange}
+
+    - title: "📝 Dockerfile Best Practices"
+      body: >
+        **Multi-stage builds** are the single biggest image size win: use a large builder
+        image (JDK, Node with dev deps) to compile, then copy only the artifact into a
+        minimal runtime image (JRE, distroless, alpine). Final image carries no build tools.
+
+        **Layer cache optimization:** order instructions from least to most likely to change.
+        Copy `pom.xml` / `package.json` and run dependency install *before* copying source —
+        dependencies are cached until they change.
+
+        **Other practices:** use `.dockerignore` to exclude `node_modules`, `.git`, test
+        files. Prefer `COPY` over `ADD` (ADD has implicit tar extraction and URL fetch).
+        Combine `RUN` instructions with `&&` to reduce layers.
+        Run as non-root: `RUN adduser -D appuser && USER appuser`.
+        Use specific base image tags, never `:latest`.
+      tags:
+        - {text: "multi-stage builds", color: green}
+        - {text: ".dockerignore", color: blue}
+        - {text: "non-root user", color: orange}
+
+    - title: "🔌 Networking"
+      body: >
+        Docker has several network drivers: **bridge** (default for standalone containers —
+        private network, NAT to host), **host** (container shares host network stack, no
+        isolation, best performance), **none** (no networking), **overlay** (cross-host in
+        Swarm/Kubernetes), **macvlan** (container gets its own MAC/IP on physical network).
+
+        **Container DNS:** within a user-defined bridge network, containers resolve each
+        other by container name. The embedded DNS server handles this.
+        Default bridge network does not support DNS by name — always create user-defined networks.
+
+        **Port publishing:** `-p hostPort:containerPort` binds to host interface. `-p 8080:8080`
+        binds all interfaces; `-p 127.0.0.1:8080:8080` binds loopback only (more secure).
+        Expose ports in Dockerfile (`EXPOSE`) as documentation only — it doesn't publish.
+      tags:
+        - {text: "bridge default", color: blue}
+        - {text: "user-defined DNS", color: green}
+        - {text: "host mode = no isolation", color: orange}
+
+    - title: "💾 Volumes & Storage"
+      body: >
+        Containers are ephemeral — writes to the container layer are lost on `docker rm`.
+        Three persistence mechanisms: **Volumes** (managed by Docker, stored in
+        `/var/lib/docker/volumes/`, best for production data, can be shared between
+        containers, driver plugins for NFS/EBS). **Bind mounts** (mount host path into
+        container — great for dev, poor for prod: ties container to host filesystem layout).
+        **tmpfs** (in-memory, not persisted, useful for secrets or temp files).
+
+        Volumes survive container removal. Named volumes (`-v mydata:/data`) are preferred
+        over anonymous volumes. Use `docker volume inspect` and `docker volume prune`
+        to manage lifecycle.
+      tags:
+        - {text: "volumes > bind mounts", color: green}
+        - {text: "ephemeral by default", color: orange}
+        - {text: "tmpfs for secrets", color: blue}
+
+    - title: "🧩 Docker Compose"
+      body: >
+        Compose defines and runs multi-container applications from a single
+        `docker-compose.yml`. Key concepts: **services** (each container), **networks**
+        (services on the same network resolve by service name), **volumes** (shared or
+        named), **depends_on** (start order, but not health — use `healthcheck` +
+        `condition: service_healthy`).
+
+        `docker compose up -d` starts all services; `docker compose logs -f` tails logs;
+        `docker compose down -v` stops and removes containers + volumes.
+
+        Compose is for **local dev and CI** — not for production. In production use
+        Kubernetes or Docker Swarm. Compose v2 (plugin, `docker compose`) replaces the
+        deprecated v1 (`docker-compose` binary). Use `profiles` to start optional services
+        (e.g., `--profile debug` starts a monitoring container).
+      tags:
+        - {text: "local dev + CI", color: blue}
+        - {text: "service DNS by name", color: green}
+        - {text: "not for production", color: orange}
+
+    - title: "🔒 Container Security"
+      body: >
+        **Principle of least privilege:** run as non-root user; drop all Linux capabilities
+        (`--cap-drop=ALL`) and add only what's needed (`--cap-add=NET_BIND_SERVICE`).
+        Use read-only filesystem (`--read-only`) with tmpfs for writable paths.
+
+        **Image security:** scan images for CVEs (Trivy, Snyk, Docker Scout). Use minimal
+        base images (distroless, scratch) to reduce attack surface. Never store secrets in
+        image layers — they persist in history even if deleted in a later layer.
+
+        **Runtime security:** set resource limits (`--memory`, `--cpus`) to prevent DoS.
+        Use `--security-opt=no-new-privileges` to prevent privilege escalation.
+        Enable user namespace remapping to remap root inside container to unprivileged UID
+        on host. Seccomp profiles restrict syscalls (Docker applies a default profile).
+      tags:
+        - {text: "non-root user", color: green}
+        - {text: "scan with Trivy", color: orange}
+        - {text: "no secrets in layers", color: red}
+
+    - title: "⚙️ Container Runtime & OCI"
+      body: >
+        Docker is not a monolith. The OCI (Open Container Initiative) defines two standards:
+        **image spec** (how images are built and stored) and **runtime spec** (how containers
+        are executed). This means Docker images work with containerd, CRI-O, and podman.
+
+        Docker's architecture: Docker CLI → Docker daemon (`dockerd`) → containerd →
+        `runc` (OCI runtime that actually creates the container using Linux namespaces and cgroups).
+        Kubernetes uses **containerd** or **CRI-O** directly, bypassing Docker daemon.
+        "Docker is deprecated in Kubernetes" means the Docker shim (CRI adapter) was removed —
+        images still work because they're OCI-compliant.
+
+        **Namespaces** provide isolation: PID, Network, Mount, UTS, IPC, User.
+        **cgroups** enforce resource limits: CPU, memory, I/O.
+      tags:
+        - {text: "OCI standard", color: blue}
+        - {text: "namespaces + cgroups", color: green}
+        - {text: "containerd in k8s", color: orange}
+
+    - title: "📊 Resource Limits & Health Checks"
+      body: >
+        Always set resource limits in production — an unconstrained container can starve
+        its host or neighbors. `--memory=512m --memory-swap=512m` (swap=memory means no swap).
+        `--cpus=0.5` limits to half a CPU core. In Compose: `deploy.resources.limits`.
+
+        **Health checks** let Docker (and Kubernetes) know when a container is ready:
+        ```
+        HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+          CMD curl -f http://localhost:8080/health || exit 1
+        ```
+        Unhealthy containers are restarted automatically. In Compose: `depends_on` with
+        `condition: service_healthy` waits for a dependency to pass its health check
+        before starting the dependent service.
+      tags:
+        - {text: "always set limits", color: orange}
+        - {text: "HEALTHCHECK", color: green}
+        - {text: "memory-swap = no swap", color: blue}
+
+  gotchas:
+    - title: "Running as root inside containers"
+      body: >
+        By default, containers run as root (UID 0). If the container is compromised or
+        escapes, root inside often maps to root on the host (without user namespace remapping).
+        Always add `USER nonroot` in your Dockerfile. Many base images now provide a
+        non-root user (e.g., `node` image has `node` user, `openjdk` has no default —
+        create one explicitly).
+
+    - title: "Secrets in environment variables or image layers"
+      body: >
+        Environment variables are visible in `docker inspect`, process listings, and logs.
+        Secrets baked into image layers persist in history (`docker history`).
+        Use Docker secrets (Swarm), Kubernetes Secrets, or a secrets manager (Vault, AWS SSM).
+        At build time: use BuildKit's `--secret` flag to mount a secret without baking it in.
+
+    - title: "Image bloat from poor layer hygiene"
+      body: >
+        Each `RUN` creates a layer. Deleting files in a later `RUN` does NOT reduce image size —
+        the data is still in the earlier layer. Clean up in the same `RUN`:
+        `RUN apt-get install -y curl && rm -rf /var/lib/apt/lists/*`.
+        Better yet: use multi-stage builds and only copy final artifacts to the runtime image.
+
+    - title: "Ignoring .dockerignore"
+      body: >
+        Without `.dockerignore`, `COPY . .` sends the entire build context (including
+        `node_modules`, `.git`, test fixtures, IDE files) to the Docker daemon. This bloats
+        the build context, invalidates the layer cache unnecessarily, and can bake development
+        credentials into the image.
+
+    - title: "Using :latest tags in production"
+      body: >
+        `:latest` is mutable — it changes with every push. `docker pull myimage:latest`
+        today and tomorrow may pull different images. This breaks reproducibility and
+        makes rollbacks ambiguous. Pin to specific semantic version tags or image digests
+        (`image@sha256:...`) in CI/CD and deployment manifests.
+
+  when_to_use:
+    - "Packaging applications with all dependencies for consistent deployment across dev/staging/prod"
+    - "Running services locally for development without installing dependencies on the host"
+    - "CI pipelines where reproducible, isolated build environments matter"
+    - "Microservices architectures where each service needs independent versioning and deployment"
+
+  when_not_to_use:
+    - "Applications requiring direct hardware access (GPU workloads often need special runtimes like NVIDIA Container Toolkit)"
+    - "High-performance I/O-bound workloads where container networking overhead is unacceptable"
+    - "Stateful workloads requiring complex persistent storage — prefer managed databases over containerized DBs in production"
+    - "Simple scripts or one-off tasks where the overhead of containerization outweighs the benefit"
+
+# ── DEEP DIVE ─────────────────────────────────────────────────────────────────
+deep_dive:
+  tables:
+    - title: "Dockerfile Instructions"
+      full_width: false
+      rows:
+        - key: "FROM"
+          value: "Base image. Use specific version tags. Multi-stage: multiple FROM lines with AS aliases."
+        - key: "RUN"
+          value: "Execute command in a new layer. Combine with && to minimize layers. Clean up in same RUN."
+        - key: "COPY"
+          value: "Copy files from build context. Preferred over ADD. Supports --chown=user:group."
+        - key: "ADD"
+          value: "Like COPY but also auto-extracts tar archives and fetches URLs. Use COPY unless you need these features."
+        - key: "ENV"
+          value: "Set environment variables available at build and runtime. Visible in docker inspect."
+        - key: "ARG"
+          value: "Build-time variable. Not persisted in image. Pass with --build-arg. Don't use for secrets."
+        - key: "EXPOSE"
+          value: "Documents the port the container listens on. Does NOT publish the port — use -p at runtime."
+        - key: "ENTRYPOINT"
+          value: "Main command. Always executed. Use exec form: [\"java\", \"-jar\", \"app.jar\"]. Prefer over CMD alone."
+        - key: "CMD"
+          value: "Default arguments to ENTRYPOINT (or default command if no ENTRYPOINT). Overridable at runtime."
+        - key: "USER"
+          value: "Set UID/GID for subsequent instructions and container runtime. Always set to non-root."
+        - key: "WORKDIR"
+          value: "Set working directory. Creates it if absent. Prefer absolute paths."
+        - key: "HEALTHCHECK"
+          value: "Command Docker runs to check container health. --interval, --timeout, --retries. Exit 0 = healthy."
+
+    - title: "Key Docker CLI Commands"
+      full_width: false
+      rows:
+        - key: "docker build -t name:tag --no-cache ."
+          value: "Build image from Dockerfile in current dir. --no-cache forces fresh build."
+        - key: "docker run -d -p 8080:8080 --name app image"
+          value: "Run container detached, port mapped, named."
+        - key: "docker exec -it app /bin/sh"
+          value: "Open interactive shell in running container."
+        - key: "docker logs -f --tail=100 app"
+          value: "Tail last 100 lines of container logs."
+        - key: "docker inspect app"
+          value: "Full container metadata: IP, mounts, env vars, health status."
+        - key: "docker stats"
+          value: "Live CPU, memory, network, block I/O per container."
+        - key: "docker image prune -a"
+          value: "Remove all unused images. -a includes images not referenced by any container."
+        - key: "docker system df"
+          value: "Disk usage: images, containers, volumes, build cache."
+        - key: "docker buildx build --platform linux/amd64,linux/arm64"
+          value: "Multi-platform build (BuildKit). Push manifest list to registry."
+        - key: "docker cp app:/app/logs ./logs"
+          value: "Copy files from container to host."
+
+    - title: "Docker Networking Modes"
+      full_width: true
+      rows:
+        - key: "bridge (default)"
+          value: "Isolated network. NAT to host. Containers on same bridge resolve by name (user-defined only). Use for most local workloads."
+        - key: "host"
+          value: "Shares host network stack. No isolation. Best performance (no NAT). Risk: container can bind any host port. Use for high-throughput network services where NAT overhead matters."
+        - key: "none"
+          value: "No networking. Completely isolated. Use for batch jobs that need compute but no network."
+        - key: "overlay"
+          value: "Cross-host network (Docker Swarm). Containers on different hosts communicate transparently. Encrypted with --opt encrypted. Used in Swarm clusters."
+        - key: "macvlan"
+          value: "Container gets its own MAC and IP on the physical network. Appears as a physical device. Use when containers must be directly reachable on the LAN."
+
+  comparison:
+    title: "Docker vs containerd vs Podman"
+    columns: ["Dimension", "Docker", "containerd", "Podman"]
+    rows:
+      - ["Daemon", "dockerd (background daemon)", "containerd daemon", "Daemonless"]
+      - ["Root requirement", "Daemon runs as root", "Daemon runs as root", "Rootless by default"]
+      - ["CLI", "docker", "ctr / nerdctl", "podman (Docker-compatible)"]
+      - ["Compose support", "docker compose", "nerdctl compose", "podman-compose"]
+      - ["Kubernetes CRI", "No (removed in k8s 1.24)", "Yes (primary CRI)", "Yes (via CRI-O)"]
+      - ["Image compatibility", "OCI + Docker format", "OCI standard", "OCI standard"]
+      - ["Security", "Daemon root = risk", "Daemon root = risk", "Rootless = better isolation"]
+      - ["Best for", "Local dev, CI", "Production k8s runtime", "Rootless environments, RHEL"]
+
+# ── Q & A ─────────────────────────────────────────────────────────────────────
+qa:
+  senior:
+    - id: S-01
+      question: "How do Docker layers and the layer cache work? How do you optimize a Dockerfile for cache efficiency?"
+      answer: >
+        Each Dockerfile instruction that produces filesystem changes (`RUN`, `COPY`, `ADD`)
+        creates a new layer. Layers are content-addressed (SHA256 of contents). Docker compares
+        the cache key for each instruction — if unchanged, it reuses the cached layer.
+
+        **Cache invalidation rules:**
+        - `FROM`: invalidated if base image digest changes
+        - `RUN`: cache key is the command string — any change invalidates it and all subsequent layers
+        - `COPY`/`ADD`: cache key includes file content checksums — any file change invalidates it
+
+        **Optimization — order from stable to volatile:**
+        ```dockerfile
+        FROM eclipse-temurin:21-jre
+        WORKDIR /app
+        # 1. Copy dependency manifest only (changes rarely)
+        COPY pom.xml .
+        RUN mvn dependency:go-offline -q
+        # 2. Copy source (changes frequently — but deps layer is cached)
+        COPY src ./src
+        RUN mvn package -DskipTests
+        ```
+
+        Without this order: every source change invalidates the dependency download layer,
+        re-downloading hundreds of MB each build. With this order: only the final two layers
+        are rebuilt on source changes.
+
+    - id: S-02
+      question: "Explain multi-stage builds and why they matter for production images."
+      answer: >
+        Multi-stage builds use multiple `FROM` instructions in one Dockerfile. Each `FROM`
+        starts a new stage. You can `COPY --from=<stage>` to copy artifacts between stages.
+        Only the final stage becomes the image.
+
+        ```dockerfile
+        # Stage 1: build
+        FROM maven:3.9-eclipse-temurin-21 AS builder
+        WORKDIR /app
+        COPY pom.xml .
+        RUN mvn dependency:go-offline
+        COPY src ./src
+        RUN mvn package -DskipTests
+
+        # Stage 2: runtime (no JDK, no Maven, no source)
+        FROM eclipse-temurin:21-jre-alpine
+        RUN addgroup -S app && adduser -S app -G app
+        USER app
+        WORKDIR /app
+        COPY --from=builder /app/target/app.jar .
+        ENTRYPOINT ["java", "-jar", "app.jar"]
+        ```
+
+        **Why it matters:**
+        - Builder image: ~600MB (JDK + Maven + dependencies + source)
+        - Runtime image: ~100MB (JRE + JAR only)
+        - No build tools, source code, or intermediate artifacts in production image
+        - Smaller attack surface, faster pull, less storage cost
+
+    - id: S-03
+      question: "What's the difference between ENTRYPOINT and CMD? When do you use each?"
+      answer: >
+        **ENTRYPOINT** sets the main executable — it's always run and cannot be overridden
+        at `docker run` time (without `--entrypoint` flag).
+        **CMD** provides default arguments to ENTRYPOINT, or the default command if no
+        ENTRYPOINT is set. CMD is easily overridden: `docker run image arg1 arg2`.
+
+        **Shell form vs exec form:**
+        - Shell form: `ENTRYPOINT java -jar app.jar` — runs as `/bin/sh -c "java -jar app.jar"`.
+          PID 1 is the shell, not Java. Signals (SIGTERM) don't reach Java — graceful shutdown breaks.
+        - Exec form: `ENTRYPOINT ["java", "-jar", "app.jar"]` — Java is PID 1. Signals
+          reach Java directly. Always use exec form.
+
+        **Best practice:**
+        ```dockerfile
+        ENTRYPOINT ["java", "-jar", "app.jar"]
+        CMD ["--spring.profiles.active=prod"]
+        ```
+        Override CMD at runtime: `docker run image --spring.profiles.active=dev`
+
+        Use CMD alone (no ENTRYPOINT) for flexible base images where the command varies.
+
+    - id: S-04
+      question: "How do you pass secrets to a Docker container securely?"
+      answer: >
+        **Anti-patterns:**
+        - `ENV SECRET=value` — visible in `docker inspect`, process listing, logs
+        - `ARG SECRET=value` + `RUN use $SECRET` — baked into the layer (visible in `docker history`)
+        - `COPY secrets.txt .` — file persists in the image
+
+        **Build-time secrets (BuildKit):**
+        ```dockerfile
+        RUN --mount=type=secret,id=npmrc,target=/root/.npmrc npm install
+        ```
+        ```bash
+        docker buildx build --secret id=npmrc,src=$HOME/.npmrc .
+        ```
+        The secret is mounted only for that `RUN` step — never written to a layer.
+
+        **Runtime secrets:**
+        - **Docker Swarm secrets:** `docker secret create`, mounted as files in `/run/secrets/`.
+          Never exposed as env vars.
+        - **Kubernetes Secrets:** mounted as files or env vars (prefer files). Use external
+          secrets operator to sync from Vault/AWS SSM.
+        - **Environment injection at runtime** from a secrets manager: the container's
+          entrypoint fetches secrets from Vault/SSM on startup, sets them in the process
+          environment. They never touch the image.
+
+    - id: S-05
+      question: "How does Docker networking work between containers on the same host?"
+      answer: >
+        **Default bridge (`docker0`):** containers get an IP in the `172.17.0.0/16` range.
+        They can reach each other by IP but NOT by name (no DNS). Traffic out goes via NAT.
+        Avoid for multi-container setups.
+
+        **User-defined bridge network:**
+        ```bash
+        docker network create mynet
+        docker run --network=mynet --name=db postgres
+        docker run --network=mynet --name=app myapp
+        ```
+        Now `app` can reach `db` by name (`ping db`). Docker's embedded DNS server
+        (`127.0.0.11`) resolves container names within the network.
+
+        **Network isolation:** containers on different user-defined networks cannot communicate
+        by default. Explicitly connect a container to multiple networks if cross-network
+        communication is needed.
+
+        **Port publishing:** `-p 8080:8080` creates an iptables rule forwarding host port
+        8080 to container port 8080. `-p 127.0.0.1:8080:8080` binds only loopback —
+        better for local dev where you don't want to expose to the network.
+
+    - id: S-06
+      question: "What Linux primitives does Docker use to implement container isolation?"
+      answer: >
+        Containers are not VMs — there's no hypervisor. Docker uses Linux kernel features:
+
+        **Namespaces** provide isolation by giving each container its own view of the system:
+        - **PID namespace:** container process tree starts at PID 1; can't see host PIDs
+        - **Network namespace:** isolated network stack (interfaces, routing, iptables)
+        - **Mount namespace:** isolated filesystem mount points
+        - **UTS namespace:** isolated hostname and domain name
+        - **IPC namespace:** isolated shared memory, semaphores
+        - **User namespace** (optional, rootless): maps container UID 0 to unprivileged host UID
+
+        **cgroups (control groups)** enforce resource limits:
+        - CPU: `--cpus=0.5` → cgroup `cpu.shares` / `cpu.quota`
+        - Memory: `--memory=512m` → OOM killer triggers at limit
+        - Block I/O, network bandwidth
+
+        **seccomp profiles** restrict system calls (Docker applies a default profile blocking
+        ~40 dangerous syscalls). **AppArmor/SELinux** provide mandatory access control.
+
+        Key insight: all containers share the host kernel. A kernel exploit potentially affects
+        all containers on the host — this is the fundamental difference from VMs.
+
+    - id: S-07
+      question: "How do you reduce Docker image size?"
+      answer: >
+        1. **Multi-stage builds** — most impactful. Build in a fat image; copy artifact to
+           a minimal runtime image.
+
+        2. **Minimal base images:**
+           - `alpine` (~5MB) for most languages
+           - `distroless` (Google) — no shell, no package manager, minimal attack surface
+           - `scratch` — literally empty; use for Go binaries that are statically compiled
+
+        3. **Combine RUN instructions and clean up in the same layer:**
+           ```dockerfile
+           RUN apt-get update && apt-get install -y curl \
+               && rm -rf /var/lib/apt/lists/*
+           ```
+
+        4. **Use `.dockerignore`** to exclude `node_modules`, `.git`, tests, docs
+
+        5. **Avoid installing unnecessary packages:** `--no-install-recommends` for apt
+
+        6. **Inspect with `docker image history image:tag`** to see which layer is large.
+           Use `dive` tool for interactive layer exploration.
+
+        7. **Compress static assets before COPY** rather than inside the container
+
+    - id: S-08
+      question: "What is Docker BuildKit and what advantages does it offer?"
+      answer: >
+        BuildKit is Docker's next-generation build engine (default since Docker 23.0).
+        Key improvements over classic builder:
+
+        **Parallel stage execution:** independent stages in multi-stage builds run in
+        parallel, significantly reducing build time for complex builds.
+
+        **Better cache management:** `--cache-from` and `--cache-to` allow sharing build
+        cache across machines (e.g., CI workers). Remote cache backends (registry, S3, GHA).
+
+        **Secret mounting** (as described above): `RUN --mount=type=secret` — secrets
+        never baked into layers.
+
+        **SSH forwarding:** `RUN --mount=type=ssh` — forward SSH agent for private
+        git dependencies without baking SSH keys.
+
+        **Cache mounts:** `RUN --mount=type=cache,target=/root/.m2` — persist a
+        directory between builds (Maven/npm cache) without it becoming part of the image.
+
+        **Multi-platform:** `docker buildx build --platform linux/amd64,linux/arm64`
+        builds images for multiple architectures in one command.
+
+        Enable: set `DOCKER_BUILDKIT=1` env var or use `docker buildx build`.
+
+  staff:
+    - id: ST-01
+      question: "How do you design a Docker image build pipeline for a large monorepo with 20 microservices?"
+      answer: >
+        **Challenge:** 20 services, each needing its own image. Naive approach: build all 20
+        on every commit. With 5-minute builds, that's 100 CPU-minutes per commit.
+
+        **Selective builds based on changed paths:**
+        Use CI (GitHub Actions, Jenkins) to detect which service directories changed:
+        ```bash
+        git diff --name-only origin/main...HEAD | grep '^services/' | cut -d/ -f2 | sort -u
+        ```
+        Only build changed services. For a PR touching `services/orders/`, build only `orders`.
+
+        **Shared base images:**
+        Extract common dependencies (JDK + framework dependencies) into a versioned base image.
+        Services `FROM company/java-base:1.4`. Base image changes rarely — built on its own
+        pipeline. Services only rebuild their app layer. Cache hit rate dramatically improves.
+
+        **BuildKit cache layers in CI:**
+        Use registry-based cache: `--cache-from type=registry,ref=ecr/orders:cache --cache-to type=registry,ref=ecr/orders:cache,mode=max`.
+        Each CI build restores cache from registry, saving dependency install time.
+
+        **Parallel builds:** build changed services in parallel CI jobs (matrix strategy).
+        20 services → 20 parallel 2-minute jobs = 2 minutes total wall time.
+
+        **Tag strategy:** `image:${git_sha}` for traceability. Promote to `image:v1.2.3` on
+        release. Never push to `:latest` in production pipelines.
+
+    - id: ST-02
+      question: "How do you harden a Docker deployment for production security?"
+      answer: >
+        **Image hardening:**
+        - Minimal base image (distroless or alpine). Fewer packages = smaller attack surface.
+        - Scan in CI (Trivy): block on CRITICAL CVEs, warn on HIGH.
+        - Sign images with Docker Content Trust or Sigstore cosign. Verify signature before deploy.
+        - No shell in production images where possible (distroless has no `/bin/sh`).
+
+        **Runtime hardening:**
+        - `USER nonroot` — never root
+        - `--read-only` filesystem + tmpfs for `/tmp`
+        - `--cap-drop=ALL --cap-add=<only what's needed>`
+        - `--security-opt=no-new-privileges`
+        - `--security-opt seccomp=custom-profile.json` for fine-grained syscall restriction
+        - Resource limits: `--memory`, `--cpus`, `--pids-limit`
+
+        **Network:**
+        - User-defined networks; containers only on networks they need
+        - No `--network=host` unless unavoidable
+        - Publish only required ports; bind to `127.0.0.1` for services not publicly exposed
+
+        **Secrets:**
+        - Never in env vars or image. Use Docker secrets / Kubernetes secrets / Vault agent.
+
+        **Audit:**
+        - Enable Docker daemon audit logging
+        - Use Falco for runtime threat detection (anomalous syscalls, container escapes)
+        - Regular `docker system prune` to remove stale images with known CVEs
+
+  principal:
+    - id: P-01
+      question: "How do you design a container platform strategy for an enterprise with 200+ services across multiple teams?"
+      answer: >
+        **Standardize via golden images:**
+        Platform team maintains versioned base images per language stack
+        (`company/java-base:21-v3`, `company/node-base:20-v2`). Each base image includes:
+        security hardening (non-root, minimal packages, seccomp profile), observability agents
+        (OpenTelemetry Java agent pre-configured), CA certificates, timezone data.
+        Services inherit all compliance without knowing the details.
+
+        **Image governance:**
+        - Mandatory base image: CI rejects images not based on approved bases (OPA/Conftest policy)
+        - Mandatory scan gate: Trivy in CI, block on CRITICAL
+        - Image signing: cosign signs all approved images; admission controller (Kyverno/OPA Gatekeeper)
+          rejects unsigned images in production clusters
+        - SBOM (Software Bill of Materials) generation on every build; stored in registry
+
+        **Registry strategy:** private registry per environment (dev/prod). Immutable tags
+        in prod registry — once pushed, cannot overwrite. Retention policy: keep last 10
+        versions per service; auto-delete older.
+
+        **Build platform:** centralized BuildKit fleet (depot.dev or self-hosted) with remote
+        cache backend. Teams get fast builds without managing build infrastructure.
+
+        **Developer experience:** `make docker-build` in every service repo just works —
+        pre-configured Makefile target that uses the right base, BuildKit cache, and registry.
+        Paved road: easy to do the right thing, hard to do the wrong thing.
+
+        **Cost governance:** track image size trends per service. Large images = slow deploys,
+        expensive registry storage, higher CVE surface. Alert teams when image grows > 20%
+        between releases.
+
+# ── SCENARIOS ─────────────────────────────────────────────────────────────────
+scenarios:
+  - title: "Optimize a Slow, Bloated Docker Build Pipeline"
+    problem: >
+      A Java microservice has a Docker build that takes 12 minutes in CI, produces a 1.2GB
+      image, and every push triggers a full rebuild including downloading all Maven dependencies.
+      The team has 15 services with the same problem. CI costs are high and developer feedback
+      loops are slow.
+    constraints:
+      - CI is GitHub Actions with ephemeral runners (no persistent disk cache)
+      - 15 services, mostly Spring Boot + Java 21
+      - Must not change registry vendor (AWS ECR)
+    discussion:
+      - >
+        **Multi-stage build to cut image size:**
+        Replace `FROM maven:3.9-eclipse-temurin-21` (builder + runtime in one) with a two-stage
+        build: Maven stage builds the JAR; `eclipse-temurin:21-jre-alpine` stage copies only the
+        JAR. Expected result: 1.2GB → ~120MB. Smaller image = faster pull in Kubernetes.
+      - >
+        **Layer cache for Maven dependencies:**
+        In the Maven stage, `COPY pom.xml .` then `RUN mvn dependency:go-offline` before
+        `COPY src .`. Maven dependencies (the slow part) are cached as a layer and only
+        re-downloaded when `pom.xml` changes.
+      - >
+        **BuildKit registry cache in GitHub Actions:**
+        Use `docker/build-push-action` with cache-from/cache-to pointing to ECR:
+        `cache-from: type=registry,ref=ecr/myapp:cache`
+        `cache-to: type=registry,ref=ecr/myapp:cache,mode=max`
+        Each runner restores from ECR cache; dependency layer hit rate > 90% for most commits.
+      - >
+        **Shared base image for all 15 services:**
+        Extract `FROM eclipse-temurin:21-jre-alpine` + OpenTelemetry agent + non-root user
+        setup into `company/java-base:21`. Build it once on change; 15 services use it.
+        Cache hit for the base layer across all service builds.
+      - >
+        **Selective builds:** only rebuild services whose source changed using path filtering.
+        12-minute × 15 services = 3 hours → only changed services rebuild in parallel.
+    red_flags:
+      - "Single-stage build mixing JDK and application — produces bloated images with unnecessary build tools"
+      - "COPY . . before dependency install — every source change re-downloads all dependencies"
+      - "No BuildKit cache — ephemeral CI runners start cold every build"
+      - "Building all 15 services on every commit — O(N) build time regardless of what changed"
+
+  - title: "Secure a Docker Deployment for a PCI-DSS Environment"
+    problem: >
+      Your team runs a payment processing service in Docker containers. A security audit
+      flagged: containers run as root, images contain known CVEs, secrets are passed as
+      environment variables, and there are no resource limits. Fix the deployment to meet
+      PCI-DSS requirements.
+    constraints:
+      - Running on a self-managed Linux host (not Kubernetes)
+      - Cannot change the base image vendor (must use Ubuntu-based image)
+      - Audit requirement: no CRITICAL CVEs, no secrets in image or env, non-root runtime
+    discussion:
+      - >
+        **Non-root user:** add to Dockerfile: `RUN groupadd -r payment && useradd -r -g payment payment`
+        and `USER payment`. Verify with `docker run image whoami` → `payment`.
+      - >
+        **CVE remediation:** run `trivy image payment-service:latest`. For CRITICAL CVEs in
+        OS packages: `RUN apt-get update && apt-get upgrade -y` in Dockerfile to pull patched
+        packages. For application dependency CVEs: update `pom.xml`/`package.json`. Add Trivy
+        scan as a CI gate: `trivy image --exit-code 1 --severity CRITICAL`.
+      - >
+        **Secrets:** remove env vars. Use Docker secrets (even on single host via Compose):
+        ```yaml
+        secrets:
+          db_password:
+            external: true
+        services:
+          payment:
+            secrets: [db_password]
+        ```
+        Secret mounted at `/run/secrets/db_password`. Application reads file, not env var.
+      - >
+        **Runtime hardening flags:**
+        `--cap-drop=ALL --cap-add=NET_BIND_SERVICE` (only if binding privileged port),
+        `--read-only --tmpfs /tmp`, `--security-opt=no-new-privileges`,
+        `--memory=512m --cpus=1 --pids-limit=100`.
+      - >
+        **Audit logging:** enable Docker daemon's `--log-driver=journald` and ship container
+        logs to a SIEM. Log all container start/stop events. Install Falco for runtime
+        threat detection — alerts on `exec` into containers, unexpected file writes, etc.
+    red_flags:
+      - "Patching CVEs in a later Dockerfile layer while keeping the vulnerable layer — CVE still present in history"
+      - "Using --privileged flag to 'fix' permission issues — grants full host kernel access"
+      - "Secrets in docker-compose.yml env section — stored plaintext in compose file and visible in docker inspect"
+      - "No resource limits — OOM or CPU spike can take down the host and all containers on it"

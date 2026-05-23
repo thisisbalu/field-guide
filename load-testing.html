@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Load Testing — Field Guide</title>
+<script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#0f766e;--accent2:#d97706;--accent3:#7c3aed; --highlight-bg:#f0fdfa;--highlight-text:#0f766e;--highlight-border:#0d9488; --your-exp-bg:rgba(124,58,237,.06);--your-exp-border:rgba(124,58,237,.2);--your-exp-text:#4c1d95; --acc-hover:rgba(15,118,110,.04);--acc-open-border:#0f766e;--acc-open-bg:rgba(15,118,110,.03); --num-color:#0f766e;--num-bg:rgba(15,118,110,.1); --tag-color:#0f766e;--tag-bg:rgba(15,118,110,.08);--tag-border:rgba(15,118,110,.2); --flow-arrow:#0f766e;--h1-from:#134e4a;--h1-to:#0f766e; --badge-color:#134e4a;--stat-num:#0f766e; --tab-active-color:#0f766e;--tab-active-bg:rgba(15,118,110,.08);--tab-active-border:#0f766e; --section-title:#0f766e;--concept-title:#134e4a; --cheat-head-bg:#134e4a;--cheat-head-text:#ffffff;--cheat-key:#134e4a; --cmd-bg:#f0fdfa;--cmd-text:#134e4a; }
+  [data-theme="dark"]{ --accent:#34d399;--accent2:#fbbf24;--accent3:#a78bfa; --highlight-bg:#022c22;--highlight-text:#34d399;--highlight-border:#0d9488; --your-exp-bg:rgba(167,139,250,.1);--your-exp-border:rgba(167,139,250,.3);--your-exp-text:#c4b5fd; --acc-hover:rgba(52,211,153,.04);--acc-open-border:#34d399;--acc-open-bg:rgba(52,211,153,.03); --num-color:#34d399;--num-bg:rgba(52,211,153,.1); --tag-color:#34d399;--tag-bg:rgba(52,211,153,.08);--tag-border:rgba(52,211,153,.2); --flow-arrow:#34d399;--h1-from:#34d399;--h1-to:#0d9488; --badge-color:#34d399;--stat-num:#34d399; --tab-active-color:#34d399;--tab-active-bg:rgba(52,211,153,.08);--tab-active-border:#34d399; --section-title:#34d399;--concept-title:#34d399; --cheat-head-bg:#022c22;--cheat-head-text:#34d399;--cheat-key:#34d399; --cmd-bg:#022c22;--cmd-text:#34d399; }
+  [data-theme="light"] .toggle-knob{background:#0f766e;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#34d399;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Back navigation ─────────────────────────────────────────────────────── */
+.back-link{position:fixed;top:1.25rem;left:1.25rem;z-index:100;display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);text-decoration:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.back-link:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
+/* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
+.qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
+.qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
+.qa-search:focus{border-color:var(--tab-active-border,var(--text));}
+.qa-search::placeholder{color:var(--muted);}
+.expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
+.expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;cursor:pointer;transition:opacity .2s;}
+.cmd:hover{opacity:.75;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+  .back-link span{display:none;}
+}
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
+
+</style>
+</head>
+<body data-topic-id="load-testing">
+
+<a class="back-link" href="index.html">← <span>Field Guide</span></a>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>Load Testing</h1>
+  <p class="subtitle">// test types · metrics · tools · bottleneck analysis · capacity planning · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="overview" role="button" tabindex="0" onclick="switchTab('overview',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('overview',this);event.preventDefault();}">Overview</div>
+  <div class="tab" data-tab="deepdive" role="button" tabindex="0" onclick="switchTab('deepdive',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('deepdive',this);event.preventDefault();}">Deep Dive</div>
+  <div class="tab" data-tab="qa" role="button" tabindex="0" onclick="switchTab('qa',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('qa',this);event.preventDefault();}">Q &amp; A</div>
+  <div class="tab" data-tab="scenarios" role="button" tabindex="0" onclick="switchTab('scenarios',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('scenarios',this);event.preventDefault();}">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">📋 Test Types</div>
+      <div class="concept-body">
+        <strong>Load test:</strong> apply expected production load. Validate the system meets SLOs under normal conditions. Baseline: "does this handle our typical peak?"
+<strong>Stress test:</strong> gradually increase load beyond normal levels until the system degrades or breaks. Find the breaking point and failure mode. "What happens at 2× peak?"
+<strong>Soak test (endurance):</strong> run normal load for a long time (hours to days). Detect: memory leaks, connection pool exhaustion, disk fill, log rotation issues, gradual degradation. "Does it hold up over 24 hours?"
+<strong>Spike test:</strong> sudden dramatic increase in load (10× in seconds). Validate autoscaling, circuit breakers, queue behavior. "What happens when Black Friday traffic hits?"
+<strong>Breakpoint test:</strong> find the exact throughput where latency or error rate crosses the SLO threshold. Precise capacity number for planning. "What's our maximum sustainable RPS?"
+<strong>Smoke test:</strong> minimal load (1–2 users). Quick sanity check that the system is functional before running a full load test.
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">soak for leaks</span>
+          
+          <span class="tag orange">stress = breaking point</span>
+          
+          <span class="tag green">smoke first</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📊 Key Metrics</div>
+      <div class="concept-body">
+        <strong>Throughput:</strong> requests per second (RPS) or transactions per second (TPS) successfully processed. The primary capacity metric.
+<strong>Latency percentiles:</strong> P50 (median — typical user experience), P95 (worst 5%), P99 (worst 1%), P99.9 (worst 0.1%). <strong>Never use average latency</strong> — it hides outliers and tail latency. A service with 99ms average and 5000ms P99 is failing its worst users.
+<strong>Error rate:</strong> % of requests returning errors (5xx, timeouts, connection refused). Distinguish: application errors (4xx), server errors (5xx), network timeouts.
+<strong>Saturation:</strong> resource utilization: CPU %, memory %, DB connection pool %, thread pool queue depth. Saturation approaching 100% is a leading indicator of degradation.
+<strong>Concurrency:</strong> active users / virtual users at a point in time. Not to be confused with throughput — a system with 100 concurrent users but slow responses has low throughput.
+<strong>APDEX (Application Performance Index):</strong> <code>(Satisfied + Tolerating/2) / Total</code>. Satisfied: &lt; threshold (e.g., 500ms). Tolerating: &lt; 4× threshold. Score 0–1. Human-readable summary of performance vs threshold.
+        
+        
+        <div class="tags">
+          
+          <span class="tag red">P99 not average</span>
+          
+          <span class="tag blue">throughput = RPS</span>
+          
+          <span class="tag orange">saturation = headroom</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🛠️ Load Testing Tools</div>
+      <div class="concept-body">
+        <strong>k6</strong> (Grafana): scripts in JavaScript. Outputs metrics to Grafana Cloud, InfluxDB, Datadog. Lightweight binary. Git-friendly scripts. Best for: API load testing, CI integration.
+<strong>Gatling:</strong> Scala/Java DSL. High performance (async, non-blocking). Excellent HTML reports out of the box. Maven/Gradle plugin for CI integration. Best for: high-throughput testing, teams comfortable with JVM.
+<strong>JMeter:</strong> GUI + XML scripts. Long-established, large plugin ecosystem. Heavy resource usage (JVM + threads). Best for: existing JMeter knowledge, complex protocol support (JDBC, JMS, LDAP, FTP).
+<strong>Artillery:</strong> YAML + JS hooks. Easy to get started. Good for: quick API tests, simple workflows. Less scalable than k6/Gatling.
+<strong>Locust</strong> (Python): script in Python. Distributed mode. Great for: custom behavior, complex user flows, Python teams.
+<strong>AWS Distributed Load Testing</strong> / <strong>Azure Load Testing:</strong> managed cloud services. No infrastructure to manage. For bursting to millions of RPS.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">k6 for CI-friendly</span>
+          
+          <span class="tag blue">Gatling for JVM</span>
+          
+          <span class="tag orange">JMeter = legacy, still common</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📈 Load Model Design</div>
+      <div class="concept-body">
+        A realistic load model is the difference between a useful test and a misleading one.
+<strong>Virtual Users (VUs) vs Arrival Rate:</strong> VU-based models simulate N concurrent users (each making requests sequentially). Arrival rate models inject a fixed RPS regardless of response time. <strong>Prefer arrival rate (open model)</strong> for most services — it reflects real traffic better. VU models (closed model) underestimate throughput under slow responses.
+<strong>Ramp-up period:</strong> always start with a ramp (e.g., 0 → 500 RPS over 2 minutes). Immediate full load can overwhelm JVM warmup and cause misleading initial failures.
+<strong>Think time:</strong> real users pause between actions. For API tests without a browser, think time is often 0. For browser-level tests, add realistic think time (1–5s).
+<strong>Scenario mix:</strong> production has a mix of endpoints (read-heavy, some writes). Replicate: 70% GET, 20% search, 10% POST. Testing only one endpoint misses interactions.
+<strong>Test data:</strong> use realistic data volume and distribution. A test with 10 users in the DB vs 10 million users in production gives different cache hit rates, query plans, and index behavior.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">arrival rate = open model</span>
+          
+          <span class="tag blue">always ramp up</span>
+          
+          <span class="tag orange">realistic scenario mix</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔍 Bottleneck Identification</div>
+      <div class="concept-body">
+        After running a load test, correlate performance degradation with resource utilization:
+<strong>CPU-bound:</strong> CPU &gt; 80% while latency degrades. No room for more load. Fix: optimize hot code paths (JFR profiling), add more compute, scale horizontally.
+<strong>Memory-bound / GC:</strong> heap utilization high, GC pauses spike under load. Latency spikes correlate with Full GC events. Fix: tune heap size and GC algorithm, fix memory leaks.
+<strong>Database bottleneck:</strong> application CPU is low, but DB CPU/connections are high. Slow queries appear under load (lock contention, index scans switch to seq scans at scale). Fix: add indexes, optimize queries, add read replicas, add caching layer.
+<strong>Thread pool exhaustion:</strong> request queue depth grows. Response time increases proportionally to queue depth. CPU is not saturated. Fix: increase thread pool size (if I/O-bound), or add capacity (if CPU-bound tasks exhausting threads).
+<strong>Downstream dependency:</strong> your service is fast, but a downstream (payment API, third-party) slows or fails under load. Circuit breaker trips. Fix: cache downstream responses, add retry/fallback, negotiate capacity with the downstream.
+<strong>Network saturation:</strong> NIC throughput maxed out. Large response payloads at high RPS. Fix: enable compression (gzip), paginate large responses, move large payloads to S3.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">correlate resource + latency</span>
+          
+          <span class="tag orange">DB is often the bottleneck</span>
+          
+          <span class="tag blue">thread pool vs CPU bound</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📉 Little's Law</div>
+      <div class="concept-body">
+        Little's Law: <strong>L = λ × W</strong>. Where L = average number of requests in the system (concurrency), λ = arrival rate (throughput, RPS), W = average time a request spends in the system (average latency).
+<strong>Practical implications:</strong> - At 100 RPS with 200ms average latency: L = 100 × 0.2 = <strong>20 concurrent requests</strong>
+  in flight. You need 20 threads (or connections) minimum to handle this.
+- If latency doubles (degradation), concurrency doubles for the same RPS. Thread pool
+  exhaustion becomes twice as likely.
+- To handle 1000 RPS at 200ms: 200 concurrent requests needed.
+<strong>Using it in capacity planning:</strong> measure current throughput and latency → calculate required concurrency → verify thread pool/connection pool is sized appropriately. If thread pool = 50 but Little's Law says you need 200 → thread pool is the bottleneck.
+<strong>Latency under load:</strong> as load increases, queue forms, W increases, L increases. The relationship is not linear at saturation — latency increases superlinearly as utilization approaches 100% (queueing theory, M/M/1 queue model).
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">L = λW</span>
+          
+          <span class="tag green">concurrency = RPS × latency</span>
+          
+          <span class="tag orange">nonlinear at saturation</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🏗️ Test Environment Considerations</div>
+      <div class="concept-body">
+        <strong>Production-like environment:</strong> load tests on undersized staging environments give misleading results. The system must be production-like in: hardware (same instance type and count), data volume (similar record counts in DB), network topology (same AZs and latency), third-party integrations (or realistic mocks).
+<strong>Test isolation:</strong> load test traffic must not contaminate production monitoring or customer data. Use a dedicated test environment with its own databases and monitoring. If you must test in production: use a separate tenant/account, tag all test requests with a header (<code>X-Load-Test: true</code>), filter them from business metrics.
+<strong>Load generator sizing:</strong> the load generator itself can become the bottleneck. A single k6 process on a 2-core VM can generate ~10k RPS for simple requests; for complex flows, less. Distribute the load generator: k6 cloud, k6 Operator (Kubernetes), Gatling Enterprise. Ensure load generator CPU and network are not the constraint.
+<strong>Warm up first:</strong> send light traffic (10% of target) for 2–5 minutes before the main test phase. Allows JVM warmup, connection pool fill, cache warm, CDN warm. Metrics from the ramp-up phase should be excluded from the pass/fail evaluation.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">production-like or misleading</span>
+          
+          <span class="tag red">generator can be bottleneck</span>
+          
+          <span class="tag green">always warm up</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">✅ Performance SLOs & Pass/Fail Criteria</div>
+      <div class="concept-body">
+        A load test without pass/fail criteria is a reporting exercise, not a quality gate. Define acceptance criteria before running the test.
+<strong>Example SLO-based criteria:</strong> - P99 latency ≤ 500ms at target load (500 RPS) - P95 latency ≤ 200ms - Error rate &lt; 0.1% - No requests timeout (connection refused, socket timeout) - System recovers to baseline within 2 minutes after load stops
+<strong>Regression criteria:</strong> - P99 latency must not increase &gt; 10% vs previous baseline - Throughput must not decrease &gt; 5% vs baseline
+<strong>In CI:</strong> automate the pass/fail. k6 thresholds block the pipeline: <code>javascript thresholds: {
+  http_req_duration: ['p(99)&lt;500'],
+  http_req_failed: ['rate&lt;0.001'],
+}</code> A failing threshold exits with code 1 — CI marks the build as failed.
+<strong>Baselining:</strong> run a full load test on a known-good build. Store results as baseline. Every subsequent test compares against it. Catch regressions before production.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">define criteria before test</span>
+          
+          <span class="tag blue">k6 thresholds in CI</span>
+          
+          <span class="tag orange">baseline for regression</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use Load Testing When</div>
+      <ul>
+        
+        <li>Before a major release or feature launch expected to significantly increase traffic</li>
+        
+        <li>After performance-critical changes (new GC algorithm, DB query changes, new caching layer)</li>
+        
+        <li>As part of CI for critical paths — catch regressions before they reach production</li>
+        
+        <li>During capacity planning — determine how many more instances are needed for projected growth</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use Load Testing When</div>
+      <ul>
+        
+        <li>As a substitute for production monitoring — load tests use synthetic traffic; real user behavior differs</li>
+        
+        <li>Against production systems with real customer data unless carefully isolated (use staging)</li>
+        
+        <li>For unit-level performance microbenchmarks — use JMH (Java Microbenchmark Harness) instead</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Test Type Reference</div>
+      <table>
+        
+        <tr><td>Smoke</td><td>1-2 VUs, few minutes. Sanity check the system is functional. Run before any full load test.</td></tr>
+        
+        <tr><td>Load</td><td>Expected production peak load, 30-60 min. Validate SLOs are met under normal conditions.</td></tr>
+        
+        <tr><td>Stress</td><td>Increase load until failure (150%, 200%, 300% of peak). Find breaking point and failure mode.</td></tr>
+        
+        <tr><td>Soak/Endurance</td><td>Normal load for 4-24 hours. Detect memory leaks, connection exhaustion, slow degradation.</td></tr>
+        
+        <tr><td>Spike</td><td>Sudden 10× traffic increase, short duration. Validate autoscaling, circuit breakers, queues.</td></tr>
+        
+        <tr><td>Breakpoint</td><td>Ramp load until SLO threshold is crossed. Precise capacity number: 'We handle up to 850 RPS at P99 < 500ms.'</td></tr>
+        
+        <tr><td>Volume</td><td>Normal RPS but very large data payloads. Validate streaming, chunking, memory usage.</td></tr>
+        
+        <tr><td>Scalability</td><td>Add capacity (pods/instances), re-run test. Measure linear vs sublinear scaling. Find coordination bottlenecks.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Key Load Testing Metrics</div>
+      <table>
+        
+        <tr><td>Throughput (RPS/TPS)</td><td>Requests successfully served per second. Primary capacity metric. Distinguish: attempted vs successful.</td></tr>
+        
+        <tr><td>P50 (median) latency</td><td>Half of requests are faster than this. Typical user experience.</td></tr>
+        
+        <tr><td>P95 latency</td><td>95% of requests are faster. Most users' worst case.</td></tr>
+        
+        <tr><td>P99 latency</td><td>99% of requests are faster. Tail latency. Use for SLOs. High P99 = some users have bad experience.</td></tr>
+        
+        <tr><td>P99.9 latency</td><td>Worst 0.1%. Important for high-volume services: at 1M req/day, 0.1% = 1000 bad requests.</td></tr>
+        
+        <tr><td>Error rate</td><td>% of requests returning errors. Separate HTTP errors (4xx, 5xx) from timeouts.</td></tr>
+        
+        <tr><td>Saturation</td><td>Resource utilization: CPU %, memory %, DB connections %, thread pool queue. Leading indicator.</td></tr>
+        
+        <tr><td>Time to first byte (TTFB)</td><td>Time from request sent to first byte received. Separates server processing from network/transfer.</td></tr>
+        
+        <tr><td>Requests in flight</td><td>Concurrency. Little's Law: = RPS × avg_latency. Must match thread pool / connection pool size.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">k6 Script Structure</div>
+      <table>
+        
+        <tr><td>Options block</td><td>vus (virtual users), duration, stages (ramp), thresholds (pass/fail criteria), scenarios.</td></tr>
+        
+        <tr><td>Default function</td><td>The scenario each VU executes in a loop. Import: http from 'k6/http'.</td></tr>
+        
+        <tr><td>Thresholds</td><td>{ 'http_req_duration': ['p(99)<500'], 'http_req_failed': ['rate<0.001'] }. Exit code 1 on failure.</td></tr>
+        
+        <tr><td>Stages (ramp)</td><td>[{ duration: '2m', target: 100 }, { duration: '10m', target: 500 }, { duration: '2m', target: 0 }]. Ramp up, hold, ramp down.</td></tr>
+        
+        <tr><td>Checks</td><td>check(response, { 'status 200': r => r.status === 200 }). Tracks pass rate as a metric.</td></tr>
+        
+        <tr><td>Groups</td><td>group('login flow', () => { ... }). Groups metrics by user journey step.</td></tr>
+        
+        <tr><td>Output</td><td>k6 run --out influxdb=http://influx:8086/k6 --out json=results.json script.js</td></tr>
+        
+        <tr><td>Scenarios</td><td>Define multiple scenarios with different executors: constant-arrival-rate, ramping-vus, per-vu-iterations.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Bottleneck Diagnosis Guide</div>
+      <table>
+        
+        <tr><td>High CPU + high latency</td><td>CPU-bound. Profile with async-profiler/JFR to find hot methods. Optimize or scale horizontally.</td></tr>
+        
+        <tr><td>Normal CPU + high latency + DB slow queries</td><td>Database bottleneck. Check slow query log, explain plans, connection pool utilization. Add index, cache, read replica.</td></tr>
+        
+        <tr><td>Normal CPU + increasing latency over time</td><td>Soak issue: memory leak (GC overhead increasing) or connection leak (pool exhaustion). Monitor GC and pool metrics.</td></tr>
+        
+        <tr><td>High CPU + low RPS (generator)</td><td>Load generator is the bottleneck. Distribute load generation. Generator CPU must stay < 70%.</td></tr>
+        
+        <tr><td>Thread pool queue depth growing</td><td>Thread pool too small for the offered load, or downstream is slow (threads blocked in I/O). Diagnose with thread dump.</td></tr>
+        
+        <tr><td>Error rate spike at specific RPS</td><td>Saturation point found. Resource (thread pool, DB connections, file descriptors) exhausted. Increase limit or add capacity.</td></tr>
+        
+        <tr><td>Latency OK, error rate rises</td><td>Circuit breaker tripping, downstream quota exceeded, or connection refused on downstream. Check downstream health.</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">💻 CLI Commands</div>
+      <div class="cmd-block">
+        
+        <div class="cmd-group">
+          <div class="cmd-label"></div>
+          
+          <span class="cmd">{'cmd': 'k6 run script.js', 'desc': 'Run k6 script with default options'}</span>
+          
+          <span class="cmd">{'cmd': 'k6 run --vus 100 --duration 5m script.js', 'desc': 'Override VUs and duration from CLI'}</span>
+          
+          <span class="cmd">{'cmd': 'k6 run --out json=results.json script.js', 'desc': 'Output metrics to JSON for analysis'}</span>
+          
+          <span class="cmd">{'cmd': 'k6 run --out influxdb=http://localhost:8086/k6 script.js', 'desc': 'Stream metrics to InfluxDB (visualize in Grafana)'}</span>
+          
+          <span class="cmd">{'cmd': 'k6 cloud script.js', 'desc': 'Run distributed test on Grafana Cloud (auto-provisions generators)'}</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label"></div>
+          
+          <span class="cmd">{'cmd': 'mvn gatling:test', 'desc': 'Run Gatling simulations via Maven plugin'}</span>
+          
+          <span class="cmd">{'cmd': 'mvn gatling:test -Dgatling.simulationClass=MySimulation', 'desc': 'Run specific simulation class'}</span>
+          
+          <span class="cmd">{'cmd': './gradlew gatlingRun', 'desc': 'Run Gatling simulations via Gradle plugin'}</span>
+          
+          <span class="cmd">{'cmd': 'open target/gatling/simulation-timestamp/index.html', 'desc': 'Open Gatling HTML report'}</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label"></div>
+          
+          <span class="cmd">{'cmd': 'wrk -t12 -c400 -d30s http://localhost:8080/api', 'desc': '12 threads, 400 connections, 30 second load test'}</span>
+          
+          <span class="cmd">{'cmd': 'wrk -t4 -c100 -d60s -s post.lua http://localhost:8080/orders', 'desc': 'POST requests using a Lua script'}</span>
+          
+          <span class="cmd">{'cmd': "curl -o /dev/null -s -w '%{time_total}\\n' http://localhost:8080/health", 'desc': "Measure a single request's total time"}</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Load Testing Tools Comparison</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Language</td>
+            
+            <td>JavaScript</td>
+            
+            <td>Scala/Kotlin/Java</td>
+            
+            <td>XML (GUI) / Groovy</td>
+            
+            <td>Python</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Protocol support</td>
+            
+            <td>HTTP, WebSocket, gRPC</td>
+            
+            <td>HTTP, WebSocket, JMS</td>
+            
+            <td>HTTP, JDBC, JMS, FTP, LDAP</td>
+            
+            <td>HTTP, WebSocket</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Performance</td>
+            
+            <td>High (Go engine)</td>
+            
+            <td>Very high (async Akka)</td>
+            
+            <td>Moderate (JVM threads)</td>
+            
+            <td>Moderate (Python async)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Reporting</td>
+            
+            <td>Grafana integration, JSON</td>
+            
+            <td>Excellent built-in HTML</td>
+            
+            <td>Plugins required</td>
+            
+            <td>Web UI, plugin</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>CI integration</td>
+            
+            <td>Excellent (binary, exit code)</td>
+            
+            <td>Good (Maven/Gradle)</td>
+            
+            <td>Moderate (XML + plugins)</td>
+            
+            <td>Good (CLI)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Distributed</td>
+            
+            <td>k6 Cloud / k6 Operator</td>
+            
+            <td>Gatling Enterprise</td>
+            
+            <td>Controller + remote agents</td>
+            
+            <td>Built-in master/worker</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Learning curve</td>
+            
+            <td>Low (JS)</td>
+            
+            <td>Medium (Scala DSL)</td>
+            
+            <td>Low (GUI) / Medium (scripting)</td>
+            
+            <td>Low (Python)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best for</td>
+            
+            <td>API tests, CI pipelines</td>
+            
+            <td>High-throughput, JVM teams</td>
+            
+            <td>Existing JMeter adoption, complex protocols</td>
+            
+            <td>Python teams, complex flows</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
+  <div class="qa-controls">
+    <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
+    <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
+  </div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="S-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">What is the difference between a load test, stress test, and soak test? When would you run each?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Load test:</strong> apply the expected production load (e.g., 500 RPS) for a realistic duration (30–60 minutes). Validate that the system meets its SLOs under normal conditions. Run: before every major release and after significant infrastructure changes.
+<strong>Stress test:</strong> incrementally increase load beyond normal levels (150%, 200%, 300%) until the system degrades significantly or breaks. Goals: (1) find the breaking point (actual capacity ceiling), (2) observe the failure mode — does it fail gracefully (queue fills, returns 429) or catastrophically (OOM, cascading failure)? Run: during capacity planning, when preparing for a high-traffic event (product launch).
+<strong>Soak test (endurance):</strong> apply normal production load for an extended period (4–24 hours). Goals: detect issues that only appear over time — memory leaks (heap trend upward over hours), connection pool exhaustion (leaked connections accumulate), disk fill (log files grow), gradual degradation (GC becomes less effective as heap fills with long-lived objects). Run: monthly baseline, before a product launch where sustained high traffic is expected.
+<strong>Spike test:</strong> sudden dramatic load increase (e.g., 50 → 500 RPS in 10 seconds). Validate autoscaling response time, circuit breaker behavior, request queuing. Run: before Black Friday/Cyber Monday, before a marketing campaign that generates sudden traffic.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('load-testing','S-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">Why should you never use average latency as a performance metric? What should you use instead?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>The problem with averages:</strong> average latency is distorted by outliers and hides the tail. Consider 100 requests: 95 complete in 50ms, 5 complete in 5000ms. Average: <code>(95×50 + 5×5000) / 100 = 297ms</code>. This looks like a slow service. But 95% of users had a great experience (50ms); 5% had a terrible one (5000ms). The average tells you neither story accurately.
+<strong>Worse example:</strong> 99 requests at 10ms, 1 request at 100,000ms (100 seconds — timeout). Average: <code>(99×10 + 100000) / 100 = ~1010ms</code>. Looks slow. In reality, 99% of users see 10ms; one request is hung.
+<strong>Use percentiles instead:</strong> - <strong>P50 (median):</strong> 50% of requests complete within this time. Typical user. - <strong>P95:</strong> 95% of requests complete within this time. Most users' worst case. - <strong>P99:</strong> 99% of requests. Your SLO should be here. "99% of users get &lt; 500ms." - <strong>P99.9:</strong> important at scale. At 1M req/hour, 0.1% = 1000 bad requests per hour. - <strong>Max:</strong> can be misleading (GC pause, cold start) but useful for detecting extreme outliers.
+<strong>When to care about which percentile:</strong> - User experience SLO: P95 or P99 - Internal microservice SLO: P99 (failures propagate and amplify) - Tail latency for high-volume services: P99.9 Never mention average latency in an interview when discussing performance metrics.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('load-testing','S-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">How would you write a k6 load test script for an e-commerce checkout flow?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><code>``javascript import http from 'k6/http'; import { check, sleep, group } from 'k6'; import { Rate } from 'k6/metrics';
+const errorRate = new Rate('errors');
+export const options = {
+  stages: [
+    { duration: '2m', target: 50 },   // ramp up
+    { duration: '10m', target: 200 },  // hold at 200 VUs
+    { duration: '2m', target: 0 },     // ramp down
+  ],
+  thresholds: {
+    http_req_duration: ['p(99)&lt;500'],   // P99 &lt; 500ms
+    errors: ['rate&lt;0.01'],              // error rate &lt; 1%
+  },
+};
+const BASE_URL = __ENV.BASE_URL || 'https://staging.example.com';
+export default function () {
+  group('Browse products', () =&gt; {
+    const res = http.get(</code>${BASE_URL}/api/products?category=electronics`);
+    check(res, { 'products 200': r =&gt; r.status === 200 });
+    errorRate.add(res.status !== 200);
+  });</p>
+<p>sleep(1);  // think time between steps</p>
+<p>group('Add to cart', () =&gt; {
+    const payload = JSON.stringify({ productId: 'prod-123', qty: 1 });
+    const res = http.post(<code>${BASE_URL}/api/cart/items</code>, payload, {
+      headers: { 'Content-Type': 'application/json',
+                 'Authorization': <code>Bearer ${__ENV.TEST_TOKEN}</code> },
+    });
+    check(res, { 'add to cart 201': r =&gt; r.status === 201 });
+  });</p>
+<p>group('Checkout', () =&gt; {
+    const res = http.post(<code>${BASE_URL}/api/orders</code>, JSON.stringify({
+      paymentMethod: 'test_card', shippingAddress: 'test_addr'
+    }), { headers: { 'Content-Type': 'application/json' } });
+    check(res, { 'order created 201': r =&gt; r.status === 201 });
+  });</p>
+<p>sleep(2);
+} ```
+<strong>Key patterns:</strong> stages for ramp-up/hold/ramp-down; thresholds for pass/fail gate; group() to see latency by step; separate custom error rate metric; environment variables for config (URL, token); check() for response validation.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('load-testing','S-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-04">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">How do you identify and fix a database bottleneck discovered during a load test?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Detection:</strong> during the load test, application CPU is low (&lt; 30%) but latency climbs above SLO. Check the database: high CPU, slow query log entries appearing, connection pool at max capacity.
+<strong>Step 1: Identify slow queries.</strong> Enable the slow query log (MySQL: <code>slow_query_log=ON, long_query_time=0.5</code>; PostgreSQL: <code>log_min_duration_statement=500</code>). Under load, queries that are fast with 10 users become slow with 500 users due to lock contention and data volume.
+<strong>Step 2: Analyze query plans.</strong> <code>EXPLAIN ANALYZE</code> the slow queries. Look for: - <code>Seq Scan</code> on a large table → missing index - High row estimates vs actual → stale statistics (<code>ANALYZE table</code>) - Nested loop joins with large tables → bad join order, missing index
+<strong>Step 3: Common fixes.</strong> - <strong>Missing index:</strong> add a covering index for the query's WHERE + ORDER BY + SELECT columns.
+  Re-run load test: query goes from 800ms to 5ms.
+- <strong>N+1 queries:</strong> use JOIN or batch fetch instead of querying in a loop.
+  (JPA: use <code>fetch join</code> or <code>@EntityGraph</code>.)
+- <strong>Lock contention:</strong> queries blocking each other. Optimize transaction scope (shorter
+  transactions). Use <code>SELECT FOR UPDATE SKIP LOCKED</code> for queue patterns.
+- <strong>Connection pool exhaustion:</strong> <code>HikariCP maxPoolSize</code> too small. Add connections, but
+  also check if adding connections actually helps (if the DB itself is saturated, more
+  connections don't help — fix the query).
+- <strong>Read replicas:</strong> route read-heavy queries to read replicas. Reduces primary load.
+<strong>Step 4: Verify fix.</strong> Re-run the load test. Confirm: DB CPU reduced, slow queries gone from log, latency at SLO.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('load-testing','S-04',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-05">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">Explain Little's Law and how you apply it to thread pool sizing.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Little's Law:</strong> L = λ × W
+Where: - L = average number of requests in the system (concurrency / requests in flight) - λ = arrival rate (throughput in RPS) - W = average time a request spends in the system (average latency in seconds)
+<strong>Application to thread pool sizing:</strong> If your service handles 200 RPS and average latency is 150ms: <code>L = 200 × 0.15 = 30 concurrent requests</code>
+You need at least 30 threads to handle this load. Each thread handles one request; at 150ms per request, one thread handles 6.7 req/s. For 200 RPS: <code>200 / 6.7 ≈ 30 threads</code>.
+<strong>Under degradation:</strong> if latency doubles to 300ms (DB slow): <code>L = 200 × 0.3 = 60 concurrent requests</code>
+Thread pool of 50 is now too small. Threads queue up waiting for DB. Latency increases further. Queue grows. This is the cascading failure pattern.
+<strong>Sizing with headroom:</strong> Target RPS = 500 (peak). P99 latency target = 200ms (0.2s): <code>L = 500 × 0.2 = 100 concurrent requests needed</code>. Set thread pool to 120–150 for headroom (spikes, GC pauses).
+<strong>The practical lesson:</strong> thread pool size = target_RPS × target_latency_in_seconds × safety_factor. I/O-bound services with high latency (DB-heavy, 200ms average) need larger thread pools than CPU-bound services with low latency (compute-heavy, 10ms average).</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('load-testing','S-05',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-06">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">How do you integrate load tests into a CI/CD pipeline without slowing down the developer workflow?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>The problem:</strong> full load tests take 30–60 minutes — too slow for every PR. But shipping without any performance validation causes regressions.
+<strong>Tiered approach:</strong>
+<strong>Tier 1 — Fast smoke test (every PR, 2–5 min):</strong> 1-5 VUs for 2 minutes. Just validates the endpoints are functional under minimal load. Catches: deployment failures, catastrophic regressions (10× slower), basic errors. k6 exits with code 1 if any threshold fails → PR build fails.
+<strong>Tier 2 — Targeted regression test (merges to main, 10–15 min):</strong> Load test at 50% of production peak for 10 minutes. Compare P99 latency vs stored baseline. Fail if P99 increases &gt; 10% or error rate &gt; 0.1%. Runs after unit/integration tests.
+<strong>Tier 3 — Full load test (nightly, 60+ min):</strong> Full production load + stress test + soak test. Runs against the latest main branch. Results stored as the new baseline. Alert if any regression vs previous night.
+<strong>Tier 4 — Pre-release load test (before major releases):</strong> Full suite including spike test and soak test (4 hours). Manual trigger by the release manager.
+<strong>Implementation in GitHub Actions:</strong> - Tiers 1 and 2: automated steps in the main workflow - Tier 3: scheduled cron workflow (<code>on: schedule: cron: '0 2 * * *'</code>) - Tier 4: workflow_dispatch (manual trigger with optional approver)
+<strong>Baseline storage:</strong> store k6 JSON output in S3 per build. A comparison script reads previous baseline and current results, outputs a diff. Fail the build if regressions exceed thresholds.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('load-testing','S-06',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-07">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">What is the difference between throughput and concurrency? Why does this matter for capacity planning?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Throughput:</strong> requests completed per second. Measures how much work the system does.
+<strong>Concurrency:</strong> number of requests in flight simultaneously at any given moment. Measures how many requests the system is holding at once.
+They're related by Little's Law: <code>Concurrency = Throughput × Latency</code>. A system with 100 RPS throughput and 200ms latency has 20 concurrent requests. A system with 100 RPS throughput and 2000ms latency has 200 concurrent requests.
+<strong>Why the distinction matters:</strong>
+<strong>For thread pool sizing:</strong> you need enough threads to hold the concurrency (not the throughput). If you have 200 RPS but 500ms average latency: <code>200 × 0.5 = 100 concurrent requests</code>. Thread pool must be ≥ 100. Many engineers mistakenly size thread pools to throughput (200) instead of concurrency (100 at 500ms latency, 20 at 50ms latency).
+<strong>For capacity planning:</strong> doubling throughput with the same latency requires doubling concurrency (threads, connections, memory). But if throughput doubles AND latency doubles (system under stress), concurrency quadruples. The system saturates much faster than expected.
+<strong>Closed vs open model load tests:</strong> - <strong>Closed model (VUs):</strong> <code>throughput = VUs / latency</code>. As latency increases, throughput drops.
+  This is how real users behave (they wait for response before next request).
+- <strong>Open model (arrival rate):</strong> throughput is fixed. As latency increases, concurrency builds up.
+  This is how real traffic arrives (independent requests, not waiting users).
+For most backend services, use open model (arrival rate) — it reveals saturation behavior correctly.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('load-testing','S-07',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-08">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-08</span>
+        <span class="acc-question">How do you design and run a soak test to detect memory leaks?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Goal:</strong> confirm that memory usage is stable over time under sustained load. A leak manifests as heap growth that GC cannot reclaim.
+<strong>Setup:</strong> - Duration: 4–8 hours minimum. Memory leaks in Java are often slow (MB/hour). - Load: 50–75% of production peak. Enough to exercise the code paths, not enough
+  to trigger resource exhaustion that masks the leak signal.
+- Monitoring: heap used (post-GC, via JVM metrics), Old Gen %, GC pause frequency and duration.
+  Use Datadog/Prometheus with <code>jvm.memory.used{area=heap}</code> and <code>jvm.gc.memory.promoted</code>.</p>
+<p><strong>What to watch for:</strong> - <strong>Sawtooth pattern (healthy):</strong> heap rises as requests are processed, drops after GC.
+  The drop baseline stays constant. Memory is being reclaimed.
+- <strong>Rising floor (leak):</strong> heap still shows sawtooth, but the post-GC baseline rises
+  steadily over hours. GC reclaims Young Gen but Old Gen grows. A memory leak.
+- <strong>GC overhead growing:</strong> GC runs more frequently and longer as Old Gen fills.
+  Manifests as increasing GC pause time and increasing <code>jvm.gc.memory.promoted</code> rate.</p>
+<p><strong>Response to detected leak:</strong> 1. Take a heap dump at the peak (before GC reclaims Young Gen): <code>jmap -dump:live,format=b,file=heap.hprof &lt;pid&gt;</code> 2. Analyze with Eclipse MAT: Leak Suspects → Dominator Tree → Path to GC roots 3. Find the retaining reference chain and the code responsible 4. Fix and re-run the soak test to validate the fix
+<strong>Automating the pass/fail:</strong> Export JVM <code>jvm.memory.used{id="heap"}</code> to a time series. Fit a linear regression to the post-GC values over the test duration. If slope &gt; threshold (e.g., 1MB/min), mark the test as failing (leak detected).</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('load-testing','S-08',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="ST-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">How do you design a load testing strategy for a new microservices platform before its first production launch?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Start with the threat model:</strong> which services are on the critical path for checkout? Which have external dependencies (payment processor, shipping API)? Where are the single points of failure? These are the highest-value test targets.
+<strong>Phase 1 — Baseline each service individually:</strong> Test each service in isolation (with mocked or stubbed dependencies). Find each service's max sustainable throughput and latency at SLO. Document: "Orders-service handles 800 RPS at P99 &lt; 200ms with 4 replicas."
+<strong>Phase 2 — Integration load test:</strong> Test the critical path end-to-end (checkout flow through all real services). Identify: which service is the bottleneck of the chain? Does the chain's P99 latency equal the sum of all hops' P99 latencies (worst case) or their max?
+<strong>Phase 3 — Dependency capacity:</strong> Coordinate with payment processor and shipping API: what is their rate limit? Can they handle your projected peak? If not, test with circuit breakers and fallbacks.
+<strong>Phase 4 — Failure mode testing:</strong> Inject failures during the load test: kill one service instance, introduce 500ms latency on DB, saturate the payment processor. Validate: circuit breakers trip correctly, retries don't cascade, autoscaling responds.
+<strong>Phase 5 — Capacity for peak:</strong> Project traffic: launch + marketing = 5× normal traffic. Run a spike test at 5× normal. Validate: Kubernetes HPA scales in time (usually 2–3 min), no requests lost during scale-up. If HPA is too slow: pre-scale before launch, use KEDA for faster scaling signals.
+<strong>Success criteria for launch:</strong> - All services meet SLOs at 2× projected launch traffic (safety margin) - Spike test at 5× passes with &lt; 0.1% error rate - Soak test at 1× for 4 hours passes (no memory leaks) - Autoscaling validated to respond within 3 minutes</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('load-testing','ST-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">How do you use load testing results to make a capacity planning recommendation?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Capacity planning inputs from load tests:</strong>
+<strong>1. Baseline capacity per instance:</strong> From the breakpoint test: "A single orders-service pod handles 200 RPS at P99 &lt; 200ms. At 250 RPS, P99 degrades to 800ms." Baseline = 200 RPS per pod.
+<strong>2. Current production traffic + growth projection:</strong> Current: 600 RPS peak. Projected growth: 15% MoM × 6 months = 2.3× = 1380 RPS in 6 months. Add safety margin (2×): need capacity for 2760 RPS in 6 months.
+<strong>3. Required instances:</strong> <code>ceiling(2760 / 200) = 14 pods</code>. Currently running 4 pods (600 / 200 = 3 + 1 buffer).
+<strong>4. Autoscaling configuration:</strong> HPA target: 70% of max capacity per pod (140 RPS as the scale trigger). Min replicas: 3 (covers current peak with 1 spare). Max replicas: 20 (covers 6-month projection).
+<strong>5. Cost model:</strong> 14 pods × pod cost ($X/month) = total compute cost. Present with and without caching optimization (if adding Redis reduces per-pod load by 40%, need only 9 pods → 35% cost saving).
+<strong>6. Database scaling:</strong> Load test showed DB CPU at 60% under peak load. At 2.3× traffic: DB CPU at ~138% — saturated. Recommendation: add read replica, upgrade instance class, or shard.
+<strong>The recommendation format:</strong> Present as: current state → projected need in 6/12 months → required changes → cost. Include: what happens if we don't scale (user impact at specific RPS thresholds). Never present just "we need more servers" — quantify exactly how many, when, and why.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('load-testing','ST-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">How do you run distributed load tests at 100,000+ RPS?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Single machine limits:</strong> a single k6 instance on a 4-core machine can generate ~10k–30k RPS for simple HTTP requests. Complex scenarios with encryption, JSON parsing, think time: much less. For 100k RPS, you need distributed load generation.
+<strong>k6 distributed options:</strong>
+<strong>k6 Cloud (Grafana):</strong> SaaS solution. Specify <code>vus: 10000</code>; Grafana provisions cloud generators automatically. Aggregates results centrally. Simple but has cost per test.
+<strong>k6 Operator (Kubernetes):</strong> run k6 as a Kubernetes job with N parallel pods. <code>yaml apiVersion: k6.io/v1alpha1 kind: K6 spec:
+  parallelism: 20          # 20 k6 pods
+  script: { configMap: { name: test-script } }</code> 20 pods × 5k RPS = 100k RPS. Results aggregated via the operator. Self-hosted.
+<strong>Gatling Enterprise:</strong> official enterprise version. Cluster of Gatling injectors. Each injector node is async (Akka-based) — very high RPS per node. Centralized report.
+<strong>Architecture for 100k RPS tests:</strong> - Load generators: 10–20 EC2 instances or Kubernetes pods, same region as target - Monitoring: separate monitoring stack (don't load the monitoring with test traffic) - Network: generators and target must have sufficient NIC bandwidth (100k RPS × 5KB avg = 500 MB/s) - Stateful test: if test uses auth tokens, pre-generate 100k test accounts and distribute
+  across generator pods (each pod gets a slice of the test user pool)</p>
+<p><strong>Controlling blast radius:</strong> - Start at 10% (10k RPS). Validate generators and system are healthy. - Ramp to 25%, 50%, 75%, 100%. Stop if error rate &gt; 1% at any stage. - Never start at 100k RPS — generators might not be configured correctly, and you'd
+  DDoS your own infrastructure without realizing it.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('load-testing','ST-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="P-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How do you build a performance engineering function for an organization with 50 teams and 200 services?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>The scaling problem:</strong> performance testing can't be a centralized team that each of 50 teams must request. That's a bottleneck that never clears. But without standardization, every team invents their own approach — incomparable results, no baseline, no regression detection.
+<strong>Platform approach: performance testing as infrastructure.</strong>
+<strong>Standardized test framework:</strong> Publish a company k6 library with: auth helpers (get a test token with one call), standard scenarios (checkout flow, search, browse — reusable across services), standard thresholds (company SLO defaults), reporting to the shared Grafana instance. Teams extend the library; they don't start from scratch.
+<strong>CI integration (tier 1 and 2 tests):</strong> Platform team provides a GitHub Actions reusable workflow: <code>uses: company/perf-test-action@v2</code>. Teams include it in their pipeline. Tier 1 (smoke) and Tier 2 (regression vs baseline) run automatically. Teams don't configure anything unless they need custom scenarios.
+<strong>Centralized performance baseline store:</strong> S3 bucket per service: <code>s3://perf-baselines/orders-service/</code>. Each successful nightly test uploads results. The regression test compares to the last successful baseline. The performance team owns the comparison logic and threshold defaults.
+<strong>Nightly dashboard:</strong> Grafana dashboard showing all services: last test date, P99 vs SLO, trend (improving/degrading). Engineering leads review weekly. Red services are flagged for the owning team.
+<strong>Performance engineering team role:</strong> Not to run tests for teams. To: maintain the platform (library, CI action, baseline store), run performance reviews for complex scenarios (new architecture, scaling decisions), own the performance testing standards, and embed in squads for major launches.
+<strong>Incentive structure:</strong> Track performance regression rate per team. Teams that ship P99 regressions get a "performance debt" metric. SLO breach in production links back to the test that should have caught it. Makes performance visible as an engineering quality metric alongside test coverage and incident rate.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('load-testing','P-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">Design a Load Testing Strategy for a Black Friday Sale</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">An e-commerce platform expects 10× normal traffic on Black Friday. Normal peak is 500 RPS on the checkout API. The team has 6 weeks. Last year, the site went down 45 minutes into the sale — no load testing was done. This year, leadership wants zero downtime.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>6 weeks to prepare</li><li>Staging environment is 50% of production capacity (scale separately for testing)</li><li>Payment processor can handle max 2000 RPS before rate-limiting</li><li>Kubernetes with HPA autoscaling</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Week 1 — Baseline:</strong> Run load test at current production peak (500 RPS). Establish P99 latency and error rate per service as the baseline. Identify current bottlenecks. Document: which services are headroom-constrained, DB connection pool sizes, HPA configuration, payment processor limit.</li><li><strong>Week 2–3 — Fix known bottlenecks:</strong> From baseline tests: DB query slow at 300+ RPS (missing index found, fixed). Payment service rate-limited at 800 RPS (add circuit breaker + queue). HPA min replicas too low — scale event takes 3 minutes (add pre-scaling job for Black Friday window).</li><li><strong>Week 4 — Scale test on production-sized environment:</strong> Provision production-scale staging (or temporarily scale down prod + run test after hours). Run load test at 2× peak (1000 RPS) → 5× (2500 RPS) → 10× (5000 RPS). Observe: which service breaks first? DB? Thread pool? HPA lag?</li><li><strong>Week 5 — Chaos + spike test:</strong> Inject failures during 5× load test: kill one checkout-service pod, simulate DB slow, saturate payment processor (test circuit breaker). Validate: requests are queued or gracefully rejected (429 with Retry-After), not silently dropped. HPA scales within SLA.</li><li><strong>Week 6 — Dress rehearsal:</strong> Full Black Friday simulation: pre-scale to Black Friday levels at midnight Thursday. Run 10× spike over 30 minutes. Run at 5× sustained for 2 hours. Incident team on standby. Run-through of the runbook: who does what if checkout degrades?</li><li><strong>Black Friday day:</strong> Pre-scale (don't rely on HPA for the initial surge). Monitor: Datadog dashboard with checkout error rate, P99, DB connection pool, payment processor throughput. Pre-agreed thresholds: error rate &gt; 0.5% → P1 alert → who gets paged and what they do.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Testing at 50% staging without scaling to prod-like capacity — results won't predict production behavior</li><li>Not testing the payment processor rate limit scenario — it's a hard cap that will cause silent failures under load</li><li>Relying on HPA to scale from normal to 10× during the surge — HPA takes 2-3 min; initial spike overwhelms the baseline pod count</li><li>No chaos testing — you don't know how the system fails until you make it fail in a controlled environment</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Diagnose Why Your Service Passes Load Tests but Fails in Production</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">The orders-service passes all load tests in staging (500 RPS, P99 &lt; 300ms). But in production at the same load, P99 is 1200ms and error rate is 2%. Staging and production use the same code. The team is confused and losing trust in the tests.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Both environments use 4 pods, same instance type</li><li>Same JVM config, same database engine</li><li>Production DB has 50M records; staging DB has 100K records</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Root cause #1 — Data volume difference:</strong> 50M production records vs 100K staging. Queries that run in milliseconds with 100K rows (full index scan is fast at small scale) become slow with 50M rows. A sequential scan or a poor join order that's invisible at small scale becomes catastrophic at large scale. Solution: load a representative data sample into staging (at least 10% of production volume, with realistic distribution). Re-run the load test. Query plans at 5M rows will reveal the same index issues as 50M rows.</li><li><strong>Root cause #2 — Cache hit rate:</strong> With 100K records, 5000 unique requests populate the Redis cache quickly. Cache hit rate: ~95%. With 50M records, 5000 requests barely dent the cache. Cache hit rate: ~0.01%. Production is cache-cold for most requests; staging is always cache-warm. Solution: test with a working set larger than the cache size. Or pre-populate cache before the load test starts and use a realistic request distribution (Zipf distribution: a few products are accessed far more often than others).</li><li><strong>Root cause #3 — Production connections:</strong> Production has other services sharing the DB (analytics jobs, reporting queries, admin tools) that don't exist in staging. DB connection pool is shared. Under load, production DB is also serving analytics reads — staging is not. Solution: test production-like by simulating background load alongside the primary load test. Or isolate the production DB from analytics traffic (read replica for analytics).</li><li><strong>Root cause #4 — Network path:</strong> Staging is in a single AZ; production spans 3 AZs. Cross-AZ calls add 1–2ms per hop. An order service with 10 microservice calls: 10 × 1.5ms = 15ms additional latency under cross-AZ routing — invisible in single-AZ staging. Solution: staging must mirror production network topology (multi-AZ), or account for this latency offset when comparing results.</li><li><strong>The lesson:</strong> A load test is only as good as its resemblance to production. The primary divergences are: data volume, data distribution, cache state, background noise, and network topology. Document these gaps explicitly for every environment. Where gaps are unavoidable, account for them in the SLO thresholds (e.g., staging SLO is 20% tighter than production SLO to account for cache-warm advantage).</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Concluding the load test is useless — it caught real bottlenecks; the environment gaps need fixing, not the test approach</li><li>Only fixing the staging DB data without checking cache behavior — multiple root causes, fix all</li><li>Not documenting the environmental differences in the test report — next engineer will repeat this investigation</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>// ── Theme (localStorage persistence) ─────────────────────────────────────
+function toggleTheme() {
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  h.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+// ── Tabs (with URL hash sync) ─────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+  history.replaceState(null, '', '#' + name);
+}
+
+// ── Accordion (JS-driven scrollHeight animation) ───────────────────────────
+function setAccOpen(item, open) {
+  const body = item.querySelector('.acc-body');
+  if (open) {
+    item.classList.add('open');
+    const h = body.scrollHeight;
+    body.style.maxHeight = h + 'px';
+    function onEnd(e) {
+      if (e.propertyName !== 'max-height') return;
+      body.removeEventListener('transitionend', onEnd);
+      if (item.classList.contains('open')) body.style.maxHeight = 'none';
+    }
+    body.addEventListener('transitionend', onEnd);
+  } else {
+    if (!body.style.maxHeight || body.style.maxHeight === 'none') {
+      body.style.maxHeight = body.scrollHeight + 'px';
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      item.classList.remove('open');
+      body.style.maxHeight = '0';
+    }));
+  }
+}
+
+function toggleAcc(header) {
+  setAccOpen(header.parentElement, !header.parentElement.classList.contains('open'));
+}
+
+// ── Expand / collapse all Q&A ─────────────────────────────────────────────
+function toggleAllAcc(btn) {
+  const items = [...document.querySelectorAll('#qa .acc-item')].filter(i => i.style.display !== 'none');
+  const allOpen = items.every(i => i.classList.contains('open'));
+  items.forEach(i => setAccOpen(i, !allOpen));
+  btn.textContent = allOpen ? 'Expand All' : 'Collapse All';
+}
+
+// ── Q&A keyword filter ────────────────────────────────────────────────────
+function filterQA(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.acc-item').forEach(item => {
+    const text = item.querySelector('.acc-question').textContent.toLowerCase();
+    item.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+  // Reset expand-all label whenever filter changes
+  const btn = document.querySelector('.expand-all-btn');
+  if (btn) btn.textContent = 'Expand All';
+}
+
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
+// ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
+document.addEventListener('DOMContentLoaded', function () {
+  // Sync toggle label with the actual current theme
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const label = document.getElementById('toggle-label');
+  if (label) label.textContent = isDark ? 'LIGHT MODE' : 'DARK MODE';
+
+  // Restore active tab from URL hash
+  const hash = location.hash.slice(1);
+  const validTabs = ['overview', 'deepdive', 'qa', 'scenarios'];
+  if (hash && validTabs.includes(hash)) {
+    const tab = document.querySelector(`.tab[data-tab="${hash}"]`);
+    if (tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(hash).classList.add('active');
+    }
+  }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
+
+  // Copy-to-clipboard on CLI command blocks
+  document.querySelectorAll('.cmd').forEach(cmd => {
+    cmd.title = 'Click to copy';
+    cmd.addEventListener('click', function () {
+      navigator.clipboard.writeText(this.textContent.trim()).then(() => {
+        const orig = this.style.opacity;
+        this.style.opacity = '0.4';
+        setTimeout(() => { this.style.opacity = orig; }, 600);
+      }).catch(() => {});
+    });
+  });
+});
+</script>
+</body>
+</html>

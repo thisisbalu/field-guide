@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maven / Gradle — Field Guide</title>
+<script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#b45309;--accent2:#0369a1;--accent3:#059669; --highlight-bg:#fffbeb;--highlight-text:#b45309;--highlight-border:#d97706; --your-exp-bg:rgba(5,150,105,.06);--your-exp-border:rgba(5,150,105,.2);--your-exp-text:#065f46; --acc-hover:rgba(180,83,9,.04);--acc-open-border:#b45309;--acc-open-bg:rgba(180,83,9,.03); --num-color:#b45309;--num-bg:rgba(180,83,9,.1); --tag-color:#b45309;--tag-bg:rgba(180,83,9,.08);--tag-border:rgba(180,83,9,.2); --flow-arrow:#b45309;--h1-from:#78350f;--h1-to:#b45309; --badge-color:#78350f;--stat-num:#b45309; --tab-active-color:#b45309;--tab-active-bg:rgba(180,83,9,.08);--tab-active-border:#b45309; --section-title:#b45309;--concept-title:#78350f; --cheat-head-bg:#78350f;--cheat-head-text:#ffffff;--cheat-key:#78350f; --cmd-bg:#fffbeb;--cmd-text:#78350f; }
+  [data-theme="dark"]{ --accent:#fcd34d;--accent2:#38bdf8;--accent3:#10b981; --highlight-bg:#451a03;--highlight-text:#fcd34d;--highlight-border:#d97706; --your-exp-bg:rgba(16,185,129,.1);--your-exp-border:rgba(16,185,129,.3);--your-exp-text:#6ee7b7; --acc-hover:rgba(252,211,77,.04);--acc-open-border:#fcd34d;--acc-open-bg:rgba(252,211,77,.03); --num-color:#fcd34d;--num-bg:rgba(252,211,77,.1); --tag-color:#fcd34d;--tag-bg:rgba(252,211,77,.08);--tag-border:rgba(252,211,77,.2); --flow-arrow:#fcd34d;--h1-from:#fcd34d;--h1-to:#d97706; --badge-color:#fcd34d;--stat-num:#fcd34d; --tab-active-color:#fcd34d;--tab-active-bg:rgba(252,211,77,.08);--tab-active-border:#fcd34d; --section-title:#fcd34d;--concept-title:#fcd34d; --cheat-head-bg:#451a03;--cheat-head-text:#fcd34d;--cheat-key:#fcd34d; --cmd-bg:#451a03;--cmd-text:#fcd34d; }
+  [data-theme="light"] .toggle-knob{background:#b45309;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#fcd34d;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Back navigation ─────────────────────────────────────────────────────── */
+.back-link{position:fixed;top:1.25rem;left:1.25rem;z-index:100;display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);text-decoration:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.back-link:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
+/* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
+.qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
+.qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
+.qa-search:focus{border-color:var(--tab-active-border,var(--text));}
+.qa-search::placeholder{color:var(--muted);}
+.expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
+.expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;cursor:pointer;transition:opacity .2s;}
+.cmd:hover{opacity:.75;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+  .back-link span{display:none;}
+}
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
+
+</style>
+</head>
+<body data-topic-id="maven-gradle">
+
+<a class="back-link" href="index.html">← <span>Field Guide</span></a>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>Maven / Gradle</h1>
+  <p class="subtitle">// build lifecycle · dependency management · plugins · multi-module · caching · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="overview" role="button" tabindex="0" onclick="switchTab('overview',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('overview',this);event.preventDefault();}">Overview</div>
+  <div class="tab" data-tab="deepdive" role="button" tabindex="0" onclick="switchTab('deepdive',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('deepdive',this);event.preventDefault();}">Deep Dive</div>
+  <div class="tab" data-tab="qa" role="button" tabindex="0" onclick="switchTab('qa',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('qa',this);event.preventDefault();}">Q &amp; A</div>
+  <div class="tab" data-tab="scenarios" role="button" tabindex="0" onclick="switchTab('scenarios',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('scenarios',this);event.preventDefault();}">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">🔄 Maven Build Lifecycle</div>
+      <div class="concept-body">
+        Maven organizes builds into three built-in lifecycles: <strong>default</strong> (build and deploy), <strong>clean</strong> (remove previous build outputs), <strong>site</strong> (generate project docs).
+The <strong>default lifecycle</strong> has 23 phases; the key ones are: <code>validate</code> → <code>compile</code> → <code>test</code> → <code>package</code> → <code>verify</code> → <code>install</code> → <code>deploy</code>. Running <code>mvn package</code> executes all phases up to and including <code>package</code>. Plugins bind their goals to phases: <code>maven-compiler-plugin:compile</code> binds to the <code>compile</code> phase automatically.
+<strong>Key insight:</strong> you don't call plugin goals directly in CI — you call lifecycle phases. The phases invoke the bound goals. Skip phases when needed: <code>mvn package -DskipTests</code> skips test execution but still compiles tests. <code>-Dmaven.test.skip=true</code> skips both compilation and execution of tests.
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">validate → compile → test → package</span>
+          
+          <span class="tag green">phases invoke goals</span>
+          
+          <span class="tag orange">-DskipTests</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📦 Maven Dependency Management</div>
+      <div class="concept-body">
+        Dependencies declared in <code>&lt;dependencies&gt;</code> are resolved from repositories (Maven Central, Nexus, Artifactory) and cached in <code>~/.m2/repository</code>.
+<strong>Scopes:</strong> <code>compile</code> (default — on all classpaths), <code>provided</code> (compile + test only, not packaged — e.g., servlet-api), <code>runtime</code> (runtime + test, not compile — JDBC driver), <code>test</code> (test compile + runtime only — JUnit), <code>system</code> (explicit path, avoid).
+<strong>Transitive dependencies:</strong> Maven resolves the full dependency graph. Conflicts use <strong>nearest-wins</strong> (shallowest in the tree wins). Override with <code>&lt;dependencyManagement&gt;</code> to pin versions centrally. Use <code>mvn dependency:tree</code> to visualize the full graph and find conflicting/unexpected transitive deps.
+<strong>BOM (Bill of Materials):</strong> a POM with <code>&lt;dependencyManagement&gt;</code> only — import it with <code>&lt;scope&gt;import&lt;/scope&gt;</code> to inherit consistent versions across a suite. Spring Boot BOM is the canonical example.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">nearest-wins conflict</span>
+          
+          <span class="tag green">BOM for version sets</span>
+          
+          <span class="tag blue">mvn dependency:tree</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🏗️ Maven Multi-Module Projects</div>
+      <div class="concept-body">
+        A multi-module project has a parent POM listing <code>&lt;modules&gt;</code>. The parent defines shared config (<code>&lt;dependencyManagement&gt;</code>, <code>&lt;pluginManagement&gt;</code>, <code>&lt;properties&gt;</code>). Child modules inherit from the parent via <code>&lt;parent&gt;</code>.
+<strong>Reactor build order:</strong> Maven resolves inter-module dependencies and builds in the correct order. <code>mvn install -pl orders-service -am</code> builds only <code>orders-service</code> and its dependencies (<code>-am</code> = also-make). <code>-amd</code> builds everything that depends on the changed module (also-make-dependents).
+<strong>Aggregator vs inheritance:</strong> parent POM can be both an aggregator (listing modules) and a parent (declaring shared config). Keep them separate in large projects: a root aggregator POM + a separate <code>company-parent</code> POM for shared config.
+<strong>Common pitfall:</strong> putting application code in the parent module. The parent should contain only build config — never application code.
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">reactor build order</span>
+          
+          <span class="tag green">-pl -am for partial build</span>
+          
+          <span class="tag orange">no code in parent</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">⚡ Gradle Build Basics</div>
+      <div class="concept-body">
+        Gradle uses a <strong>DAG of tasks</strong> (not a fixed lifecycle). Each task declares inputs and outputs; Gradle runs only tasks whose inputs have changed (<strong>incremental build</strong>). Build scripts in <strong>Kotlin DSL</strong> (<code>.gradle.kts</code>) or Groovy (<code>.gradle</code>). Kotlin DSL is type-safe and IDE-friendly — preferred for new projects.
+<strong>Key commands:</strong> <code>./gradlew build</code> (compile + test + assemble), <code>./gradlew test</code>, <code>./gradlew clean build</code>, <code>./gradlew tasks</code> (list available tasks), <code>./gradlew dependencies</code> (dependency graph), <code>./gradlew :subproject:test</code> (run task in specific subproject).
+<strong>Gradle Wrapper:</strong> <code>gradlew</code> / <code>gradlew.bat</code> scripts download and cache the Gradle distribution version pinned in <code>gradle/wrapper/gradle-wrapper.properties</code>. Always commit the wrapper — CI uses the same Gradle version as developers.
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">task DAG not lifecycle</span>
+          
+          <span class="tag green">incremental by default</span>
+          
+          <span class="tag orange">always use wrapper</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">💾 Gradle Caching</div>
+      <div class="concept-body">
+        Gradle has two levels of caching: <strong>incremental build</strong> (local — task outputs cached on disk; skipped if inputs unchanged) and <strong>build cache</strong> (local + remote — task outputs identified by input hash; shared across machines and CI workers).
+<strong>Local build cache:</strong> enabled by default. <code>~/.gradle/caches/</code>. Tasks marked <code>@CacheTask</code> have their outputs stored keyed by input hash.
+<strong>Remote build cache:</strong> shared across all CI runners and developer machines. Setup: add to <code>settings.gradle.kts</code>: <code>kotlin buildCache { remote&lt;HttpBuildCache&gt; { url = uri("https://cache.company.com/") } }</code> Cache server options: Gradle Enterprise (now Develocity), Gradle Cache Node, Hazelcast.
+<strong>Configuration cache:</strong> (Gradle 8+) caches the result of build script evaluation. First run serializes task graph; subsequent runs skip script evaluation. 30–80% faster cold starts. Enable: <code>org.gradle.configuration-cache=true</code>.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">build cache = remote sharing</span>
+          
+          <span class="tag blue">config cache = faster startup</span>
+          
+          <span class="tag orange">Develocity for analytics</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔌 Plugins</div>
+      <div class="concept-body">
+        <strong>Maven plugins:</strong> bound to lifecycle phases via <code>&lt;executions&gt;</code>. Core plugins (compiler, surefire, jar) are automatically configured. Third-party plugins added in <code>&lt;build&gt;&lt;plugins&gt;</code>. <code>&lt;pluginManagement&gt;</code> in parent centralizes version pinning.
+Key Maven plugins: <code>maven-compiler-plugin</code> (Java version, annotation processors), <code>maven-surefire-plugin</code> (unit tests), <code>maven-failsafe-plugin</code> (integration tests, runs in verify phase), <code>maven-shade-plugin</code> (fat JAR / uber-JAR), <code>spring-boot-maven-plugin</code> (executable JAR, run, build-image).
+<strong>Gradle plugins:</strong> applied in <code>plugins {}</code> block. Core plugins (java, application, java-library) add standard tasks. Community plugins from Gradle Plugin Portal. <code>java-library</code> vs <code>java</code>: <code>java-library</code> exposes <code>api</code> and <code>implementation</code> dependency configurations — <code>api</code> dependencies are on the compile classpath of dependents; <code>implementation</code> are not (better compile isolation).
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">pluginManagement for versions</span>
+          
+          <span class="tag orange">failsafe for ITs</span>
+          
+          <span class="tag green">api vs implementation</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔒 Dependency Version Control</div>
+      <div class="concept-body">
+        <strong>Maven:</strong> use <code>&lt;dependencyManagement&gt;</code> in the parent POM to pin versions. Child modules declare dependencies without versions — they inherit from the parent. Import external BOMs with <code>&lt;scope&gt;import&lt;/scope&gt;</code>. Use Maven Versions Plugin (<code>mvn versions:display-dependency-updates</code>) to find outdated dependencies.
+<strong>Gradle:</strong> use <strong>version catalogs</strong> (<code>gradle/libs.versions.toml</code>) — centralized version definitions, type-safe accessor in build scripts: <code>toml [versions] spring-boot = "3.3.1" [libraries] spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "spring-boot" }</code> Reference in build: <code>implementation(libs.spring.boot.starter)</code>.
+<strong>Lock files:</strong> <code>./gradlew dependencies --write-locks</code> generates <code>*.lockfile</code> — pins exact transitive versions for reproducible builds. Commit lockfiles for applications (not libraries, which should stay flexible).
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">version catalog TOML</span>
+          
+          <span class="tag blue">lockfiles for apps</span>
+          
+          <span class="tag orange">BOM imports</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📤 Publishing Artifacts</div>
+      <div class="concept-body">
+        <strong>Maven:</strong> <code>mvn deploy</code> uploads the JAR + POM + sources + javadoc to the remote repository (Nexus, Artifactory, GitHub Packages). Configure <code>&lt;distributionManagement&gt;</code> with snapshot and release repo URLs. SNAPSHOT versions always publish; release versions are immutable once deployed.
+<strong>Gradle:</strong> <code>maven-publish</code> plugin adds <code>publishToMavenLocal</code> and <code>publish</code> tasks. Configure publications and repositories in <code>publishing {}</code> block. Supports publishing to multiple repositories (Nexus for internal, Maven Central for OSS).
+<strong>Signing:</strong> Maven Central requires GPG-signed artifacts. <code>maven-gpg-plugin</code> or <code>signing</code> Gradle plugin. CI: store GPG key in secrets, configure via environment.
+<strong>Version strategy:</strong> use <code>SNAPSHOT</code> / <code>-SNAPSHOT</code> during development for mutable builds; remove <code>-SNAPSHOT</code> for release artifacts. Semantic versioning (<code>MAJOR.MINOR.PATCH</code>). Automate version bumping with <code>maven-release-plugin</code> or Gradle Axion Release plugin.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">SNAPSHOT = mutable</span>
+          
+          <span class="tag green">release = immutable</span>
+          
+          <span class="tag blue">GPG for Maven Central</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Dependency version conflicts and nearest-wins confusion</span>
+      Maven's nearest-wins rule resolves the same dependency appearing at different versions by picking the shallowest declaration in the tree. This silently downgrades a transitive dependency. Always run <code>mvn dependency:tree</code> after adding dependencies. Gradle fails on conflicts by default — configure resolution strategy if needed. In Gradle: <code>configurations.all { resolutionStrategy.failOnVersionConflict() }</code>.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Using SNAPSHOT dependencies in production</span>
+      SNAPSHOT artifacts are mutable — the same version string (<code>1.0.0-SNAPSHOT</code>) can resolve to different binaries at different times. Never use SNAPSHOT dependencies in released or deployed artifacts. CI pipelines should use release versions only. Maven checks for updated SNAPSHOTs every build by default (slow); suppress with <code>-o</code> (offline mode) or <code>-nsu</code> (no snapshot updates) in CI when SNAPSHOTs aren't needed.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Fat JAR with conflicting resources</span>
+      When using <code>maven-shade-plugin</code> or Gradle Shadow Plugin to create an uber-JAR, multiple JARs may contain the same file (e.g., <code>META-INF/services/...</code> SPI files, <code>spring.factories</code>). The default behavior is last-write-wins — some services will silently disappear. Configure <code>ServicesResourceTransformer</code> and <code>AppendingTransformer</code> in the shade plugin to merge these files correctly.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Ignoring the Gradle wrapper version</span>
+      Running <code>gradle</code> directly uses whatever Gradle is installed on the machine — different from what's in <code>gradle-wrapper.properties</code>. Always use <code>./gradlew</code>. In CI, never install Gradle globally; use the wrapper. Update the wrapper version deliberately with <code>./gradlew wrapper --gradle-version 8.8</code>.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Slow builds from unnecessary task re-execution</span>
+      Gradle's incremental build only works if tasks correctly declare all inputs and outputs. Custom tasks that read files without declaring them as <code>@InputFiles</code> always run. Use <code>--dry-run</code> to see which tasks would execute and <code>--profile</code> to generate a build scan showing time per task. Unexpectedly-running UP-TO-DATE checks indicate missing input declarations.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use Maven / Gradle When</div>
+      <ul>
+        
+        <li>Maven: projects requiring strict convention-over-configuration, XML-auditable builds, or heavy Maven Central publishing</li>
+        
+        <li>Gradle: projects needing build logic customization, fast incremental builds, polyglot builds (Java + Kotlin + Android)</li>
+        
+        <li>Multi-module monorepos where selective building (only changed modules) reduces CI time</li>
+        
+        <li>Any JVM-based project — both tools provide far better dependency management than manual JAR management</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use Maven / Gradle When</div>
+      <ul>
+        
+        <li>Non-JVM projects — use npm/pnpm (Node), pip/Poetry (Python), Cargo (Rust), Go modules instead</li>
+        
+        <li>Simple scripts or tools where a plain Makefile or shell script is clearer and has no dependencies</li>
+        
+        <li>Projects where build reproducibility requirements exceed what Maven/Gradle guarantee — consider Bazel or Buck for hermetic builds</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Maven Lifecycle Phases (default)</div>
+      <table>
+        
+        <tr><td>validate</td><td>Validate POM and project structure is correct.</td></tr>
+        
+        <tr><td>compile</td><td>Compile main sources (src/main/java). Output: target/classes.</td></tr>
+        
+        <tr><td>test-compile</td><td>Compile test sources (src/test/java). Output: target/test-classes.</td></tr>
+        
+        <tr><td>test</td><td>Run unit tests (Surefire). Build fails if tests fail.</td></tr>
+        
+        <tr><td>package</td><td>Package compiled code into JAR/WAR/EAR. Output: target/*.jar.</td></tr>
+        
+        <tr><td>verify</td><td>Run integration tests (Failsafe) and quality checks. verify ≠ test.</td></tr>
+        
+        <tr><td>install</td><td>Install artifact to local ~/.m2 repository. Available to other local projects.</td></tr>
+        
+        <tr><td>deploy</td><td>Upload artifact to remote repository (Nexus, Artifactory). Requires credentials.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Maven Dependency Scopes</div>
+      <table>
+        
+        <tr><td>compile (default)</td><td>Available in compile, test, and runtime classpaths. Included in packaged artifact.</td></tr>
+        
+        <tr><td>provided</td><td>Available in compile + test classpaths. NOT included in package. Container provides at runtime (e.g., servlet-api in WAR → Tomcat provides it).</td></tr>
+        
+        <tr><td>runtime</td><td>NOT available at compile time. Available at test and runtime. Use for: JDBC drivers, SLF4J bindings.</td></tr>
+        
+        <tr><td>test</td><td>Only available in test compile and test runtime. Not in the packaged artifact. JUnit, Mockito, Testcontainers.</td></tr>
+        
+        <tr><td>import</td><td>Only in dependencyManagement. Imports another BOM's dependencyManagement section.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Gradle Dependency Configurations</div>
+      <table>
+        
+        <tr><td>implementation</td><td>Compile + runtime classpath. NOT exposed to consumers. Use for most dependencies. Avoids leaking transitive deps to consumers.</td></tr>
+        
+        <tr><td>api</td><td>Compile + runtime, AND exposed to consumers' compile classpath. Use when dependency types appear in your public API. Requires java-library plugin.</td></tr>
+        
+        <tr><td>compileOnly</td><td>Compile classpath only. Not in runtime or consumer compile. Use for: annotation processors, provided dependencies (servlet-api).</td></tr>
+        
+        <tr><td>runtimeOnly</td><td>Runtime classpath only. Not compile. Use for: JDBC drivers, SLF4J bindings, logging implementations.</td></tr>
+        
+        <tr><td>testImplementation</td><td>Test compile + runtime. Not in main compile or runtime.</td></tr>
+        
+        <tr><td>testRuntimeOnly</td><td>Test runtime only. JUnit platform launcher, Logback test config.</td></tr>
+        
+        <tr><td>annotationProcessor</td><td>Annotation processors run at compile time. Lombok, MapStruct, Dagger.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Common Maven Commands</div>
+      <table>
+        
+        <tr><td>mvn clean install</td><td>Clean output, compile, test, package, install to local repo. Standard full build.</td></tr>
+        
+        <tr><td>mvn package -DskipTests</td><td>Build JAR without running tests (but still compiles test sources).</td></tr>
+        
+        <tr><td>mvn verify -Pfailsafe</td><td>Run integration tests (Failsafe plugin in verify phase).</td></tr>
+        
+        <tr><td>mvn dependency:tree</td><td>Print full dependency graph including transitives. Add -Dincludes=group:artifact to filter.</td></tr>
+        
+        <tr><td>mvn versions:display-dependency-updates</td><td>Show available version updates for all dependencies.</td></tr>
+        
+        <tr><td>mvn help:effective-pom</td><td>Print the fully resolved POM including inherited properties and plugin config.</td></tr>
+        
+        <tr><td>mvn -pl orders-service -am install</td><td>Build orders-service and all modules it depends on (-am = also-make).</td></tr>
+        
+        <tr><td>mvn -T 4 install</td><td>Parallel build using 4 threads. Use -T 1C for 1 thread per CPU core.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Common Gradle Commands</div>
+      <table>
+        
+        <tr><td>./gradlew build</td><td>Compile, test, assemble. Standard full build.</td></tr>
+        
+        <tr><td>./gradlew test</td><td>Run tests only. Incremental: only re-runs if source or test files changed.</td></tr>
+        
+        <tr><td>./gradlew :subproject:test</td><td>Run test task in a specific subproject.</td></tr>
+        
+        <tr><td>./gradlew dependencies --configuration runtimeClasspath</td><td>Show dependency tree for runtimeClasspath configuration.</td></tr>
+        
+        <tr><td>./gradlew tasks --all</td><td>List all available tasks with descriptions.</td></tr>
+        
+        <tr><td>./gradlew build --scan</td><td>Build and upload a build scan to scans.gradle.com. Detailed performance and cache analytics.</td></tr>
+        
+        <tr><td>./gradlew build --build-cache</td><td>Enable build cache (also set in gradle.properties: org.gradle.caching=true).</td></tr>
+        
+        <tr><td>./gradlew dependencyUpdates</td><td>Report outdated dependencies (requires ben-manes/versions plugin).</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Maven vs Gradle</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Build script</td>
+            
+            <td>XML (pom.xml) — verbose but predictable</td>
+            
+            <td>Kotlin/Groovy DSL — concise, programmable</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Build model</td>
+            
+            <td>Fixed lifecycle (phases → goals)</td>
+            
+            <td>Flexible task DAG</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Incremental build</td>
+            
+            <td>Limited (requires plugins)</td>
+            
+            <td>First-class, all tasks declare I/O</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Build cache</td>
+            
+            <td>No built-in remote cache</td>
+            
+            <td>Built-in local + remote cache</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Multi-module</td>
+            
+            <td>Reactor builds, -pl -am</td>
+            
+            <td>Composite builds, included builds</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Performance</td>
+            
+            <td>Slower (no incremental)</td>
+            
+            <td>Faster (incremental, parallel, cache)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Learning curve</td>
+            
+            <td>Lower (conventions strict)</td>
+            
+            <td>Higher (flexibility = complexity)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>IDE support</td>
+            
+            <td>Excellent (IntelliJ, Eclipse)</td>
+            
+            <td>Excellent (IntelliJ, VS Code)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Plugin ecosystem</td>
+            
+            <td>Huge, mature</td>
+            
+            <td>Large, growing</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Convention</td>
+            
+            <td>Strong (opinionated)</td>
+            
+            <td>Flexible (can break conventions)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Reproducibility</td>
+            
+            <td>Good (versions in POM)</td>
+            
+            <td>Better (lockfiles + build cache)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best for</td>
+            
+            <td>Enterprise Java, Maven Central publishing</td>
+            
+            <td>Android, Kotlin, performance-critical monorepos</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
+  <div class="qa-controls">
+    <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
+    <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
+  </div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="S-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">Explain Maven's dependency resolution and how conflicts are resolved.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Maven builds a full dependency graph by resolving each dependency's transitive dependencies recursively. When the same artifact (same groupId:artifactId) appears at multiple versions in the graph, Maven applies two rules:
+<strong>Nearest-wins:</strong> the version declared closest to the root project in the dependency tree wins. <code>project → A (1.0) → C (1.5)</code> and <code>project → B (1.0) → C (1.2)</code>: if A and B are both direct dependencies (depth 1), C is at depth 2 from both — first declaration in the POM wins (A's path → C 1.5).
+<strong>First-declaration wins</strong> (tiebreaker at same depth): the first dependency that brings in a given transitive dep wins.
+<strong>Problems:</strong> nearest-wins can silently downgrade a library. If C 1.5 has a security fix and nearest-wins picks C 1.2, your build is vulnerable without any warning.
+<strong>Fix with <code>&lt;dependencyManagement&gt;</code>:</strong> Explicitly pin the version of any transitive dependency you care about: <code>xml &lt;dependencyManagement&gt;
+  &lt;dependencies&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;com.example&lt;/groupId&gt;
+      &lt;artifactId&gt;C&lt;/artifactId&gt;
+      &lt;version&gt;1.5&lt;/version&gt;
+    &lt;/dependency&gt;
+  &lt;/dependencies&gt;
+&lt;/dependencyManagement&gt;</code> This wins over all transitive declarations.
+<strong>Gradle:</strong> fails on version conflict by default with a clear error. Resolve with <code>resolutionStrategy.force("com.example:C:1.5")</code>.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('maven-gradle','S-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">What is the difference between maven-surefire-plugin and maven-failsafe-plugin?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>Both run tests, but at different lifecycle phases with different failure semantics:
+<strong>maven-surefire-plugin</strong> (unit tests): - Binds to the <code>test</code> phase - By convention, runs classes matching <code>**/*Test.java</code>, <code>**/*Tests.java</code>, <code>**/*TestCase.java</code> - If tests fail, the build fails immediately in the <code>test</code> phase - Does NOT start/stop server infrastructure
+<strong>maven-failsafe-plugin</strong> (integration tests): - Binds goals to <code>pre-integration-test</code>, <code>integration-test</code>, and <code>post-integration-test</code>
+  phases (within <code>verify</code>)
+- By convention, runs classes matching <code>**/*IT.java</code>, <code>**/*ITCase.java</code> - Critical difference: even if integration tests FAIL, the build continues through
+  <code>post-integration-test</code> (allowing cleanup of started servers/containers), then
+  fails in the <code>verify</code> phase
+- Works with <code>build-helper-maven-plugin</code> to start Testcontainers or embedded servers
+  in pre-integration-test and stop them in post-integration-test</p>
+<p><strong>In practice:</strong> <code>mvn test</code> runs unit tests. <code>mvn verify</code> runs unit tests + integration tests. CI pipelines typically run <code>mvn verify</code> for full coverage. Separate them to allow fast feedback: <code>mvn test</code> first, then <code>mvn verify -DskipTests</code> (skip unit tests, run only integration tests) in a later CI step.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('maven-gradle','S-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">How does Gradle's incremental build work? What can break it?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Gradle marks a task as <strong>UP-TO-DATE</strong> if none of its declared inputs have changed since the last execution and all declared outputs still exist. If UP-TO-DATE, the task is skipped entirely.
+<strong>How inputs/outputs are declared:</strong> - <code>@Input</code>: scalar values (String, Boolean, Enum). Changes trigger re-run. - <code>@InputFile</code> / <code>@InputFiles</code> / <code>@InputDirectory</code>: file content. SHA checksums compared. - <code>@OutputFile</code> / <code>@OutputFiles</code> / <code>@OutputDirectory</code>: expected output files. - <code>@Internal</code>: fields not affecting outputs (e.g., a logger). Not tracked.
+<strong>What breaks incremental builds:</strong> 1. <strong>Undeclared inputs:</strong> a task reads <code>System.getProperty("user.name")</code> but doesn't
+   declare it as <code>@Input</code>. Gradle doesn't know to re-run when the user changes.
+   Result: task stays UP-TO-DATE when it shouldn't.
+2. <strong>Side effects outside declared outputs:</strong> task writes to a file not in <code>@OutputFiles</code>.
+   Another task reading that file won't know the first task changed it.
+3. <strong>Non-deterministic outputs:</strong> tasks that produce different outputs for the same
+   inputs (timestamps in JAR manifests, random ordering) break the build cache
+   (different cache key each run).
+4. <strong><code>doLast</code> blocks reading undeclared inputs.</strong>
+<strong>Debug:</strong> <code>./gradlew &lt;task&gt; --info</code> shows why a task was not UP-TO-DATE.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('maven-gradle','S-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-04">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">How would you optimize a slow Maven/Gradle build in CI?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Step 1: Profile to find the bottleneck.</strong> Maven: <code>mvn install -fae</code> + <code>mvn -Dsurefire.reportFormat=plain verify</code>. Check which phase takes longest. Gradle: <code>./gradlew build --scan</code> → upload build scan → detailed task timeline.
+<strong>Gradle optimizations:</strong> - <strong>Enable build cache:</strong> <code>org.gradle.caching=true</code> in <code>gradle.properties</code> + remote
+  cache server. CI workers share cached task outputs — if another worker already built
+  the same inputs, the task is fetched from cache (from remote cache = CACHE HIT, skip execution).
+- <strong>Configuration cache:</strong> <code>org.gradle.configuration-cache=true</code>. Caches task graph;
+  configuration phase (executing build scripts) is skipped on subsequent runs.
+- <strong>Parallel execution:</strong> <code>org.gradle.parallel=true</code>. Independent subproject tasks
+  run in parallel.
+- <strong>Selective builds:</strong> in a monorepo, only build modules affected by the change.
+  Use <code>./gradlew :orders-service:build</code> or a plugin (Gradle Affected Modules).</p>
+<p><strong>Maven optimizations:</strong> - <strong>Parallel:</strong> <code>mvn -T 1C install</code> (one thread per CPU core). - <strong>Selective builds:</strong> <code>-pl changed-module -am</code> (only changed module + dependencies). - <strong>Skip unnecessary phases in CI:</strong> <code>mvn package -DskipTests</code> for the build step;
+  separate <code>mvn test</code> step. Use <code>-o</code> (offline) when SNAPSHOTs aren't needed.
+- <strong>Daemon:</strong> Maven daemon (<code>mvnd</code>) caches the JVM across invocations — significant
+  startup overhead reduction.</p>
+<p><strong>Common culprit:</strong> network I/O. Use a local Nexus/Artifactory mirror; CI should have a warm dependency cache (mount <code>~/.m2</code> or <code>~/.gradle</code> from a cache volume).</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('maven-gradle','S-04',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-05">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">How do you manage dependency versions across a large multi-module project?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Maven approach:</strong> Define all dependency versions in the root parent POM <code>&lt;dependencyManagement&gt;</code>. Child modules declare dependencies WITHOUT <code>&lt;version&gt;</code> — they inherit the version from the parent. This ensures all modules use consistent versions.
+For third-party library suites (Spring Boot, Spring Cloud, AWS SDK), import their BOMs: <code>xml &lt;dependencyManagement&gt;
+  &lt;dependencies&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+      &lt;artifactId&gt;spring-boot-dependencies&lt;/artifactId&gt;
+      &lt;version&gt;3.3.1&lt;/version&gt;
+      &lt;type&gt;pom&lt;/type&gt;
+      &lt;scope&gt;import&lt;/scope&gt;
+    &lt;/dependency&gt;
+  &lt;/dependencies&gt;
+&lt;/dependencyManagement&gt;</code> Now no child needs to specify Spring Boot dependency versions — the BOM covers them all.
+<strong>Gradle approach:</strong> Use <code>gradle/libs.versions.toml</code> (version catalog): <code>toml [versions] spring-boot = "3.3.1" [libraries] spring-starter-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }</code> Reference: <code>implementation(libs.spring.starter.web)</code>. Type-safe, IDE-autocompleted, centralized. Apply as a platform: <code>implementation(platform(libs.spring.bom))</code>.
+<strong>Dependency updates:</strong> automate with Dependabot (GitHub) or Renovate Bot — opens PRs when new versions are available, includes changelog links.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('maven-gradle','S-05',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-06">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">What is the difference between 'api' and 'implementation' in Gradle's java-library plugin?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The distinction controls what is exposed on the <strong>compile classpath of consumers</strong> (modules or projects that depend on your library).
+<strong><code>implementation</code>:</strong> the dependency is used internally. It goes on your compile classpath AND your runtime classpath, but it does NOT go on the compile classpath of modules that depend on you.
+<strong><code>api</code>:</strong> the dependency types appear in your public API (method signatures, return types, field types). It goes on your compile classpath, your runtime classpath, AND the compile classpath of all consumers.
+<strong>Why it matters:</strong> <code>kotlin // library-a/build.gradle.kts dependencies {
+    implementation("com.google.guava:guava:32.0-jre")  // consumers can't use Guava types
+    api("org.slf4j:slf4j-api:2.0.9")                   // consumers can use Logger directly
+}</code> Using <code>implementation</code> where possible: (1) consumers don't accidentally depend on your internal libraries, (2) Gradle can skip recompiling consumers when only an <code>implementation</code> dependency changes (ABI hasn't changed), (3) cleaner dependency graph.
+<strong>Rule of thumb:</strong> use <code>implementation</code> unless the type literally appears in your <code>public</code> method signatures or fields. Default to <code>implementation</code>.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('maven-gradle','S-06',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-07">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">How do you create and publish a Maven library to Maven Central?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>Maven Central (via Sonatype) has strict requirements: - Source JAR (<code>-sources.jar</code>) and Javadoc JAR (<code>-javadoc.jar</code>) must be published - All artifacts must be GPG-signed - POM must include: <code>&lt;name&gt;</code>, <code>&lt;description&gt;</code>, <code>&lt;url&gt;</code>, <code>&lt;licenses&gt;</code>, <code>&lt;developers&gt;</code>,
+  <code>&lt;scm&gt;</code> elements</p>
+<p><strong>POM configuration:</strong> <code>xml &lt;build&gt;&lt;plugins&gt;
+  &lt;plugin&gt;
+    &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+    &lt;artifactId&gt;maven-source-plugin&lt;/artifactId&gt;
+    &lt;executions&gt;&lt;execution&gt;&lt;goals&gt;&lt;goal&gt;jar-no-fork&lt;/goal&gt;&lt;/goals&gt;&lt;/execution&gt;&lt;/executions&gt;
+  &lt;/plugin&gt;
+  &lt;plugin&gt;
+    &lt;artifactId&gt;maven-javadoc-plugin&lt;/artifactId&gt;
+    &lt;executions&gt;&lt;execution&gt;&lt;goals&gt;&lt;goal&gt;jar&lt;/goal&gt;&lt;/goals&gt;&lt;/execution&gt;&lt;/executions&gt;
+  &lt;/plugin&gt;
+  &lt;plugin&gt;
+    &lt;artifactId&gt;maven-gpg-plugin&lt;/artifactId&gt;
+    &lt;executions&gt;&lt;execution&gt;&lt;goals&gt;&lt;goal&gt;sign&lt;/goal&gt;&lt;/goals&gt;&lt;/execution&gt;&lt;/executions&gt;
+  &lt;/plugin&gt;
+&lt;/plugins&gt;&lt;/build&gt;</code>
+<strong>Publish workflow:</strong> 1. Deploy SNAPSHOT to Sonatype OSS snapshot repo 2. Set release version (remove <code>-SNAPSHOT</code>) 3. <code>mvn clean deploy -Prelease</code> → uploads to Sonatype staging 4. Log into Sonatype Nexus UI → close staging repo → release 5. Syncs to Maven Central within ~30 minutes
+<strong>Modern alternative:</strong> use the Central Publishing Portal API or the <code>central-publishing-maven-plugin</code> for a simpler automated workflow.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('maven-gradle','S-07',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="ST-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">How do you structure a Gradle multi-module monorepo build for 30 services to minimize CI build time?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Problem:</strong> 30 services in a monorepo. Running <code>./gradlew build</code> for all 30 takes 30 minutes. Most commits touch 1–2 services.
+<strong>Solution: affected-module detection + remote build cache</strong>
+<strong>Step 1: Remote build cache.</strong> All CI runners and developers share a Gradle remote cache (Develocity or self-hosted). <code>org.gradle.caching=true</code>. After the first full build, subsequent builds hit the cache for unchanged modules. CI runner building service-A after another runner already built the same inputs → CACHE HIT, no compilation needed.
+<strong>Step 2: Detect affected modules.</strong> Use <code>git diff --name-only origin/main...HEAD</code> to find changed files. Map file paths to Gradle subprojects (<code>:orders-service</code>, <code>:shared-lib</code>). Run only affected subprojects and their dependents: <code>bash ./gradlew :orders-service:build :orders-service:test -amd</code> <code>-amd</code> = also-make-dependents: builds any service that depends on orders-service. Catches regression in consumers of a changed shared library.
+<strong>Step 3: Composite builds for shared libraries.</strong> Extract truly shared code (<code>common-lib</code>) into a separate Gradle composite build. It's built independently; services include it. Changes to <code>common-lib</code> trigger rebuilds of all dependent services (via <code>-amd</code>); changes to one service don't trigger <code>common-lib</code> rebuild.
+<strong>Step 4: Configuration cache.</strong> <code>org.gradle.configuration-cache=true</code>. Caches the task graph configuration. Build startup drops from 30s to 5s for cached configurations.
+<strong>Result:</strong> a PR touching orders-service: builds 1–3 affected modules instead of 30. Cache hit on unchanged modules. Total CI time: 3 min instead of 30 min.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('maven-gradle','ST-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">How do you enforce dependency governance (approved libraries, banned transitive deps, license compliance) in a Maven/Gradle build?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Maven: maven-enforcer-plugin</strong> <code>xml &lt;plugin&gt;
+  &lt;artifactId&gt;maven-enforcer-plugin&lt;/artifactId&gt;
+  &lt;executions&gt;&lt;execution&gt;&lt;goals&gt;&lt;goal&gt;enforce&lt;/goal&gt;&lt;/goals&gt;
+    &lt;configuration&gt;&lt;rules&gt;
+      &lt;bannedDependencies&gt;
+        &lt;excludes&gt;
+          &lt;exclude&gt;commons-logging:commons-logging&lt;/exclude&gt;
+          &lt;exclude&gt;log4j:log4j&lt;/exclude&gt;
+        &lt;/excludes&gt;
+      &lt;/bannedDependencies&gt;
+      &lt;requireUpperBoundDeps/&gt;  &lt;!-- warn when lower version wins conflict --&gt;
+      &lt;dependencyConvergence/&gt;  &lt;!-- fail on any version conflict --&gt;
+    &lt;/rules&gt;&lt;/configuration&gt;
+  &lt;/execution&gt;&lt;/executions&gt;
+&lt;/plugin&gt;</code>
+<strong>Gradle: dependency constraints + resolution rules</strong> <code>kotlin configurations.all {
+    resolutionStrategy {
+        failOnVersionConflict()
+        force("org.slf4j:slf4j-api:2.0.9")
+        eachDependency {
+            if (requested.group == "commons-logging") {
+                useTarget("org.slf4j:jcl-over-slf4j:2.0.9")
+                because("Replace commons-logging with SLF4J bridge")
+            }
+        }
+    }
+}</code>
+<strong>License compliance:</strong> - Maven: <code>license-maven-plugin</code> generates license reports; fail on prohibited licenses (GPL in a commercial product) - Gradle: <code>com.github.jk1.dependency-license-report</code> plugin; configure allowed/forbidden licenses
+<strong>OWASP CVE scanning:</strong> - Maven: <code>org.owasp:dependency-check-maven</code> → <code>mvn verify -Pcheck</code> fails on CVSS &gt; 7.0 - Gradle: <code>org.owasp.dependencycheck</code> plugin - CI: run on every PR; block merge on HIGH/CRITICAL CVEs</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('maven-gradle','ST-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="P-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How do you design a build platform strategy for an enterprise with 200 repositories and 500 engineers?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>The core problems at scale:</strong> - Inconsistent build tooling versions across teams (Maven 3.6 vs 3.9, Java 11 vs 21) - Duplicated build logic (every team writes their own Docker build, GPG signing, Sonar integration) - Slow CI because no shared build cache - Security: old dependencies with CVEs, no license governance
+<strong>Centralized parent POM / convention plugin:</strong> Publish a <code>company-parent</code> POM (Maven) or <code>company-conventions</code> Gradle plugin. It encodes: Java version, compiler settings, Checkstyle config, Sonar integration, OWASP dependency check, Enforcer rules (ban old logging frameworks), publishing config. Teams inherit without configuring. Update the parent → all teams get the update on next build.
+<strong>Artifact repository governance (Nexus/Artifactory):</strong> - Proxy Maven Central through the internal Nexus — all dependencies go via internal mirror - Curated "approved" group for internal artifacts - Automated CVE scanning on Nexus: quarantine artifacts with CRITICAL CVEs before teams
+  can even download them
+- License compliance enforced at the proxy layer
+<strong>Shared build cache:</strong> Gradle Develocity (formerly Gradle Enterprise) or Gradle Cache Node: - All CI runners push to and pull from shared cache - Developers pull from shared cache — first local build after CI is mostly cache hits - Build scan analytics: which tasks are slowest, which teams have most cache misses
+<strong>Toolchain standardization:</strong> - Maven Toolchains or Gradle toolchain support: declare <code>java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }</code> - JDK auto-provisioned by Gradle; no "Java version mismatch" bugs - Foojay toolchain resolver downloads the right JDK automatically
+<strong>Dependency updates automation:</strong> - Renovate Bot running org-wide: opens PRs in all repos when deps have new versions - Priority bot: flag CVE-driven updates with P1 label; auto-assign to owning team</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('maven-gradle','P-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">Reduce CI Build Time from 45 Minutes to Under 10 Minutes</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A Spring Boot monorepo with 12 modules takes 45 minutes to build in CI. Developer feedback loops are painful. The build runs <code>mvn clean install</code> on every commit to every branch. Tests account for 35 of the 45 minutes.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>GitHub Actions CI with ephemeral runners (no persistent disk)</li><li>Maven build, Java 21</li><li>Cannot remove any tests — coverage is a compliance requirement</li><li>3 frontend engineers who don't understand the build tooling deeply</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Migrate to Gradle for incremental builds and remote cache:</strong> While Maven can be optimized, Gradle's incremental build + remote build cache provides the largest gains. If migration is too costly, proceed with Maven optimizations.</li><li><strong>Maven parallel execution:</strong> <code>mvn -T 1C install</code> runs independent modules in parallel (one thread per CPU core). GitHub Actions <code>ubuntu-latest</code> has 2 cores → 2x speedup for independent modules. Add <code>-fae</code> (fail at end) to complete parallel build even if one module fails.</li><li><strong>Selective module builds:</strong> Use a GitHub Actions matrix to detect which modules changed. Build only affected modules using <code>mvn -pl changed-module1,changed-module2 -am install</code>. For PRs touching 1–2 modules: build time drops to 5–15 minutes.</li><li><strong>Split unit and integration tests:</strong> Configure Failsafe for integration tests. In CI: Step 1: <code>mvn test -T 1C</code> (fast, parallel unit tests, ~5 min). Step 2: <code>mvn verify -DskipUnitTests -T 1C</code> (only integration tests). Run in parallel GitHub Actions jobs → total wall time = max(unit, IT).</li><li><strong>GitHub Actions cache for Maven repo:</strong> <code>yaml - uses: actions/cache@v4
+  with:
+    path: ~/.m2/repository
+    key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+    restore-keys: ${{ runner.os }}-maven-</code> Dependency download time: 10 min → 30 seconds on cache hit.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>mvn clean on every build — clean removes all compiled classes and restarts from scratch; omit clean unless necessary</li><li>Running all tests in a single sequential job — parallelism across jobs is free in GitHub Actions</li><li>No dependency cache in CI — re-downloading hundreds of MB on every ephemeral runner</li><li>Mixing unit and integration tests in the same phase — can't run them independently or in parallel</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Resolve a Transitive Dependency Conflict Causing Runtime Failures</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A Spring Boot application starts failing in production with <code>NoSuchMethodError</code> on a method from <code>jackson-databind</code>. The method exists in Jackson 2.15 but was removed in 2.16. <code>mvn dependency:tree</code> shows both versions in the dependency graph.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Spring Boot 3.2 (manages Jackson 2.16)</li><li>A third-party library `analytics-sdk:2.1` depends on Jackson 2.15</li><li>Cannot upgrade analytics-sdk (no newer version available)</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Diagnose with dependency:tree:</strong> Run <code>mvn dependency:tree -Dincludes=com.fasterxml.jackson.core:jackson-databind</code>. Output shows: Spring Boot BOM wants 2.16.1; analytics-sdk:2.1 → jackson-databind:2.15.3. Maven nearest-wins picked 2.15.3 (analytics-sdk is at depth 2, Spring Boot BOM at depth 1). Actually Spring Boot BOM is in <code>&lt;dependencyManagement&gt;</code> — it doesn't add a physical node, so analytics-sdk's transitive dep (depth 2) wins over nothing in the dependency tree.</li><li><strong>Fix: explicit dependencyManagement pin:</strong> In the root POM <code>&lt;dependencyManagement&gt;</code>, explicitly declare: <code>xml &lt;dependency&gt;
+  &lt;groupId&gt;com.fasterxml.jackson.core&lt;/groupId&gt;
+  &lt;artifactId&gt;jackson-databind&lt;/artifactId&gt;
+  &lt;version&gt;2.16.1&lt;/version&gt;
+&lt;/dependency&gt;</code> <code>&lt;dependencyManagement&gt;</code> declarations always win over transitive declarations. Jackson 2.16.1 is now forced regardless of what analytics-sdk requests.</li><li><strong>Verify the fix:</strong> Re-run <code>mvn dependency:tree -Dincludes=com.fasterxml.jackson.core:jackson-databind</code>. Confirm only 2.16.1 appears. Run <code>mvn verify</code> — tests pass. Deploy to staging.</li><li><strong>Root cause prevention:</strong> Add <code>&lt;requireUpperBoundDeps&gt;</code> rule to maven-enforcer-plugin. It warns when a lower version wins a conflict. Would have caught this at build time rather than production. Also add <code>&lt;dependencyConvergence/&gt;</code> to fail the build if any version conflicts exist.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Excluding the transitive dependency entirely without adding the correct version — you end up with no Jackson on the classpath</li><li>Upgrading analytics-sdk without verifying it's actually compatible with Jackson 2.16</li><li>Not verifying the fix with dependency:tree after applying — the pin may not have taken effect</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>// ── Theme (localStorage persistence) ─────────────────────────────────────
+function toggleTheme() {
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  h.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+// ── Tabs (with URL hash sync) ─────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+  history.replaceState(null, '', '#' + name);
+}
+
+// ── Accordion (JS-driven scrollHeight animation) ───────────────────────────
+function setAccOpen(item, open) {
+  const body = item.querySelector('.acc-body');
+  if (open) {
+    item.classList.add('open');
+    const h = body.scrollHeight;
+    body.style.maxHeight = h + 'px';
+    function onEnd(e) {
+      if (e.propertyName !== 'max-height') return;
+      body.removeEventListener('transitionend', onEnd);
+      if (item.classList.contains('open')) body.style.maxHeight = 'none';
+    }
+    body.addEventListener('transitionend', onEnd);
+  } else {
+    if (!body.style.maxHeight || body.style.maxHeight === 'none') {
+      body.style.maxHeight = body.scrollHeight + 'px';
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      item.classList.remove('open');
+      body.style.maxHeight = '0';
+    }));
+  }
+}
+
+function toggleAcc(header) {
+  setAccOpen(header.parentElement, !header.parentElement.classList.contains('open'));
+}
+
+// ── Expand / collapse all Q&A ─────────────────────────────────────────────
+function toggleAllAcc(btn) {
+  const items = [...document.querySelectorAll('#qa .acc-item')].filter(i => i.style.display !== 'none');
+  const allOpen = items.every(i => i.classList.contains('open'));
+  items.forEach(i => setAccOpen(i, !allOpen));
+  btn.textContent = allOpen ? 'Expand All' : 'Collapse All';
+}
+
+// ── Q&A keyword filter ────────────────────────────────────────────────────
+function filterQA(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.acc-item').forEach(item => {
+    const text = item.querySelector('.acc-question').textContent.toLowerCase();
+    item.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+  // Reset expand-all label whenever filter changes
+  const btn = document.querySelector('.expand-all-btn');
+  if (btn) btn.textContent = 'Expand All';
+}
+
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
+// ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
+document.addEventListener('DOMContentLoaded', function () {
+  // Sync toggle label with the actual current theme
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const label = document.getElementById('toggle-label');
+  if (label) label.textContent = isDark ? 'LIGHT MODE' : 'DARK MODE';
+
+  // Restore active tab from URL hash
+  const hash = location.hash.slice(1);
+  const validTabs = ['overview', 'deepdive', 'qa', 'scenarios'];
+  if (hash && validTabs.includes(hash)) {
+    const tab = document.querySelector(`.tab[data-tab="${hash}"]`);
+    if (tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(hash).classList.add('active');
+    }
+  }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
+
+  // Copy-to-clipboard on CLI command blocks
+  document.querySelectorAll('.cmd').forEach(cmd => {
+    cmd.title = 'Click to copy';
+    cmd.addEventListener('click', function () {
+      navigator.clipboard.writeText(this.textContent.trim()).then(() => {
+        const orig = this.style.opacity;
+        this.style.opacity = '0.4';
+        setTimeout(() => { this.style.opacity = orig; }, 600);
+      }).catch(() => {});
+    });
+  });
+});
+</script>
+</body>
+</html>

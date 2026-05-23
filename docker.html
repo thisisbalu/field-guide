@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Docker — Field Guide</title>
+<script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#1d4ed8;--accent2:#d95a1e;--accent3:#059669; --highlight-bg:#eff6ff;--highlight-text:#1d4ed8;--highlight-border:#3b82f6; --your-exp-bg:rgba(5,150,105,.06);--your-exp-border:rgba(5,150,105,.2);--your-exp-text:#065f46; --acc-hover:rgba(29,78,216,.04);--acc-open-border:#1d4ed8;--acc-open-bg:rgba(29,78,216,.03); --num-color:#1d4ed8;--num-bg:rgba(29,78,216,.1); --tag-color:#1d4ed8;--tag-bg:rgba(29,78,216,.08);--tag-border:rgba(29,78,216,.2); --flow-arrow:#1d4ed8;--h1-from:#1e3a8a;--h1-to:#1d4ed8; --badge-color:#1e3a8a;--stat-num:#1d4ed8; --tab-active-color:#1d4ed8;--tab-active-bg:rgba(29,78,216,.08);--tab-active-border:#1d4ed8; --section-title:#1d4ed8;--concept-title:#1e3a8a; --cheat-head-bg:#1e3a8a;--cheat-head-text:#ffffff;--cheat-key:#1e3a8a; --cmd-bg:#eff6ff;--cmd-text:#1e3a8a; }
+  [data-theme="dark"]{ --accent:#60a5fa;--accent2:#ff9d6b;--accent3:#10b981; --highlight-bg:#1e3a8a;--highlight-text:#60a5fa;--highlight-border:#3b82f6; --your-exp-bg:rgba(16,185,129,.1);--your-exp-border:rgba(16,185,129,.3);--your-exp-text:#6ee7b7; --acc-hover:rgba(96,165,250,.04);--acc-open-border:#60a5fa;--acc-open-bg:rgba(96,165,250,.03); --num-color:#60a5fa;--num-bg:rgba(96,165,250,.1); --tag-color:#60a5fa;--tag-bg:rgba(96,165,250,.08);--tag-border:rgba(96,165,250,.2); --flow-arrow:#60a5fa;--h1-from:#60a5fa;--h1-to:#3b82f6; --badge-color:#60a5fa;--stat-num:#60a5fa; --tab-active-color:#60a5fa;--tab-active-bg:rgba(96,165,250,.08);--tab-active-border:#60a5fa; --section-title:#60a5fa;--concept-title:#60a5fa; --cheat-head-bg:#1e3a8a;--cheat-head-text:#60a5fa;--cheat-key:#60a5fa; --cmd-bg:#1e3a8a;--cmd-text:#60a5fa; }
+  [data-theme="light"] .toggle-knob{background:#1d4ed8;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#60a5fa;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Back navigation ─────────────────────────────────────────────────────── */
+.back-link{position:fixed;top:1.25rem;left:1.25rem;z-index:100;display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);text-decoration:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.back-link:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
+/* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
+.qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
+.qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
+.qa-search:focus{border-color:var(--tab-active-border,var(--text));}
+.qa-search::placeholder{color:var(--muted);}
+.expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
+.expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;cursor:pointer;transition:opacity .2s;}
+.cmd:hover{opacity:.75;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+  .back-link span{display:none;}
+}
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
+
+</style>
+</head>
+<body data-topic-id="docker">
+
+<a class="back-link" href="index.html">← <span>Field Guide</span></a>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>Docker</h1>
+  <p class="subtitle">// containers · images · Dockerfile · networking · volumes · compose · security · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="overview" role="button" tabindex="0" onclick="switchTab('overview',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('overview',this);event.preventDefault();}">Overview</div>
+  <div class="tab" data-tab="deepdive" role="button" tabindex="0" onclick="switchTab('deepdive',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('deepdive',this);event.preventDefault();}">Deep Dive</div>
+  <div class="tab" data-tab="qa" role="button" tabindex="0" onclick="switchTab('qa',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('qa',this);event.preventDefault();}">Q &amp; A</div>
+  <div class="tab" data-tab="scenarios" role="button" tabindex="0" onclick="switchTab('scenarios',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('scenarios',this);event.preventDefault();}">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">📦 Images & Layers</div>
+      <div class="concept-body">
+        A Docker image is a read-only stack of <strong>layers</strong>, each created by a Dockerfile instruction (<code>RUN</code>, <code>COPY</code>, <code>ADD</code>). Layers are content-addressed (SHA256) and cached: if a layer hasn't changed, Docker reuses the cache. This makes builds fast but also means <strong>layer order matters</strong> — put infrequently changing instructions (install dependencies) before frequently changing ones (copy source code). A container is an image plus a thin writable layer on top. Images are stored in a registry (Docker Hub, ECR, GCR); pulled by digest or tag. Tags are mutable (<code>:latest</code> can point to any image); digests are immutable (<code>image@sha256:abc123</code>). Always pin by digest in production.
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">immutable layers</span>
+          
+          <span class="tag green">layer cache</span>
+          
+          <span class="tag orange">pin by digest</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📝 Dockerfile Best Practices</div>
+      <div class="concept-body">
+        <strong>Multi-stage builds</strong> are the single biggest image size win: use a large builder image (JDK, Node with dev deps) to compile, then copy only the artifact into a minimal runtime image (JRE, distroless, alpine). Final image carries no build tools.
+<strong>Layer cache optimization:</strong> order instructions from least to most likely to change. Copy <code>pom.xml</code> / <code>package.json</code> and run dependency install <em>before</em> copying source — dependencies are cached until they change.
+<strong>Other practices:</strong> use <code>.dockerignore</code> to exclude <code>node_modules</code>, <code>.git</code>, test files. Prefer <code>COPY</code> over <code>ADD</code> (ADD has implicit tar extraction and URL fetch). Combine <code>RUN</code> instructions with <code>&amp;&amp;</code> to reduce layers. Run as non-root: <code>RUN adduser -D appuser &amp;&amp; USER appuser</code>. Use specific base image tags, never <code>:latest</code>.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">multi-stage builds</span>
+          
+          <span class="tag blue">.dockerignore</span>
+          
+          <span class="tag orange">non-root user</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔌 Networking</div>
+      <div class="concept-body">
+        Docker has several network drivers: <strong>bridge</strong> (default for standalone containers — private network, NAT to host), <strong>host</strong> (container shares host network stack, no isolation, best performance), <strong>none</strong> (no networking), <strong>overlay</strong> (cross-host in Swarm/Kubernetes), <strong>macvlan</strong> (container gets its own MAC/IP on physical network).
+<strong>Container DNS:</strong> within a user-defined bridge network, containers resolve each other by container name. The embedded DNS server handles this. Default bridge network does not support DNS by name — always create user-defined networks.
+<strong>Port publishing:</strong> <code>-p hostPort:containerPort</code> binds to host interface. <code>-p 8080:8080</code> binds all interfaces; <code>-p 127.0.0.1:8080:8080</code> binds loopback only (more secure). Expose ports in Dockerfile (<code>EXPOSE</code>) as documentation only — it doesn't publish.
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">bridge default</span>
+          
+          <span class="tag green">user-defined DNS</span>
+          
+          <span class="tag orange">host mode = no isolation</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">💾 Volumes & Storage</div>
+      <div class="concept-body">
+        Containers are ephemeral — writes to the container layer are lost on <code>docker rm</code>. Three persistence mechanisms: <strong>Volumes</strong> (managed by Docker, stored in <code>/var/lib/docker/volumes/</code>, best for production data, can be shared between containers, driver plugins for NFS/EBS). <strong>Bind mounts</strong> (mount host path into container — great for dev, poor for prod: ties container to host filesystem layout). <strong>tmpfs</strong> (in-memory, not persisted, useful for secrets or temp files).
+Volumes survive container removal. Named volumes (<code>-v mydata:/data</code>) are preferred over anonymous volumes. Use <code>docker volume inspect</code> and <code>docker volume prune</code> to manage lifecycle.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">volumes > bind mounts</span>
+          
+          <span class="tag orange">ephemeral by default</span>
+          
+          <span class="tag blue">tmpfs for secrets</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🧩 Docker Compose</div>
+      <div class="concept-body">
+        Compose defines and runs multi-container applications from a single <code>docker-compose.yml</code>. Key concepts: <strong>services</strong> (each container), <strong>networks</strong> (services on the same network resolve by service name), <strong>volumes</strong> (shared or named), <strong>depends_on</strong> (start order, but not health — use <code>healthcheck</code> + <code>condition: service_healthy</code>).
+<code>docker compose up -d</code> starts all services; <code>docker compose logs -f</code> tails logs; <code>docker compose down -v</code> stops and removes containers + volumes.
+Compose is for <strong>local dev and CI</strong> — not for production. In production use Kubernetes or Docker Swarm. Compose v2 (plugin, <code>docker compose</code>) replaces the deprecated v1 (<code>docker-compose</code> binary). Use <code>profiles</code> to start optional services (e.g., <code>--profile debug</code> starts a monitoring container).
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">local dev + CI</span>
+          
+          <span class="tag green">service DNS by name</span>
+          
+          <span class="tag orange">not for production</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔒 Container Security</div>
+      <div class="concept-body">
+        <strong>Principle of least privilege:</strong> run as non-root user; drop all Linux capabilities (<code>--cap-drop=ALL</code>) and add only what's needed (<code>--cap-add=NET_BIND_SERVICE</code>). Use read-only filesystem (<code>--read-only</code>) with tmpfs for writable paths.
+<strong>Image security:</strong> scan images for CVEs (Trivy, Snyk, Docker Scout). Use minimal base images (distroless, scratch) to reduce attack surface. Never store secrets in image layers — they persist in history even if deleted in a later layer.
+<strong>Runtime security:</strong> set resource limits (<code>--memory</code>, <code>--cpus</code>) to prevent DoS. Use <code>--security-opt=no-new-privileges</code> to prevent privilege escalation. Enable user namespace remapping to remap root inside container to unprivileged UID on host. Seccomp profiles restrict syscalls (Docker applies a default profile).
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">non-root user</span>
+          
+          <span class="tag orange">scan with Trivy</span>
+          
+          <span class="tag red">no secrets in layers</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">⚙️ Container Runtime & OCI</div>
+      <div class="concept-body">
+        Docker is not a monolith. The OCI (Open Container Initiative) defines two standards: <strong>image spec</strong> (how images are built and stored) and <strong>runtime spec</strong> (how containers are executed). This means Docker images work with containerd, CRI-O, and podman.
+Docker's architecture: Docker CLI → Docker daemon (<code>dockerd</code>) → containerd → <code>runc</code> (OCI runtime that actually creates the container using Linux namespaces and cgroups). Kubernetes uses <strong>containerd</strong> or <strong>CRI-O</strong> directly, bypassing Docker daemon. "Docker is deprecated in Kubernetes" means the Docker shim (CRI adapter) was removed — images still work because they're OCI-compliant.
+<strong>Namespaces</strong> provide isolation: PID, Network, Mount, UTS, IPC, User. <strong>cgroups</strong> enforce resource limits: CPU, memory, I/O.
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">OCI standard</span>
+          
+          <span class="tag green">namespaces + cgroups</span>
+          
+          <span class="tag orange">containerd in k8s</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📊 Resource Limits & Health Checks</div>
+      <div class="concept-body">
+        Always set resource limits in production — an unconstrained container can starve its host or neighbors. <code>--memory=512m --memory-swap=512m</code> (swap=memory means no swap). <code>--cpus=0.5</code> limits to half a CPU core. In Compose: <code>deploy.resources.limits</code>.
+<strong>Health checks</strong> let Docker (and Kubernetes) know when a container is ready: <code>HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1</code> Unhealthy containers are restarted automatically. In Compose: <code>depends_on</code> with <code>condition: service_healthy</code> waits for a dependency to pass its health check before starting the dependent service.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">always set limits</span>
+          
+          <span class="tag green">HEALTHCHECK</span>
+          
+          <span class="tag blue">memory-swap = no swap</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Running as root inside containers</span>
+      By default, containers run as root (UID 0). If the container is compromised or escapes, root inside often maps to root on the host (without user namespace remapping). Always add <code>USER nonroot</code> in your Dockerfile. Many base images now provide a non-root user (e.g., <code>node</code> image has <code>node</code> user, <code>openjdk</code> has no default — create one explicitly).
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Secrets in environment variables or image layers</span>
+      Environment variables are visible in <code>docker inspect</code>, process listings, and logs. Secrets baked into image layers persist in history (<code>docker history</code>). Use Docker secrets (Swarm), Kubernetes Secrets, or a secrets manager (Vault, AWS SSM). At build time: use BuildKit's <code>--secret</code> flag to mount a secret without baking it in.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Image bloat from poor layer hygiene</span>
+      Each <code>RUN</code> creates a layer. Deleting files in a later <code>RUN</code> does NOT reduce image size — the data is still in the earlier layer. Clean up in the same <code>RUN</code>: <code>RUN apt-get install -y curl &amp;&amp; rm -rf /var/lib/apt/lists/*</code>. Better yet: use multi-stage builds and only copy final artifacts to the runtime image.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Ignoring .dockerignore</span>
+      Without <code>.dockerignore</code>, <code>COPY . .</code> sends the entire build context (including <code>node_modules</code>, <code>.git</code>, test fixtures, IDE files) to the Docker daemon. This bloats the build context, invalidates the layer cache unnecessarily, and can bake development credentials into the image.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Using :latest tags in production</span>
+      <code>:latest</code> is mutable — it changes with every push. <code>docker pull myimage:latest</code> today and tomorrow may pull different images. This breaks reproducibility and makes rollbacks ambiguous. Pin to specific semantic version tags or image digests (<code>image@sha256:...</code>) in CI/CD and deployment manifests.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use Docker When</div>
+      <ul>
+        
+        <li>Packaging applications with all dependencies for consistent deployment across dev/staging/prod</li>
+        
+        <li>Running services locally for development without installing dependencies on the host</li>
+        
+        <li>CI pipelines where reproducible, isolated build environments matter</li>
+        
+        <li>Microservices architectures where each service needs independent versioning and deployment</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use Docker When</div>
+      <ul>
+        
+        <li>Applications requiring direct hardware access (GPU workloads often need special runtimes like NVIDIA Container Toolkit)</li>
+        
+        <li>High-performance I/O-bound workloads where container networking overhead is unacceptable</li>
+        
+        <li>Stateful workloads requiring complex persistent storage — prefer managed databases over containerized DBs in production</li>
+        
+        <li>Simple scripts or one-off tasks where the overhead of containerization outweighs the benefit</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Dockerfile Instructions</div>
+      <table>
+        
+        <tr><td>FROM</td><td>Base image. Use specific version tags. Multi-stage: multiple FROM lines with AS aliases.</td></tr>
+        
+        <tr><td>RUN</td><td>Execute command in a new layer. Combine with && to minimize layers. Clean up in same RUN.</td></tr>
+        
+        <tr><td>COPY</td><td>Copy files from build context. Preferred over ADD. Supports --chown=user:group.</td></tr>
+        
+        <tr><td>ADD</td><td>Like COPY but also auto-extracts tar archives and fetches URLs. Use COPY unless you need these features.</td></tr>
+        
+        <tr><td>ENV</td><td>Set environment variables available at build and runtime. Visible in docker inspect.</td></tr>
+        
+        <tr><td>ARG</td><td>Build-time variable. Not persisted in image. Pass with --build-arg. Don't use for secrets.</td></tr>
+        
+        <tr><td>EXPOSE</td><td>Documents the port the container listens on. Does NOT publish the port — use -p at runtime.</td></tr>
+        
+        <tr><td>ENTRYPOINT</td><td>Main command. Always executed. Use exec form: ["java", "-jar", "app.jar"]. Prefer over CMD alone.</td></tr>
+        
+        <tr><td>CMD</td><td>Default arguments to ENTRYPOINT (or default command if no ENTRYPOINT). Overridable at runtime.</td></tr>
+        
+        <tr><td>USER</td><td>Set UID/GID for subsequent instructions and container runtime. Always set to non-root.</td></tr>
+        
+        <tr><td>WORKDIR</td><td>Set working directory. Creates it if absent. Prefer absolute paths.</td></tr>
+        
+        <tr><td>HEALTHCHECK</td><td>Command Docker runs to check container health. --interval, --timeout, --retries. Exit 0 = healthy.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Key Docker CLI Commands</div>
+      <table>
+        
+        <tr><td>docker build -t name:tag --no-cache .</td><td>Build image from Dockerfile in current dir. --no-cache forces fresh build.</td></tr>
+        
+        <tr><td>docker run -d -p 8080:8080 --name app image</td><td>Run container detached, port mapped, named.</td></tr>
+        
+        <tr><td>docker exec -it app /bin/sh</td><td>Open interactive shell in running container.</td></tr>
+        
+        <tr><td>docker logs -f --tail=100 app</td><td>Tail last 100 lines of container logs.</td></tr>
+        
+        <tr><td>docker inspect app</td><td>Full container metadata: IP, mounts, env vars, health status.</td></tr>
+        
+        <tr><td>docker stats</td><td>Live CPU, memory, network, block I/O per container.</td></tr>
+        
+        <tr><td>docker image prune -a</td><td>Remove all unused images. -a includes images not referenced by any container.</td></tr>
+        
+        <tr><td>docker system df</td><td>Disk usage: images, containers, volumes, build cache.</td></tr>
+        
+        <tr><td>docker buildx build --platform linux/amd64,linux/arm64</td><td>Multi-platform build (BuildKit). Push manifest list to registry.</td></tr>
+        
+        <tr><td>docker cp app:/app/logs ./logs</td><td>Copy files from container to host.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Docker Networking Modes</div>
+      <table>
+        
+        <tr><td>bridge (default)</td><td>Isolated network. NAT to host. Containers on same bridge resolve by name (user-defined only). Use for most local workloads.</td></tr>
+        
+        <tr><td>host</td><td>Shares host network stack. No isolation. Best performance (no NAT). Risk: container can bind any host port. Use for high-throughput network services where NAT overhead matters.</td></tr>
+        
+        <tr><td>none</td><td>No networking. Completely isolated. Use for batch jobs that need compute but no network.</td></tr>
+        
+        <tr><td>overlay</td><td>Cross-host network (Docker Swarm). Containers on different hosts communicate transparently. Encrypted with --opt encrypted. Used in Swarm clusters.</td></tr>
+        
+        <tr><td>macvlan</td><td>Container gets its own MAC and IP on the physical network. Appears as a physical device. Use when containers must be directly reachable on the LAN.</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Docker vs containerd vs Podman</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Daemon</td>
+            
+            <td>dockerd (background daemon)</td>
+            
+            <td>containerd daemon</td>
+            
+            <td>Daemonless</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Root requirement</td>
+            
+            <td>Daemon runs as root</td>
+            
+            <td>Daemon runs as root</td>
+            
+            <td>Rootless by default</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>CLI</td>
+            
+            <td>docker</td>
+            
+            <td>ctr / nerdctl</td>
+            
+            <td>podman (Docker-compatible)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Compose support</td>
+            
+            <td>docker compose</td>
+            
+            <td>nerdctl compose</td>
+            
+            <td>podman-compose</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Kubernetes CRI</td>
+            
+            <td>No (removed in k8s 1.24)</td>
+            
+            <td>Yes (primary CRI)</td>
+            
+            <td>Yes (via CRI-O)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Image compatibility</td>
+            
+            <td>OCI + Docker format</td>
+            
+            <td>OCI standard</td>
+            
+            <td>OCI standard</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Security</td>
+            
+            <td>Daemon root = risk</td>
+            
+            <td>Daemon root = risk</td>
+            
+            <td>Rootless = better isolation</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best for</td>
+            
+            <td>Local dev, CI</td>
+            
+            <td>Production k8s runtime</td>
+            
+            <td>Rootless environments, RHEL</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
+  <div class="qa-controls">
+    <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
+    <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
+  </div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="S-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">How do Docker layers and the layer cache work? How do you optimize a Dockerfile for cache efficiency?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Each Dockerfile instruction that produces filesystem changes (<code>RUN</code>, <code>COPY</code>, <code>ADD</code>) creates a new layer. Layers are content-addressed (SHA256 of contents). Docker compares the cache key for each instruction — if unchanged, it reuses the cached layer.
+<strong>Cache invalidation rules:</strong> - <code>FROM</code>: invalidated if base image digest changes - <code>RUN</code>: cache key is the command string — any change invalidates it and all subsequent layers - <code>COPY</code>/<code>ADD</code>: cache key includes file content checksums — any file change invalidates it
+<strong>Optimization — order from stable to volatile:</strong> <code>dockerfile FROM eclipse-temurin:21-jre WORKDIR /app # 1. Copy dependency manifest only (changes rarely) COPY pom.xml . RUN mvn dependency:go-offline -q # 2. Copy source (changes frequently — but deps layer is cached) COPY src ./src RUN mvn package -DskipTests</code>
+Without this order: every source change invalidates the dependency download layer, re-downloading hundreds of MB each build. With this order: only the final two layers are rebuilt on source changes.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('docker','S-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">Explain multi-stage builds and why they matter for production images.</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>Multi-stage builds use multiple <code>FROM</code> instructions in one Dockerfile. Each <code>FROM</code> starts a new stage. You can <code>COPY --from=&lt;stage&gt;</code> to copy artifacts between stages. Only the final stage becomes the image.
+```dockerfile # Stage 1: build FROM maven:3.9-eclipse-temurin-21 AS builder WORKDIR /app COPY pom.xml . RUN mvn dependency:go-offline COPY src ./src RUN mvn package -DskipTests</p>
+<h1>Stage 2: runtime (no JDK, no Maven, no source) FROM eclipse-temurin:21-jre-alpine RUN addgroup -S app &amp;&amp; adduser -S app -G app USER app WORKDIR /app COPY --from=builder /app/target/app.jar . ENTRYPOINT ["java", "-jar", "app.jar"] ```</h1>
+<p><strong>Why it matters:</strong> - Builder image: ~600MB (JDK + Maven + dependencies + source) - Runtime image: ~100MB (JRE + JAR only) - No build tools, source code, or intermediate artifacts in production image - Smaller attack surface, faster pull, less storage cost</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('docker','S-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">What's the difference between ENTRYPOINT and CMD? When do you use each?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>ENTRYPOINT</strong> sets the main executable — it's always run and cannot be overridden at <code>docker run</code> time (without <code>--entrypoint</code> flag). <strong>CMD</strong> provides default arguments to ENTRYPOINT, or the default command if no ENTRYPOINT is set. CMD is easily overridden: <code>docker run image arg1 arg2</code>.
+<strong>Shell form vs exec form:</strong> - Shell form: <code>ENTRYPOINT java -jar app.jar</code> — runs as <code>/bin/sh -c "java -jar app.jar"</code>.
+  PID 1 is the shell, not Java. Signals (SIGTERM) don't reach Java — graceful shutdown breaks.
+- Exec form: <code>ENTRYPOINT ["java", "-jar", "app.jar"]</code> — Java is PID 1. Signals
+  reach Java directly. Always use exec form.</p>
+<p><strong>Best practice:</strong> <code>dockerfile ENTRYPOINT ["java", "-jar", "app.jar"] CMD ["--spring.profiles.active=prod"]</code> Override CMD at runtime: <code>docker run image --spring.profiles.active=dev</code>
+Use CMD alone (no ENTRYPOINT) for flexible base images where the command varies.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('docker','S-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-04">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">How do you pass secrets to a Docker container securely?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Anti-patterns:</strong> - <code>ENV SECRET=value</code> — visible in <code>docker inspect</code>, process listing, logs - <code>ARG SECRET=value</code> + <code>RUN use $SECRET</code> — baked into the layer (visible in <code>docker history</code>) - <code>COPY secrets.txt .</code> — file persists in the image
+<strong>Build-time secrets (BuildKit):</strong> <code>dockerfile RUN --mount=type=secret,id=npmrc,target=/root/.npmrc npm install</code> <code>bash docker buildx build --secret id=npmrc,src=$HOME/.npmrc .</code> The secret is mounted only for that <code>RUN</code> step — never written to a layer.
+<strong>Runtime secrets:</strong> - <strong>Docker Swarm secrets:</strong> <code>docker secret create</code>, mounted as files in <code>/run/secrets/</code>.
+  Never exposed as env vars.
+- <strong>Kubernetes Secrets:</strong> mounted as files or env vars (prefer files). Use external
+  secrets operator to sync from Vault/AWS SSM.
+- <strong>Environment injection at runtime</strong> from a secrets manager: the container's
+  entrypoint fetches secrets from Vault/SSM on startup, sets them in the process
+  environment. They never touch the image.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('docker','S-04',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-05">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">How does Docker networking work between containers on the same host?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Default bridge (<code>docker0</code>):</strong> containers get an IP in the <code>172.17.0.0/16</code> range. They can reach each other by IP but NOT by name (no DNS). Traffic out goes via NAT. Avoid for multi-container setups.
+<strong>User-defined bridge network:</strong> <code>bash docker network create mynet docker run --network=mynet --name=db postgres docker run --network=mynet --name=app myapp</code> Now <code>app</code> can reach <code>db</code> by name (<code>ping db</code>). Docker's embedded DNS server (<code>127.0.0.11</code>) resolves container names within the network.
+<strong>Network isolation:</strong> containers on different user-defined networks cannot communicate by default. Explicitly connect a container to multiple networks if cross-network communication is needed.
+<strong>Port publishing:</strong> <code>-p 8080:8080</code> creates an iptables rule forwarding host port 8080 to container port 8080. <code>-p 127.0.0.1:8080:8080</code> binds only loopback — better for local dev where you don't want to expose to the network.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('docker','S-05',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-06">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">What Linux primitives does Docker use to implement container isolation?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Containers are not VMs — there's no hypervisor. Docker uses Linux kernel features:
+<strong>Namespaces</strong> provide isolation by giving each container its own view of the system: - <strong>PID namespace:</strong> container process tree starts at PID 1; can't see host PIDs - <strong>Network namespace:</strong> isolated network stack (interfaces, routing, iptables) - <strong>Mount namespace:</strong> isolated filesystem mount points - <strong>UTS namespace:</strong> isolated hostname and domain name - <strong>IPC namespace:</strong> isolated shared memory, semaphores - <strong>User namespace</strong> (optional, rootless): maps container UID 0 to unprivileged host UID
+<strong>cgroups (control groups)</strong> enforce resource limits: - CPU: <code>--cpus=0.5</code> → cgroup <code>cpu.shares</code> / <code>cpu.quota</code> - Memory: <code>--memory=512m</code> → OOM killer triggers at limit - Block I/O, network bandwidth
+<strong>seccomp profiles</strong> restrict system calls (Docker applies a default profile blocking ~40 dangerous syscalls). <strong>AppArmor/SELinux</strong> provide mandatory access control.
+Key insight: all containers share the host kernel. A kernel exploit potentially affects all containers on the host — this is the fundamental difference from VMs.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('docker','S-06',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-07">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">How do you reduce Docker image size?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><ol>
+<li>
+<p><strong>Multi-stage builds</strong> — most impactful. Build in a fat image; copy artifact to
+   a minimal runtime image.</p>
+</li>
+<li>
+<p><strong>Minimal base images:</strong></p>
+</li>
+<li><code>alpine</code> (~5MB) for most languages</li>
+<li><code>distroless</code> (Google) — no shell, no package manager, minimal attack surface</li>
+<li>
+<p><code>scratch</code> — literally empty; use for Go binaries that are statically compiled</p>
+</li>
+<li>
+<p><strong>Combine RUN instructions and clean up in the same layer:</strong>
+   <code>dockerfile
+   RUN apt-get update &amp;&amp; apt-get install -y curl \
+       &amp;&amp; rm -rf /var/lib/apt/lists/*</code></p>
+</li>
+<li>
+<p><strong>Use <code>.dockerignore</code></strong> to exclude <code>node_modules</code>, <code>.git</code>, tests, docs</p>
+</li>
+<li><strong>Avoid installing unnecessary packages:</strong> <code>--no-install-recommends</code> for apt</li>
+<li>
+<p><strong>Inspect with <code>docker image history image:tag</code></strong> to see which layer is large.
+   Use <code>dive</code> tool for interactive layer exploration.</p>
+</li>
+<li>
+<p><strong>Compress static assets before COPY</strong> rather than inside the container</p>
+</li>
+</ol></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('docker','S-07',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-08">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-08</span>
+        <span class="acc-question">What is Docker BuildKit and what advantages does it offer?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">BuildKit is Docker's next-generation build engine (default since Docker 23.0). Key improvements over classic builder:
+<strong>Parallel stage execution:</strong> independent stages in multi-stage builds run in parallel, significantly reducing build time for complex builds.
+<strong>Better cache management:</strong> <code>--cache-from</code> and <code>--cache-to</code> allow sharing build cache across machines (e.g., CI workers). Remote cache backends (registry, S3, GHA).
+<strong>Secret mounting</strong> (as described above): <code>RUN --mount=type=secret</code> — secrets never baked into layers.
+<strong>SSH forwarding:</strong> <code>RUN --mount=type=ssh</code> — forward SSH agent for private git dependencies without baking SSH keys.
+<strong>Cache mounts:</strong> <code>RUN --mount=type=cache,target=/root/.m2</code> — persist a directory between builds (Maven/npm cache) without it becoming part of the image.
+<strong>Multi-platform:</strong> <code>docker buildx build --platform linux/amd64,linux/arm64</code> builds images for multiple architectures in one command.
+Enable: set <code>DOCKER_BUILDKIT=1</code> env var or use <code>docker buildx build</code>.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('docker','S-08',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="ST-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">How do you design a Docker image build pipeline for a large monorepo with 20 microservices?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Challenge:</strong> 20 services, each needing its own image. Naive approach: build all 20 on every commit. With 5-minute builds, that's 100 CPU-minutes per commit.
+<strong>Selective builds based on changed paths:</strong> Use CI (GitHub Actions, Jenkins) to detect which service directories changed: <code>bash git diff --name-only origin/main...HEAD | grep '^services/' | cut -d/ -f2 | sort -u</code> Only build changed services. For a PR touching <code>services/orders/</code>, build only <code>orders</code>.
+<strong>Shared base images:</strong> Extract common dependencies (JDK + framework dependencies) into a versioned base image. Services <code>FROM company/java-base:1.4</code>. Base image changes rarely — built on its own pipeline. Services only rebuild their app layer. Cache hit rate dramatically improves.
+<strong>BuildKit cache layers in CI:</strong> Use registry-based cache: <code>--cache-from type=registry,ref=ecr/orders:cache --cache-to type=registry,ref=ecr/orders:cache,mode=max</code>. Each CI build restores cache from registry, saving dependency install time.
+<strong>Parallel builds:</strong> build changed services in parallel CI jobs (matrix strategy). 20 services → 20 parallel 2-minute jobs = 2 minutes total wall time.
+<strong>Tag strategy:</strong> <code>image:${git_sha}</code> for traceability. Promote to <code>image:v1.2.3</code> on release. Never push to <code>:latest</code> in production pipelines.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('docker','ST-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">How do you harden a Docker deployment for production security?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Image hardening:</strong> - Minimal base image (distroless or alpine). Fewer packages = smaller attack surface. - Scan in CI (Trivy): block on CRITICAL CVEs, warn on HIGH. - Sign images with Docker Content Trust or Sigstore cosign. Verify signature before deploy. - No shell in production images where possible (distroless has no <code>/bin/sh</code>).
+<strong>Runtime hardening:</strong> - <code>USER nonroot</code> — never root - <code>--read-only</code> filesystem + tmpfs for <code>/tmp</code> - <code>--cap-drop=ALL --cap-add=&lt;only what's needed&gt;</code> - <code>--security-opt=no-new-privileges</code> - <code>--security-opt seccomp=custom-profile.json</code> for fine-grained syscall restriction - Resource limits: <code>--memory</code>, <code>--cpus</code>, <code>--pids-limit</code>
+<strong>Network:</strong> - User-defined networks; containers only on networks they need - No <code>--network=host</code> unless unavoidable - Publish only required ports; bind to <code>127.0.0.1</code> for services not publicly exposed
+<strong>Secrets:</strong> - Never in env vars or image. Use Docker secrets / Kubernetes secrets / Vault agent.
+<strong>Audit:</strong> - Enable Docker daemon audit logging - Use Falco for runtime threat detection (anomalous syscalls, container escapes) - Regular <code>docker system prune</code> to remove stale images with known CVEs</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('docker','ST-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="P-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How do you design a container platform strategy for an enterprise with 200+ services across multiple teams?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Standardize via golden images:</strong> Platform team maintains versioned base images per language stack (<code>company/java-base:21-v3</code>, <code>company/node-base:20-v2</code>). Each base image includes: security hardening (non-root, minimal packages, seccomp profile), observability agents (OpenTelemetry Java agent pre-configured), CA certificates, timezone data. Services inherit all compliance without knowing the details.
+<strong>Image governance:</strong> - Mandatory base image: CI rejects images not based on approved bases (OPA/Conftest policy) - Mandatory scan gate: Trivy in CI, block on CRITICAL - Image signing: cosign signs all approved images; admission controller (Kyverno/OPA Gatekeeper)
+  rejects unsigned images in production clusters
+- SBOM (Software Bill of Materials) generation on every build; stored in registry
+<strong>Registry strategy:</strong> private registry per environment (dev/prod). Immutable tags in prod registry — once pushed, cannot overwrite. Retention policy: keep last 10 versions per service; auto-delete older.
+<strong>Build platform:</strong> centralized BuildKit fleet (depot.dev or self-hosted) with remote cache backend. Teams get fast builds without managing build infrastructure.
+<strong>Developer experience:</strong> <code>make docker-build</code> in every service repo just works — pre-configured Makefile target that uses the right base, BuildKit cache, and registry. Paved road: easy to do the right thing, hard to do the wrong thing.
+<strong>Cost governance:</strong> track image size trends per service. Large images = slow deploys, expensive registry storage, higher CVE surface. Alert teams when image grows &gt; 20% between releases.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('docker','P-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">Optimize a Slow, Bloated Docker Build Pipeline</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A Java microservice has a Docker build that takes 12 minutes in CI, produces a 1.2GB image, and every push triggers a full rebuild including downloading all Maven dependencies. The team has 15 services with the same problem. CI costs are high and developer feedback loops are slow.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>CI is GitHub Actions with ephemeral runners (no persistent disk cache)</li><li>15 services, mostly Spring Boot + Java 21</li><li>Must not change registry vendor (AWS ECR)</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Multi-stage build to cut image size:</strong> Replace <code>FROM maven:3.9-eclipse-temurin-21</code> (builder + runtime in one) with a two-stage build: Maven stage builds the JAR; <code>eclipse-temurin:21-jre-alpine</code> stage copies only the JAR. Expected result: 1.2GB → ~120MB. Smaller image = faster pull in Kubernetes.</li><li><strong>Layer cache for Maven dependencies:</strong> In the Maven stage, <code>COPY pom.xml .</code> then <code>RUN mvn dependency:go-offline</code> before <code>COPY src .</code>. Maven dependencies (the slow part) are cached as a layer and only re-downloaded when <code>pom.xml</code> changes.</li><li><strong>BuildKit registry cache in GitHub Actions:</strong> Use <code>docker/build-push-action</code> with cache-from/cache-to pointing to ECR: <code>cache-from: type=registry,ref=ecr/myapp:cache</code> <code>cache-to: type=registry,ref=ecr/myapp:cache,mode=max</code> Each runner restores from ECR cache; dependency layer hit rate &gt; 90% for most commits.</li><li><strong>Shared base image for all 15 services:</strong> Extract <code>FROM eclipse-temurin:21-jre-alpine</code> + OpenTelemetry agent + non-root user setup into <code>company/java-base:21</code>. Build it once on change; 15 services use it. Cache hit for the base layer across all service builds.</li><li><strong>Selective builds:</strong> only rebuild services whose source changed using path filtering. 12-minute × 15 services = 3 hours → only changed services rebuild in parallel.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Single-stage build mixing JDK and application — produces bloated images with unnecessary build tools</li><li>COPY . . before dependency install — every source change re-downloads all dependencies</li><li>No BuildKit cache — ephemeral CI runners start cold every build</li><li>Building all 15 services on every commit — O(N) build time regardless of what changed</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Secure a Docker Deployment for a PCI-DSS Environment</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Your team runs a payment processing service in Docker containers. A security audit flagged: containers run as root, images contain known CVEs, secrets are passed as environment variables, and there are no resource limits. Fix the deployment to meet PCI-DSS requirements.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Running on a self-managed Linux host (not Kubernetes)</li><li>Cannot change the base image vendor (must use Ubuntu-based image)</li><li>{'Audit requirement': 'no CRITICAL CVEs, no secrets in image or env, non-root runtime'}</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Non-root user:</strong> add to Dockerfile: <code>RUN groupadd -r payment &amp;&amp; useradd -r -g payment payment</code> and <code>USER payment</code>. Verify with <code>docker run image whoami</code> → <code>payment</code>.</li><li><strong>CVE remediation:</strong> run <code>trivy image payment-service:latest</code>. For CRITICAL CVEs in OS packages: <code>RUN apt-get update &amp;&amp; apt-get upgrade -y</code> in Dockerfile to pull patched packages. For application dependency CVEs: update <code>pom.xml</code>/<code>package.json</code>. Add Trivy scan as a CI gate: <code>trivy image --exit-code 1 --severity CRITICAL</code>.</li><li><strong>Secrets:</strong> remove env vars. Use Docker secrets (even on single host via Compose): <code>yaml secrets:
+  db_password:
+    external: true
+services:
+  payment:
+    secrets: [db_password]</code> Secret mounted at <code>/run/secrets/db_password</code>. Application reads file, not env var.</li><li><strong>Runtime hardening flags:</strong> <code>--cap-drop=ALL --cap-add=NET_BIND_SERVICE</code> (only if binding privileged port), <code>--read-only --tmpfs /tmp</code>, <code>--security-opt=no-new-privileges</code>, <code>--memory=512m --cpus=1 --pids-limit=100</code>.</li><li><strong>Audit logging:</strong> enable Docker daemon's <code>--log-driver=journald</code> and ship container logs to a SIEM. Log all container start/stop events. Install Falco for runtime threat detection — alerts on <code>exec</code> into containers, unexpected file writes, etc.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Patching CVEs in a later Dockerfile layer while keeping the vulnerable layer — CVE still present in history</li><li>Using --privileged flag to 'fix' permission issues — grants full host kernel access</li><li>Secrets in docker-compose.yml env section — stored plaintext in compose file and visible in docker inspect</li><li>No resource limits — OOM or CPU spike can take down the host and all containers on it</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>// ── Theme (localStorage persistence) ─────────────────────────────────────
+function toggleTheme() {
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  h.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+// ── Tabs (with URL hash sync) ─────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+  history.replaceState(null, '', '#' + name);
+}
+
+// ── Accordion (JS-driven scrollHeight animation) ───────────────────────────
+function setAccOpen(item, open) {
+  const body = item.querySelector('.acc-body');
+  if (open) {
+    item.classList.add('open');
+    const h = body.scrollHeight;
+    body.style.maxHeight = h + 'px';
+    function onEnd(e) {
+      if (e.propertyName !== 'max-height') return;
+      body.removeEventListener('transitionend', onEnd);
+      if (item.classList.contains('open')) body.style.maxHeight = 'none';
+    }
+    body.addEventListener('transitionend', onEnd);
+  } else {
+    if (!body.style.maxHeight || body.style.maxHeight === 'none') {
+      body.style.maxHeight = body.scrollHeight + 'px';
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      item.classList.remove('open');
+      body.style.maxHeight = '0';
+    }));
+  }
+}
+
+function toggleAcc(header) {
+  setAccOpen(header.parentElement, !header.parentElement.classList.contains('open'));
+}
+
+// ── Expand / collapse all Q&A ─────────────────────────────────────────────
+function toggleAllAcc(btn) {
+  const items = [...document.querySelectorAll('#qa .acc-item')].filter(i => i.style.display !== 'none');
+  const allOpen = items.every(i => i.classList.contains('open'));
+  items.forEach(i => setAccOpen(i, !allOpen));
+  btn.textContent = allOpen ? 'Expand All' : 'Collapse All';
+}
+
+// ── Q&A keyword filter ────────────────────────────────────────────────────
+function filterQA(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.acc-item').forEach(item => {
+    const text = item.querySelector('.acc-question').textContent.toLowerCase();
+    item.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+  // Reset expand-all label whenever filter changes
+  const btn = document.querySelector('.expand-all-btn');
+  if (btn) btn.textContent = 'Expand All';
+}
+
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
+// ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
+document.addEventListener('DOMContentLoaded', function () {
+  // Sync toggle label with the actual current theme
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const label = document.getElementById('toggle-label');
+  if (label) label.textContent = isDark ? 'LIGHT MODE' : 'DARK MODE';
+
+  // Restore active tab from URL hash
+  const hash = location.hash.slice(1);
+  const validTabs = ['overview', 'deepdive', 'qa', 'scenarios'];
+  if (hash && validTabs.includes(hash)) {
+    const tab = document.querySelector(`.tab[data-tab="${hash}"]`);
+    if (tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(hash).classList.add('active');
+    }
+  }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
+
+  // Copy-to-clipboard on CLI command blocks
+  document.querySelectorAll('.cmd').forEach(cmd => {
+    cmd.title = 'Click to copy';
+    cmd.addEventListener('click', function () {
+      navigator.clipboard.writeText(this.textContent.trim()).then(() => {
+        const orig = this.style.opacity;
+        this.style.opacity = '0.4';
+        setTimeout(() => { this.style.opacity = orig; }, 600);
+      }).catch(() => {});
+    });
+  });
+});
+</script>
+</body>
+</html>

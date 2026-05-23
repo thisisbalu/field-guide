@@ -1,0 +1,825 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Maven / Gradle — Interview Field Guide Content
+# Edit this file to update the guide. Run: python generate.py maven-gradle
+# ══════════════════════════════════════════════════════════════════════════════
+
+meta:
+  id: maven-gradle
+  title: Maven / Gradle
+  title_short: Maven / Gradle
+  subtitle: "// build lifecycle · dependency management · plugins · multi-module · caching · senior → principal"
+  description: "JVM build tools for dependency management, compilation, testing, and artifact publishing."
+  category: DevOps
+  icon: "🔨"
+
+colors:
+  toggle_light: "#b45309"
+  toggle_dark: "#fcd34d"
+  light_vars: >-
+    --accent:#b45309;--accent2:#0369a1;--accent3:#059669;
+    --highlight-bg:#fffbeb;--highlight-text:#b45309;--highlight-border:#d97706;
+    --your-exp-bg:rgba(5,150,105,.06);--your-exp-border:rgba(5,150,105,.2);--your-exp-text:#065f46;
+    --acc-hover:rgba(180,83,9,.04);--acc-open-border:#b45309;--acc-open-bg:rgba(180,83,9,.03);
+    --num-color:#b45309;--num-bg:rgba(180,83,9,.1);
+    --tag-color:#b45309;--tag-bg:rgba(180,83,9,.08);--tag-border:rgba(180,83,9,.2);
+    --flow-arrow:#b45309;--h1-from:#78350f;--h1-to:#b45309;
+    --badge-color:#78350f;--stat-num:#b45309;
+    --tab-active-color:#b45309;--tab-active-bg:rgba(180,83,9,.08);--tab-active-border:#b45309;
+    --section-title:#b45309;--concept-title:#78350f;
+    --cheat-head-bg:#78350f;--cheat-head-text:#ffffff;--cheat-key:#78350f;
+    --cmd-bg:#fffbeb;--cmd-text:#78350f;
+  dark_vars: >-
+    --accent:#fcd34d;--accent2:#38bdf8;--accent3:#10b981;
+    --highlight-bg:#451a03;--highlight-text:#fcd34d;--highlight-border:#d97706;
+    --your-exp-bg:rgba(16,185,129,.1);--your-exp-border:rgba(16,185,129,.3);--your-exp-text:#6ee7b7;
+    --acc-hover:rgba(252,211,77,.04);--acc-open-border:#fcd34d;--acc-open-bg:rgba(252,211,77,.03);
+    --num-color:#fcd34d;--num-bg:rgba(252,211,77,.1);
+    --tag-color:#fcd34d;--tag-bg:rgba(252,211,77,.08);--tag-border:rgba(252,211,77,.2);
+    --flow-arrow:#fcd34d;--h1-from:#fcd34d;--h1-to:#d97706;
+    --badge-color:#fcd34d;--stat-num:#fcd34d;
+    --tab-active-color:#fcd34d;--tab-active-bg:rgba(252,211,77,.08);--tab-active-border:#fcd34d;
+    --section-title:#fcd34d;--concept-title:#fcd34d;
+    --cheat-head-bg:#451a03;--cheat-head-text:#fcd34d;--cheat-key:#fcd34d;
+    --cmd-bg:#451a03;--cmd-text:#fcd34d;
+
+# ── OVERVIEW ──────────────────────────────────────────────────────────────────
+overview:
+  concepts:
+    - title: "🔄 Maven Build Lifecycle"
+      body: >
+        Maven organizes builds into three built-in lifecycles: **default** (build and deploy),
+        **clean** (remove previous build outputs), **site** (generate project docs).
+
+        The **default lifecycle** has 23 phases; the key ones are: `validate` → `compile` →
+        `test` → `package` → `verify` → `install` → `deploy`. Running `mvn package` executes
+        all phases up to and including `package`. Plugins bind their goals to phases:
+        `maven-compiler-plugin:compile` binds to the `compile` phase automatically.
+
+        **Key insight:** you don't call plugin goals directly in CI — you call lifecycle
+        phases. The phases invoke the bound goals. Skip phases when needed:
+        `mvn package -DskipTests` skips test execution but still compiles tests.
+        `-Dmaven.test.skip=true` skips both compilation and execution of tests.
+      tags:
+        - {text: "validate → compile → test → package", color: blue}
+        - {text: "phases invoke goals", color: green}
+        - {text: "-DskipTests", color: orange}
+
+    - title: "📦 Maven Dependency Management"
+      body: >
+        Dependencies declared in `<dependencies>` are resolved from repositories (Maven Central,
+        Nexus, Artifactory) and cached in `~/.m2/repository`.
+
+        **Scopes:** `compile` (default — on all classpaths), `provided` (compile + test only,
+        not packaged — e.g., servlet-api), `runtime` (runtime + test, not compile — JDBC driver),
+        `test` (test compile + runtime only — JUnit), `system` (explicit path, avoid).
+
+        **Transitive dependencies:** Maven resolves the full dependency graph. Conflicts use
+        **nearest-wins** (shallowest in the tree wins). Override with `<dependencyManagement>`
+        to pin versions centrally. Use `mvn dependency:tree` to visualize the full graph
+        and find conflicting/unexpected transitive deps.
+
+        **BOM (Bill of Materials):** a POM with `<dependencyManagement>` only — import it
+        with `<scope>import</scope>` to inherit consistent versions across a suite.
+        Spring Boot BOM is the canonical example.
+      tags:
+        - {text: "nearest-wins conflict", color: orange}
+        - {text: "BOM for version sets", color: green}
+        - {text: "mvn dependency:tree", color: blue}
+
+    - title: "🏗️ Maven Multi-Module Projects"
+      body: >
+        A multi-module project has a parent POM listing `<modules>`. The parent defines
+        shared config (`<dependencyManagement>`, `<pluginManagement>`, `<properties>`).
+        Child modules inherit from the parent via `<parent>`.
+
+        **Reactor build order:** Maven resolves inter-module dependencies and builds in the
+        correct order. `mvn install -pl orders-service -am` builds only `orders-service`
+        and its dependencies (`-am` = also-make). `-amd` builds everything that depends on
+        the changed module (also-make-dependents).
+
+        **Aggregator vs inheritance:** parent POM can be both an aggregator (listing modules)
+        and a parent (declaring shared config). Keep them separate in large projects: a
+        root aggregator POM + a separate `company-parent` POM for shared config.
+
+        **Common pitfall:** putting application code in the parent module. The parent should
+        contain only build config — never application code.
+      tags:
+        - {text: "reactor build order", color: blue}
+        - {text: "-pl -am for partial build", color: green}
+        - {text: "no code in parent", color: orange}
+
+    - title: "⚡ Gradle Build Basics"
+      body: >
+        Gradle uses a **DAG of tasks** (not a fixed lifecycle). Each task declares inputs
+        and outputs; Gradle runs only tasks whose inputs have changed (**incremental build**).
+        Build scripts in **Kotlin DSL** (`.gradle.kts`) or Groovy (`.gradle`). Kotlin DSL
+        is type-safe and IDE-friendly — preferred for new projects.
+
+        **Key commands:** `./gradlew build` (compile + test + assemble),
+        `./gradlew test`, `./gradlew clean build`, `./gradlew tasks` (list available tasks),
+        `./gradlew dependencies` (dependency graph), `./gradlew :subproject:test` (run
+        task in specific subproject).
+
+        **Gradle Wrapper:** `gradlew` / `gradlew.bat` scripts download and cache the Gradle
+        distribution version pinned in `gradle/wrapper/gradle-wrapper.properties`.
+        Always commit the wrapper — CI uses the same Gradle version as developers.
+      tags:
+        - {text: "task DAG not lifecycle", color: blue}
+        - {text: "incremental by default", color: green}
+        - {text: "always use wrapper", color: orange}
+
+    - title: "💾 Gradle Caching"
+      body: >
+        Gradle has two levels of caching: **incremental build** (local — task outputs
+        cached on disk; skipped if inputs unchanged) and **build cache** (local + remote —
+        task outputs identified by input hash; shared across machines and CI workers).
+
+        **Local build cache:** enabled by default. `~/.gradle/caches/`. Tasks marked
+        `@CacheTask` have their outputs stored keyed by input hash.
+
+        **Remote build cache:** shared across all CI runners and developer machines.
+        Setup: add to `settings.gradle.kts`:
+        ```kotlin
+        buildCache { remote<HttpBuildCache> { url = uri("https://cache.company.com/") } }
+        ```
+        Cache server options: Gradle Enterprise (now Develocity), Gradle Cache Node, Hazelcast.
+
+        **Configuration cache:** (Gradle 8+) caches the result of build script evaluation.
+        First run serializes task graph; subsequent runs skip script evaluation. 30–80%
+        faster cold starts. Enable: `org.gradle.configuration-cache=true`.
+      tags:
+        - {text: "build cache = remote sharing", color: green}
+        - {text: "config cache = faster startup", color: blue}
+        - {text: "Develocity for analytics", color: orange}
+
+    - title: "🔌 Plugins"
+      body: >
+        **Maven plugins:** bound to lifecycle phases via `<executions>`. Core plugins
+        (compiler, surefire, jar) are automatically configured. Third-party plugins added
+        in `<build><plugins>`. `<pluginManagement>` in parent centralizes version pinning.
+
+        Key Maven plugins: `maven-compiler-plugin` (Java version, annotation processors),
+        `maven-surefire-plugin` (unit tests), `maven-failsafe-plugin` (integration tests,
+        runs in verify phase), `maven-shade-plugin` (fat JAR / uber-JAR),
+        `spring-boot-maven-plugin` (executable JAR, run, build-image).
+
+        **Gradle plugins:** applied in `plugins {}` block. Core plugins (java, application,
+        java-library) add standard tasks. Community plugins from Gradle Plugin Portal.
+        `java-library` vs `java`: `java-library` exposes `api` and `implementation`
+        dependency configurations — `api` dependencies are on the compile classpath of
+        dependents; `implementation` are not (better compile isolation).
+      tags:
+        - {text: "pluginManagement for versions", color: blue}
+        - {text: "failsafe for ITs", color: orange}
+        - {text: "api vs implementation", color: green}
+
+    - title: "🔒 Dependency Version Control"
+      body: >
+        **Maven:** use `<dependencyManagement>` in the parent POM to pin versions.
+        Child modules declare dependencies without versions — they inherit from the parent.
+        Import external BOMs with `<scope>import</scope>`. Use Maven Versions Plugin
+        (`mvn versions:display-dependency-updates`) to find outdated dependencies.
+
+        **Gradle:** use **version catalogs** (`gradle/libs.versions.toml`) — centralized
+        version definitions, type-safe accessor in build scripts:
+        ```toml
+        [versions]
+        spring-boot = "3.3.1"
+        [libraries]
+        spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "spring-boot" }
+        ```
+        Reference in build: `implementation(libs.spring.boot.starter)`.
+
+        **Lock files:** `./gradlew dependencies --write-locks` generates `*.lockfile` — pins
+        exact transitive versions for reproducible builds. Commit lockfiles for applications
+        (not libraries, which should stay flexible).
+      tags:
+        - {text: "version catalog TOML", color: green}
+        - {text: "lockfiles for apps", color: blue}
+        - {text: "BOM imports", color: orange}
+
+    - title: "📤 Publishing Artifacts"
+      body: >
+        **Maven:** `mvn deploy` uploads the JAR + POM + sources + javadoc to the remote
+        repository (Nexus, Artifactory, GitHub Packages). Configure `<distributionManagement>`
+        with snapshot and release repo URLs. SNAPSHOT versions always publish; release
+        versions are immutable once deployed.
+
+        **Gradle:** `maven-publish` plugin adds `publishToMavenLocal` and `publish` tasks.
+        Configure publications and repositories in `publishing {}` block. Supports publishing
+        to multiple repositories (Nexus for internal, Maven Central for OSS).
+
+        **Signing:** Maven Central requires GPG-signed artifacts. `maven-gpg-plugin` or
+        `signing` Gradle plugin. CI: store GPG key in secrets, configure via environment.
+
+        **Version strategy:** use `SNAPSHOT` / `-SNAPSHOT` during development for mutable
+        builds; remove `-SNAPSHOT` for release artifacts. Semantic versioning (`MAJOR.MINOR.PATCH`).
+        Automate version bumping with `maven-release-plugin` or Gradle Axion Release plugin.
+      tags:
+        - {text: "SNAPSHOT = mutable", color: orange}
+        - {text: "release = immutable", color: green}
+        - {text: "GPG for Maven Central", color: blue}
+
+  gotchas:
+    - title: "Dependency version conflicts and nearest-wins confusion"
+      body: >
+        Maven's nearest-wins rule resolves the same dependency appearing at different versions
+        by picking the shallowest declaration in the tree. This silently downgrades a transitive
+        dependency. Always run `mvn dependency:tree` after adding dependencies.
+        Gradle fails on conflicts by default — configure resolution strategy if needed.
+        In Gradle: `configurations.all { resolutionStrategy.failOnVersionConflict() }`.
+
+    - title: "Using SNAPSHOT dependencies in production"
+      body: >
+        SNAPSHOT artifacts are mutable — the same version string (`1.0.0-SNAPSHOT`) can
+        resolve to different binaries at different times. Never use SNAPSHOT dependencies
+        in released or deployed artifacts. CI pipelines should use release versions only.
+        Maven checks for updated SNAPSHOTs every build by default (slow); suppress with `-o`
+        (offline mode) or `-nsu` (no snapshot updates) in CI when SNAPSHOTs aren't needed.
+
+    - title: "Fat JAR with conflicting resources"
+      body: >
+        When using `maven-shade-plugin` or Gradle Shadow Plugin to create an uber-JAR,
+        multiple JARs may contain the same file (e.g., `META-INF/services/...` SPI files,
+        `spring.factories`). The default behavior is last-write-wins — some services will
+        silently disappear. Configure `ServicesResourceTransformer` and `AppendingTransformer`
+        in the shade plugin to merge these files correctly.
+
+    - title: "Ignoring the Gradle wrapper version"
+      body: >
+        Running `gradle` directly uses whatever Gradle is installed on the machine — different
+        from what's in `gradle-wrapper.properties`. Always use `./gradlew`. In CI, never
+        install Gradle globally; use the wrapper. Update the wrapper version deliberately
+        with `./gradlew wrapper --gradle-version 8.8`.
+
+    - title: "Slow builds from unnecessary task re-execution"
+      body: >
+        Gradle's incremental build only works if tasks correctly declare all inputs and outputs.
+        Custom tasks that read files without declaring them as `@InputFiles` always run.
+        Use `--dry-run` to see which tasks would execute and `--profile` to generate a build
+        scan showing time per task. Unexpectedly-running UP-TO-DATE checks indicate missing
+        input declarations.
+
+  when_to_use:
+    - "Maven: projects requiring strict convention-over-configuration, XML-auditable builds, or heavy Maven Central publishing"
+    - "Gradle: projects needing build logic customization, fast incremental builds, polyglot builds (Java + Kotlin + Android)"
+    - "Multi-module monorepos where selective building (only changed modules) reduces CI time"
+    - "Any JVM-based project — both tools provide far better dependency management than manual JAR management"
+
+  when_not_to_use:
+    - "Non-JVM projects — use npm/pnpm (Node), pip/Poetry (Python), Cargo (Rust), Go modules instead"
+    - "Simple scripts or tools where a plain Makefile or shell script is clearer and has no dependencies"
+    - "Projects where build reproducibility requirements exceed what Maven/Gradle guarantee — consider Bazel or Buck for hermetic builds"
+
+# ── DEEP DIVE ─────────────────────────────────────────────────────────────────
+deep_dive:
+  tables:
+    - title: "Maven Lifecycle Phases (default)"
+      full_width: false
+      rows:
+        - key: "validate"
+          value: "Validate POM and project structure is correct."
+        - key: "compile"
+          value: "Compile main sources (src/main/java). Output: target/classes."
+        - key: "test-compile"
+          value: "Compile test sources (src/test/java). Output: target/test-classes."
+        - key: "test"
+          value: "Run unit tests (Surefire). Build fails if tests fail."
+        - key: "package"
+          value: "Package compiled code into JAR/WAR/EAR. Output: target/*.jar."
+        - key: "verify"
+          value: "Run integration tests (Failsafe) and quality checks. verify ≠ test."
+        - key: "install"
+          value: "Install artifact to local ~/.m2 repository. Available to other local projects."
+        - key: "deploy"
+          value: "Upload artifact to remote repository (Nexus, Artifactory). Requires credentials."
+
+    - title: "Maven Dependency Scopes"
+      full_width: false
+      rows:
+        - key: "compile (default)"
+          value: "Available in compile, test, and runtime classpaths. Included in packaged artifact."
+        - key: "provided"
+          value: "Available in compile + test classpaths. NOT included in package. Container provides at runtime (e.g., servlet-api in WAR → Tomcat provides it)."
+        - key: "runtime"
+          value: "NOT available at compile time. Available at test and runtime. Use for: JDBC drivers, SLF4J bindings."
+        - key: "test"
+          value: "Only available in test compile and test runtime. Not in the packaged artifact. JUnit, Mockito, Testcontainers."
+        - key: "import"
+          value: "Only in dependencyManagement. Imports another BOM's dependencyManagement section."
+
+    - title: "Gradle Dependency Configurations"
+      full_width: false
+      rows:
+        - key: "implementation"
+          value: "Compile + runtime classpath. NOT exposed to consumers. Use for most dependencies. Avoids leaking transitive deps to consumers."
+        - key: "api"
+          value: "Compile + runtime, AND exposed to consumers' compile classpath. Use when dependency types appear in your public API. Requires java-library plugin."
+        - key: "compileOnly"
+          value: "Compile classpath only. Not in runtime or consumer compile. Use for: annotation processors, provided dependencies (servlet-api)."
+        - key: "runtimeOnly"
+          value: "Runtime classpath only. Not compile. Use for: JDBC drivers, SLF4J bindings, logging implementations."
+        - key: "testImplementation"
+          value: "Test compile + runtime. Not in main compile or runtime."
+        - key: "testRuntimeOnly"
+          value: "Test runtime only. JUnit platform launcher, Logback test config."
+        - key: "annotationProcessor"
+          value: "Annotation processors run at compile time. Lombok, MapStruct, Dagger."
+
+    - title: "Common Maven Commands"
+      full_width: false
+      rows:
+        - key: "mvn clean install"
+          value: "Clean output, compile, test, package, install to local repo. Standard full build."
+        - key: "mvn package -DskipTests"
+          value: "Build JAR without running tests (but still compiles test sources)."
+        - key: "mvn verify -Pfailsafe"
+          value: "Run integration tests (Failsafe plugin in verify phase)."
+        - key: "mvn dependency:tree"
+          value: "Print full dependency graph including transitives. Add -Dincludes=group:artifact to filter."
+        - key: "mvn versions:display-dependency-updates"
+          value: "Show available version updates for all dependencies."
+        - key: "mvn help:effective-pom"
+          value: "Print the fully resolved POM including inherited properties and plugin config."
+        - key: "mvn -pl orders-service -am install"
+          value: "Build orders-service and all modules it depends on (-am = also-make)."
+        - key: "mvn -T 4 install"
+          value: "Parallel build using 4 threads. Use -T 1C for 1 thread per CPU core."
+
+    - title: "Common Gradle Commands"
+      full_width: false
+      rows:
+        - key: "./gradlew build"
+          value: "Compile, test, assemble. Standard full build."
+        - key: "./gradlew test"
+          value: "Run tests only. Incremental: only re-runs if source or test files changed."
+        - key: "./gradlew :subproject:test"
+          value: "Run test task in a specific subproject."
+        - key: "./gradlew dependencies --configuration runtimeClasspath"
+          value: "Show dependency tree for runtimeClasspath configuration."
+        - key: "./gradlew tasks --all"
+          value: "List all available tasks with descriptions."
+        - key: "./gradlew build --scan"
+          value: "Build and upload a build scan to scans.gradle.com. Detailed performance and cache analytics."
+        - key: "./gradlew build --build-cache"
+          value: "Enable build cache (also set in gradle.properties: org.gradle.caching=true)."
+        - key: "./gradlew dependencyUpdates"
+          value: "Report outdated dependencies (requires ben-manes/versions plugin)."
+
+  comparison:
+    title: "Maven vs Gradle"
+    columns: ["Dimension", "Maven", "Gradle"]
+    rows:
+      - ["Build script", "XML (pom.xml) — verbose but predictable", "Kotlin/Groovy DSL — concise, programmable"]
+      - ["Build model", "Fixed lifecycle (phases → goals)", "Flexible task DAG"]
+      - ["Incremental build", "Limited (requires plugins)", "First-class, all tasks declare I/O"]
+      - ["Build cache", "No built-in remote cache", "Built-in local + remote cache"]
+      - ["Multi-module", "Reactor builds, -pl -am", "Composite builds, included builds"]
+      - ["Performance", "Slower (no incremental)", "Faster (incremental, parallel, cache)"]
+      - ["Learning curve", "Lower (conventions strict)", "Higher (flexibility = complexity)"]
+      - ["IDE support", "Excellent (IntelliJ, Eclipse)", "Excellent (IntelliJ, VS Code)"]
+      - ["Plugin ecosystem", "Huge, mature", "Large, growing"]
+      - ["Convention", "Strong (opinionated)", "Flexible (can break conventions)"]
+      - ["Reproducibility", "Good (versions in POM)", "Better (lockfiles + build cache)"]
+      - ["Best for", "Enterprise Java, Maven Central publishing", "Android, Kotlin, performance-critical monorepos"]
+
+# ── Q & A ─────────────────────────────────────────────────────────────────────
+qa:
+  senior:
+    - id: S-01
+      question: "Explain Maven's dependency resolution and how conflicts are resolved."
+      answer: >
+        Maven builds a full dependency graph by resolving each dependency's transitive
+        dependencies recursively. When the same artifact (same groupId:artifactId) appears
+        at multiple versions in the graph, Maven applies two rules:
+
+        **Nearest-wins:** the version declared closest to the root project in the dependency
+        tree wins. `project → A (1.0) → C (1.5)` and `project → B (1.0) → C (1.2)`: if A and B
+        are both direct dependencies (depth 1), C is at depth 2 from both — first declaration
+        in the POM wins (A's path → C 1.5).
+
+        **First-declaration wins** (tiebreaker at same depth): the first dependency that brings
+        in a given transitive dep wins.
+
+        **Problems:** nearest-wins can silently downgrade a library. If C 1.5 has a security fix
+        and nearest-wins picks C 1.2, your build is vulnerable without any warning.
+
+        **Fix with `<dependencyManagement>`:**
+        Explicitly pin the version of any transitive dependency you care about:
+        ```xml
+        <dependencyManagement>
+          <dependencies>
+            <dependency>
+              <groupId>com.example</groupId>
+              <artifactId>C</artifactId>
+              <version>1.5</version>
+            </dependency>
+          </dependencies>
+        </dependencyManagement>
+        ```
+        This wins over all transitive declarations.
+
+        **Gradle:** fails on version conflict by default with a clear error. Resolve with
+        `resolutionStrategy.force("com.example:C:1.5")`.
+
+    - id: S-02
+      question: "What is the difference between maven-surefire-plugin and maven-failsafe-plugin?"
+      answer: >
+        Both run tests, but at different lifecycle phases with different failure semantics:
+
+        **maven-surefire-plugin** (unit tests):
+        - Binds to the `test` phase
+        - By convention, runs classes matching `**/*Test.java`, `**/*Tests.java`, `**/*TestCase.java`
+        - If tests fail, the build fails immediately in the `test` phase
+        - Does NOT start/stop server infrastructure
+
+        **maven-failsafe-plugin** (integration tests):
+        - Binds goals to `pre-integration-test`, `integration-test`, and `post-integration-test`
+          phases (within `verify`)
+        - By convention, runs classes matching `**/*IT.java`, `**/*ITCase.java`
+        - Critical difference: even if integration tests FAIL, the build continues through
+          `post-integration-test` (allowing cleanup of started servers/containers), then
+          fails in the `verify` phase
+        - Works with `build-helper-maven-plugin` to start Testcontainers or embedded servers
+          in pre-integration-test and stop them in post-integration-test
+
+        **In practice:** `mvn test` runs unit tests. `mvn verify` runs unit tests + integration
+        tests. CI pipelines typically run `mvn verify` for full coverage.
+        Separate them to allow fast feedback: `mvn test` first, then `mvn verify -DskipTests`
+        (skip unit tests, run only integration tests) in a later CI step.
+
+    - id: S-03
+      question: "How does Gradle's incremental build work? What can break it?"
+      answer: >
+        Gradle marks a task as **UP-TO-DATE** if none of its declared inputs have changed
+        since the last execution and all declared outputs still exist. If UP-TO-DATE, the
+        task is skipped entirely.
+
+        **How inputs/outputs are declared:**
+        - `@Input`: scalar values (String, Boolean, Enum). Changes trigger re-run.
+        - `@InputFile` / `@InputFiles` / `@InputDirectory`: file content. SHA checksums compared.
+        - `@OutputFile` / `@OutputFiles` / `@OutputDirectory`: expected output files.
+        - `@Internal`: fields not affecting outputs (e.g., a logger). Not tracked.
+
+        **What breaks incremental builds:**
+        1. **Undeclared inputs:** a task reads `System.getProperty("user.name")` but doesn't
+           declare it as `@Input`. Gradle doesn't know to re-run when the user changes.
+           Result: task stays UP-TO-DATE when it shouldn't.
+        2. **Side effects outside declared outputs:** task writes to a file not in `@OutputFiles`.
+           Another task reading that file won't know the first task changed it.
+        3. **Non-deterministic outputs:** tasks that produce different outputs for the same
+           inputs (timestamps in JAR manifests, random ordering) break the build cache
+           (different cache key each run).
+        4. **`doLast` blocks reading undeclared inputs.**
+
+        **Debug:** `./gradlew <task> --info` shows why a task was not UP-TO-DATE.
+
+    - id: S-04
+      question: "How would you optimize a slow Maven/Gradle build in CI?"
+      answer: >
+        **Step 1: Profile to find the bottleneck.**
+        Maven: `mvn install -fae` + `mvn -Dsurefire.reportFormat=plain verify`. Check which
+        phase takes longest.
+        Gradle: `./gradlew build --scan` → upload build scan → detailed task timeline.
+
+        **Gradle optimizations:**
+        - **Enable build cache:** `org.gradle.caching=true` in `gradle.properties` + remote
+          cache server. CI workers share cached task outputs — if another worker already built
+          the same inputs, the task is fetched from cache (from remote cache = CACHE HIT, skip execution).
+        - **Configuration cache:** `org.gradle.configuration-cache=true`. Caches task graph;
+          configuration phase (executing build scripts) is skipped on subsequent runs.
+        - **Parallel execution:** `org.gradle.parallel=true`. Independent subproject tasks
+          run in parallel.
+        - **Selective builds:** in a monorepo, only build modules affected by the change.
+          Use `./gradlew :orders-service:build` or a plugin (Gradle Affected Modules).
+
+        **Maven optimizations:**
+        - **Parallel:** `mvn -T 1C install` (one thread per CPU core).
+        - **Selective builds:** `-pl changed-module -am` (only changed module + dependencies).
+        - **Skip unnecessary phases in CI:** `mvn package -DskipTests` for the build step;
+          separate `mvn test` step. Use `-o` (offline) when SNAPSHOTs aren't needed.
+        - **Daemon:** Maven daemon (`mvnd`) caches the JVM across invocations — significant
+          startup overhead reduction.
+
+        **Common culprit:** network I/O. Use a local Nexus/Artifactory mirror; CI should
+        have a warm dependency cache (mount `~/.m2` or `~/.gradle` from a cache volume).
+
+    - id: S-05
+      question: "How do you manage dependency versions across a large multi-module project?"
+      answer: >
+        **Maven approach:**
+        Define all dependency versions in the root parent POM `<dependencyManagement>`.
+        Child modules declare dependencies WITHOUT `<version>` — they inherit the version
+        from the parent. This ensures all modules use consistent versions.
+
+        For third-party library suites (Spring Boot, Spring Cloud, AWS SDK), import their BOMs:
+        ```xml
+        <dependencyManagement>
+          <dependencies>
+            <dependency>
+              <groupId>org.springframework.boot</groupId>
+              <artifactId>spring-boot-dependencies</artifactId>
+              <version>3.3.1</version>
+              <type>pom</type>
+              <scope>import</scope>
+            </dependency>
+          </dependencies>
+        </dependencyManagement>
+        ```
+        Now no child needs to specify Spring Boot dependency versions — the BOM covers them all.
+
+        **Gradle approach:**
+        Use `gradle/libs.versions.toml` (version catalog):
+        ```toml
+        [versions]
+        spring-boot = "3.3.1"
+        [libraries]
+        spring-starter-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }
+        ```
+        Reference: `implementation(libs.spring.starter.web)`. Type-safe, IDE-autocompleted,
+        centralized. Apply as a platform: `implementation(platform(libs.spring.bom))`.
+
+        **Dependency updates:** automate with Dependabot (GitHub) or Renovate Bot — opens PRs
+        when new versions are available, includes changelog links.
+
+    - id: S-06
+      question: "What is the difference between 'api' and 'implementation' in Gradle's java-library plugin?"
+      answer: >
+        The distinction controls what is exposed on the **compile classpath of consumers**
+        (modules or projects that depend on your library).
+
+        **`implementation`:** the dependency is used internally. It goes on your compile
+        classpath AND your runtime classpath, but it does NOT go on the compile classpath
+        of modules that depend on you.
+
+        **`api`:** the dependency types appear in your public API (method signatures, return
+        types, field types). It goes on your compile classpath, your runtime classpath, AND
+        the compile classpath of all consumers.
+
+        **Why it matters:**
+        ```kotlin
+        // library-a/build.gradle.kts
+        dependencies {
+            implementation("com.google.guava:guava:32.0-jre")  // consumers can't use Guava types
+            api("org.slf4j:slf4j-api:2.0.9")                   // consumers can use Logger directly
+        }
+        ```
+        Using `implementation` where possible: (1) consumers don't accidentally depend on
+        your internal libraries, (2) Gradle can skip recompiling consumers when only an
+        `implementation` dependency changes (ABI hasn't changed), (3) cleaner dependency graph.
+
+        **Rule of thumb:** use `implementation` unless the type literally appears in your
+        `public` method signatures or fields. Default to `implementation`.
+
+    - id: S-07
+      question: "How do you create and publish a Maven library to Maven Central?"
+      answer: >
+        Maven Central (via Sonatype) has strict requirements:
+        - Source JAR (`-sources.jar`) and Javadoc JAR (`-javadoc.jar`) must be published
+        - All artifacts must be GPG-signed
+        - POM must include: `<name>`, `<description>`, `<url>`, `<licenses>`, `<developers>`,
+          `<scm>` elements
+
+        **POM configuration:**
+        ```xml
+        <build><plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <executions><execution><goals><goal>jar-no-fork</goal></goals></execution></executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <executions><execution><goals><goal>jar</goal></goals></execution></executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <executions><execution><goals><goal>sign</goal></goals></execution></executions>
+          </plugin>
+        </plugins></build>
+        ```
+
+        **Publish workflow:**
+        1. Deploy SNAPSHOT to Sonatype OSS snapshot repo
+        2. Set release version (remove `-SNAPSHOT`)
+        3. `mvn clean deploy -Prelease` → uploads to Sonatype staging
+        4. Log into Sonatype Nexus UI → close staging repo → release
+        5. Syncs to Maven Central within ~30 minutes
+
+        **Modern alternative:** use the Central Publishing Portal API or the
+        `central-publishing-maven-plugin` for a simpler automated workflow.
+
+  staff:
+    - id: ST-01
+      question: "How do you structure a Gradle multi-module monorepo build for 30 services to minimize CI build time?"
+      answer: >
+        **Problem:** 30 services in a monorepo. Running `./gradlew build` for all 30 takes
+        30 minutes. Most commits touch 1–2 services.
+
+        **Solution: affected-module detection + remote build cache**
+
+        **Step 1: Remote build cache.**
+        All CI runners and developers share a Gradle remote cache (Develocity or self-hosted).
+        `org.gradle.caching=true`. After the first full build, subsequent builds hit the cache
+        for unchanged modules. CI runner building service-A after another runner already built
+        the same inputs → CACHE HIT, no compilation needed.
+
+        **Step 2: Detect affected modules.**
+        Use `git diff --name-only origin/main...HEAD` to find changed files. Map file paths
+        to Gradle subprojects (`:orders-service`, `:shared-lib`). Run only affected subprojects
+        and their dependents:
+        ```bash
+        ./gradlew :orders-service:build :orders-service:test -amd
+        ```
+        `-amd` = also-make-dependents: builds any service that depends on orders-service.
+        Catches regression in consumers of a changed shared library.
+
+        **Step 3: Composite builds for shared libraries.**
+        Extract truly shared code (`common-lib`) into a separate Gradle composite build.
+        It's built independently; services include it. Changes to `common-lib` trigger
+        rebuilds of all dependent services (via `-amd`); changes to one service don't
+        trigger `common-lib` rebuild.
+
+        **Step 4: Configuration cache.**
+        `org.gradle.configuration-cache=true`. Caches the task graph configuration.
+        Build startup drops from 30s to 5s for cached configurations.
+
+        **Result:** a PR touching orders-service: builds 1–3 affected modules instead of 30.
+        Cache hit on unchanged modules. Total CI time: 3 min instead of 30 min.
+
+    - id: ST-02
+      question: "How do you enforce dependency governance (approved libraries, banned transitive deps, license compliance) in a Maven/Gradle build?"
+      answer: >
+        **Maven: maven-enforcer-plugin**
+        ```xml
+        <plugin>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <executions><execution><goals><goal>enforce</goal></goals>
+            <configuration><rules>
+              <bannedDependencies>
+                <excludes>
+                  <exclude>commons-logging:commons-logging</exclude>
+                  <exclude>log4j:log4j</exclude>
+                </excludes>
+              </bannedDependencies>
+              <requireUpperBoundDeps/>  <!-- warn when lower version wins conflict -->
+              <dependencyConvergence/>  <!-- fail on any version conflict -->
+            </rules></configuration>
+          </execution></executions>
+        </plugin>
+        ```
+
+        **Gradle: dependency constraints + resolution rules**
+        ```kotlin
+        configurations.all {
+            resolutionStrategy {
+                failOnVersionConflict()
+                force("org.slf4j:slf4j-api:2.0.9")
+                eachDependency {
+                    if (requested.group == "commons-logging") {
+                        useTarget("org.slf4j:jcl-over-slf4j:2.0.9")
+                        because("Replace commons-logging with SLF4J bridge")
+                    }
+                }
+            }
+        }
+        ```
+
+        **License compliance:**
+        - Maven: `license-maven-plugin` generates license reports; fail on prohibited licenses (GPL in a commercial product)
+        - Gradle: `com.github.jk1.dependency-license-report` plugin; configure allowed/forbidden licenses
+
+        **OWASP CVE scanning:**
+        - Maven: `org.owasp:dependency-check-maven` → `mvn verify -Pcheck` fails on CVSS > 7.0
+        - Gradle: `org.owasp.dependencycheck` plugin
+        - CI: run on every PR; block merge on HIGH/CRITICAL CVEs
+
+  principal:
+    - id: P-01
+      question: "How do you design a build platform strategy for an enterprise with 200 repositories and 500 engineers?"
+      answer: >
+        **The core problems at scale:**
+        - Inconsistent build tooling versions across teams (Maven 3.6 vs 3.9, Java 11 vs 21)
+        - Duplicated build logic (every team writes their own Docker build, GPG signing, Sonar integration)
+        - Slow CI because no shared build cache
+        - Security: old dependencies with CVEs, no license governance
+
+        **Centralized parent POM / convention plugin:**
+        Publish a `company-parent` POM (Maven) or `company-conventions` Gradle plugin.
+        It encodes: Java version, compiler settings, Checkstyle config, Sonar integration,
+        OWASP dependency check, Enforcer rules (ban old logging frameworks), publishing config.
+        Teams inherit without configuring. Update the parent → all teams get the update on
+        next build.
+
+        **Artifact repository governance (Nexus/Artifactory):**
+        - Proxy Maven Central through the internal Nexus — all dependencies go via internal mirror
+        - Curated "approved" group for internal artifacts
+        - Automated CVE scanning on Nexus: quarantine artifacts with CRITICAL CVEs before teams
+          can even download them
+        - License compliance enforced at the proxy layer
+
+        **Shared build cache:**
+        Gradle Develocity (formerly Gradle Enterprise) or Gradle Cache Node:
+        - All CI runners push to and pull from shared cache
+        - Developers pull from shared cache — first local build after CI is mostly cache hits
+        - Build scan analytics: which tasks are slowest, which teams have most cache misses
+
+        **Toolchain standardization:**
+        - Maven Toolchains or Gradle toolchain support: declare `java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }`
+        - JDK auto-provisioned by Gradle; no "Java version mismatch" bugs
+        - Foojay toolchain resolver downloads the right JDK automatically
+
+        **Dependency updates automation:**
+        - Renovate Bot running org-wide: opens PRs in all repos when deps have new versions
+        - Priority bot: flag CVE-driven updates with P1 label; auto-assign to owning team
+
+# ── SCENARIOS ─────────────────────────────────────────────────────────────────
+scenarios:
+  - title: "Reduce CI Build Time from 45 Minutes to Under 10 Minutes"
+    problem: >
+      A Spring Boot monorepo with 12 modules takes 45 minutes to build in CI. Developer
+      feedback loops are painful. The build runs `mvn clean install` on every commit to
+      every branch. Tests account for 35 of the 45 minutes.
+    constraints:
+      - GitHub Actions CI with ephemeral runners (no persistent disk)
+      - Maven build, Java 21
+      - Cannot remove any tests — coverage is a compliance requirement
+      - 3 frontend engineers who don't understand the build tooling deeply
+    discussion:
+      - >
+        **Migrate to Gradle for incremental builds and remote cache:**
+        While Maven can be optimized, Gradle's incremental build + remote build cache
+        provides the largest gains. If migration is too costly, proceed with Maven optimizations.
+      - >
+        **Maven parallel execution:**
+        `mvn -T 1C install` runs independent modules in parallel (one thread per CPU core).
+        GitHub Actions `ubuntu-latest` has 2 cores → 2x speedup for independent modules.
+        Add `-fae` (fail at end) to complete parallel build even if one module fails.
+      - >
+        **Selective module builds:**
+        Use a GitHub Actions matrix to detect which modules changed. Build only affected
+        modules using `mvn -pl changed-module1,changed-module2 -am install`.
+        For PRs touching 1–2 modules: build time drops to 5–15 minutes.
+      - >
+        **Split unit and integration tests:**
+        Configure Failsafe for integration tests. In CI: Step 1: `mvn test -T 1C` (fast,
+        parallel unit tests, ~5 min). Step 2: `mvn verify -DskipUnitTests -T 1C` (only
+        integration tests). Run in parallel GitHub Actions jobs → total wall time = max(unit, IT).
+      - >
+        **GitHub Actions cache for Maven repo:**
+        ```yaml
+        - uses: actions/cache@v4
+          with:
+            path: ~/.m2/repository
+            key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+            restore-keys: ${{ runner.os }}-maven-
+        ```
+        Dependency download time: 10 min → 30 seconds on cache hit.
+    red_flags:
+      - "mvn clean on every build — clean removes all compiled classes and restarts from scratch; omit clean unless necessary"
+      - "Running all tests in a single sequential job — parallelism across jobs is free in GitHub Actions"
+      - "No dependency cache in CI — re-downloading hundreds of MB on every ephemeral runner"
+      - "Mixing unit and integration tests in the same phase — can't run them independently or in parallel"
+
+  - title: "Resolve a Transitive Dependency Conflict Causing Runtime Failures"
+    problem: >
+      A Spring Boot application starts failing in production with `NoSuchMethodError` on a
+      method from `jackson-databind`. The method exists in Jackson 2.15 but was removed in 2.16.
+      `mvn dependency:tree` shows both versions in the dependency graph.
+    constraints:
+      - Spring Boot 3.2 (manages Jackson 2.16)
+      - A third-party library `analytics-sdk:2.1` depends on Jackson 2.15
+      - Cannot upgrade analytics-sdk (no newer version available)
+    discussion:
+      - >
+        **Diagnose with dependency:tree:**
+        Run `mvn dependency:tree -Dincludes=com.fasterxml.jackson.core:jackson-databind`.
+        Output shows: Spring Boot BOM wants 2.16.1; analytics-sdk:2.1 → jackson-databind:2.15.3.
+        Maven nearest-wins picked 2.15.3 (analytics-sdk is at depth 2, Spring Boot BOM at depth 1).
+        Actually Spring Boot BOM is in `<dependencyManagement>` — it doesn't add a physical node,
+        so analytics-sdk's transitive dep (depth 2) wins over nothing in the dependency tree.
+      - >
+        **Fix: explicit dependencyManagement pin:**
+        In the root POM `<dependencyManagement>`, explicitly declare:
+        ```xml
+        <dependency>
+          <groupId>com.fasterxml.jackson.core</groupId>
+          <artifactId>jackson-databind</artifactId>
+          <version>2.16.1</version>
+        </dependency>
+        ```
+        `<dependencyManagement>` declarations always win over transitive declarations.
+        Jackson 2.16.1 is now forced regardless of what analytics-sdk requests.
+      - >
+        **Verify the fix:**
+        Re-run `mvn dependency:tree -Dincludes=com.fasterxml.jackson.core:jackson-databind`.
+        Confirm only 2.16.1 appears. Run `mvn verify` — tests pass. Deploy to staging.
+      - >
+        **Root cause prevention:**
+        Add `<requireUpperBoundDeps>` rule to maven-enforcer-plugin. It warns when a lower
+        version wins a conflict. Would have caught this at build time rather than production.
+        Also add `<dependencyConvergence/>` to fail the build if any version conflicts exist.
+    red_flags:
+      - "Excluding the transitive dependency entirely without adding the correct version — you end up with no Jackson on the classpath"
+      - "Upgrading analytics-sdk without verifying it's actually compatible with Jackson 2.16"
+      - "Not verifying the fix with dependency:tree after applying — the pin may not have taken effect"

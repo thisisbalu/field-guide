@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datadog — Field Guide</title>
+<script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#7c3aed;--accent2:#d95a1e;--accent3:#059669; --highlight-bg:#f5f3ff;--highlight-text:#7c3aed;--highlight-border:#8b5cf6; --your-exp-bg:rgba(5,150,105,.06);--your-exp-border:rgba(5,150,105,.2);--your-exp-text:#065f46; --acc-hover:rgba(124,58,237,.04);--acc-open-border:#7c3aed;--acc-open-bg:rgba(124,58,237,.03); --num-color:#7c3aed;--num-bg:rgba(124,58,237,.1); --tag-color:#7c3aed;--tag-bg:rgba(124,58,237,.08);--tag-border:rgba(124,58,237,.2); --flow-arrow:#7c3aed;--h1-from:#4c1d95;--h1-to:#7c3aed; --badge-color:#4c1d95;--stat-num:#7c3aed; --tab-active-color:#7c3aed;--tab-active-bg:rgba(124,58,237,.08);--tab-active-border:#7c3aed; --section-title:#7c3aed;--concept-title:#4c1d95; --cheat-head-bg:#4c1d95;--cheat-head-text:#ffffff;--cheat-key:#4c1d95; --cmd-bg:#f5f3ff;--cmd-text:#4c1d95; }
+  [data-theme="dark"]{ --accent:#c4b5fd;--accent2:#ff9d6b;--accent3:#10b981; --highlight-bg:#2e1065;--highlight-text:#c4b5fd;--highlight-border:#8b5cf6; --your-exp-bg:rgba(16,185,129,.1);--your-exp-border:rgba(16,185,129,.3);--your-exp-text:#6ee7b7; --acc-hover:rgba(196,181,253,.04);--acc-open-border:#c4b5fd;--acc-open-bg:rgba(196,181,253,.03); --num-color:#c4b5fd;--num-bg:rgba(196,181,253,.1); --tag-color:#c4b5fd;--tag-bg:rgba(196,181,253,.08);--tag-border:rgba(196,181,253,.2); --flow-arrow:#c4b5fd;--h1-from:#c4b5fd;--h1-to:#8b5cf6; --badge-color:#c4b5fd;--stat-num:#c4b5fd; --tab-active-color:#c4b5fd;--tab-active-bg:rgba(196,181,253,.08);--tab-active-border:#c4b5fd; --section-title:#c4b5fd;--concept-title:#c4b5fd; --cheat-head-bg:#2e1065;--cheat-head-text:#c4b5fd;--cheat-key:#c4b5fd; --cmd-bg:#2e1065;--cmd-text:#c4b5fd; }
+  [data-theme="light"] .toggle-knob{background:#7c3aed;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#c4b5fd;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Back navigation ─────────────────────────────────────────────────────── */
+.back-link{position:fixed;top:1.25rem;left:1.25rem;z-index:100;display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);text-decoration:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.back-link:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
+/* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
+.qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
+.qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
+.qa-search:focus{border-color:var(--tab-active-border,var(--text));}
+.qa-search::placeholder{color:var(--muted);}
+.expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
+.expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;cursor:pointer;transition:opacity .2s;}
+.cmd:hover{opacity:.75;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+  .back-link span{display:none;}
+}
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
+
+</style>
+</head>
+<body data-topic-id="datadog">
+
+<a class="back-link" href="index.html">← <span>Field Guide</span></a>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>Datadog</h1>
+  <p class="subtitle">// metrics · APM · logs · traces · dashboards · monitors · alerting · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="overview" role="button" tabindex="0" onclick="switchTab('overview',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('overview',this);event.preventDefault();}">Overview</div>
+  <div class="tab" data-tab="deepdive" role="button" tabindex="0" onclick="switchTab('deepdive',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('deepdive',this);event.preventDefault();}">Deep Dive</div>
+  <div class="tab" data-tab="qa" role="button" tabindex="0" onclick="switchTab('qa',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('qa',this);event.preventDefault();}">Q &amp; A</div>
+  <div class="tab" data-tab="scenarios" role="button" tabindex="0" onclick="switchTab('scenarios',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('scenarios',this);event.preventDefault();}">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">📈 Metrics</div>
+      <div class="concept-body">
+        Datadog collects metrics via the <strong>Datadog Agent</strong> running on hosts/containers, or via integrations (AWS CloudWatch, Kubernetes metrics-server) and custom code using the <strong>StatsD API</strong> or <strong>DogStatsD</strong> (Datadog's extended protocol supporting tags).
+Four metric types: <strong>Count</strong> (discrete events — requests, errors), <strong>Rate</strong> (count per second — automatically calculated), <strong>Gauge</strong> (point-in-time value — memory, queue depth, CPU), <strong>Histogram</strong> (distribution of values — latency; generates p50, p75, p90, p95, p99, max, avg, count automatically).
+All metrics support <strong>tags</strong> (key:value pairs like <code>env:prod</code>, <code>service:orders</code>, <code>region:us-east-1</code>). Tags are the primary grouping and filtering mechanism. Metrics are stored for 15 months; high-resolution (1-second) retained for 15 hours.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">histogram → percentiles</span>
+          
+          <span class="tag blue">tags for dimensions</span>
+          
+          <span class="tag orange">DogStatsD UDP</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔍 APM & Distributed Tracing</div>
+      <div class="concept-body">
+        Datadog APM instruments services to capture <strong>traces</strong> — a tree of <strong>spans</strong> representing each operation (HTTP request, DB query, cache call, downstream service call). Auto-instrumentation via language agents (Java agent, dd-trace-py) instruments popular frameworks without code changes. Manual instrumentation adds custom spans.
+<strong>Key APM views:</strong> - <strong>Service Map:</strong> topology of all services and their dependencies - <strong>Flame graph:</strong> waterfall of spans within a trace — identify bottlenecks - <strong>Service Page:</strong> throughput, latency (P50/P95/P99), error rate per service - <strong>Trace search:</strong> query traces by service, operation, tag, duration
+<strong>Trace sampling:</strong> 100% trace ingestion is expensive. Datadog uses <strong>head-based</strong> sampling (Tracing Without Limits — ingests all, stores sampled) with <strong>retention filters</strong> to keep traces matching specific criteria (all errors, slow traces, specific users).
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">auto-instrumentation</span>
+          
+          <span class="tag blue">flame graph</span>
+          
+          <span class="tag orange">retention filters</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📋 Log Management</div>
+      <div class="concept-body">
+        Logs are collected by the Datadog Agent (tail log files, Docker/Kubernetes log driver), via Lambda forwarder (AWS), or by direct API (<code>/_log</code> endpoint).
+<strong>Log pipeline:</strong> raw logs → parsing (Grok patterns extract structured fields) → enrichment (add host/service tags) → indexing or archiving. Not all logs need to be indexed (expensive) — route low-value logs to archives (S3) with Flex Logs.
+<strong>Log attributes:</strong> extracted structured fields (status_code, duration, user_id) become searchable facets. <strong>Reserved attributes</strong> automatically map to Datadog conventions: <code>status</code> → log level, <code>message</code>, <code>host</code>, <code>service</code>, <code>source</code>, <code>timestamp</code>.
+<strong>Log-Trace correlation:</strong> Datadog auto-injects <code>dd.trace_id</code> and <code>dd.span_id</code> into logs (via MDC in Java). Click a trace span → "View Logs" shows all logs from that exact request. Critical for debugging distributed failures.
+        
+        
+        <div class="tags">
+          
+          <span class="tag blue">Grok parsing</span>
+          
+          <span class="tag green">trace correlation</span>
+          
+          <span class="tag orange">archive for cost</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🖥️ Dashboards</div>
+      <div class="concept-body">
+        Dashboards visualize metrics, traces, and logs in a single pane. Widget types: <strong>Timeseries</strong> (line/bar graphs over time), <strong>Toplist</strong> (ranked list — top services by error rate), <strong>Heatmap</strong> (distribution over time), <strong>Service Level Objective (SLO)</strong> widget, <strong>Log Stream</strong> (live logs), <strong>Trace List</strong>, <strong>Iframe</strong>, and <strong>Note</strong>.
+<strong>Dashboard best practices:</strong> - One dashboard per service (golden signals: latency, traffic, errors, saturation) - Template variables (<code>$env</code>, <code>$service</code>) make dashboards reusable across environments - Use <strong>Formula &amp; Functions</strong> for derived metrics (error rate = <code>errors / requests</code>) - Share dashboards via public URL or embed via iframe - <strong>Screenboards</strong> (freeform layout, good for NOC walls) vs <strong>Timeboards</strong> (time-synced,
+  good for deep investigation — changing time range applies to all widgets)
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">golden signals</span>
+          
+          <span class="tag blue">template variables</span>
+          
+          <span class="tag orange">timeboards for investigation</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🚨 Monitors & Alerting</div>
+      <div class="concept-body">
+        Monitors define alerting conditions on any Datadog data. Types: <strong>Metric monitor</strong> (threshold, anomaly, change, forecast), <strong>APM monitor</strong> (error rate, latency), <strong>Log monitor</strong> (match count), <strong>Composite monitor</strong> (AND/OR of other monitors), <strong>SLO alert</strong> (burn rate), <strong>Synthetics alert</strong> (browser/API test failures).
+<strong>Alert states:</strong> OK → Warning → Alert → No Data. Each transition can notify.
+<strong>Notification routing:</strong> integrate with PagerDuty, Slack, Opsgenie, email. Use <code>@team-oncall</code> in monitor messages. <strong>Priority P1–P5</strong> classifies severity.
+<strong>Monitor best practices:</strong> - Alert on symptoms (latency up, error rate up), not causes (CPU up) - Set Warning before Alert to give early warning - Always include runbook link and context in alert message - Suppress flapping with <code>require</code> full evaluation windows before alerting - Use <strong>downtime</strong> to suppress alerts during planned maintenance
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">symptom not cause</span>
+          
+          <span class="tag blue">anomaly detection</span>
+          
+          <span class="tag orange">SLO burn rate alerts</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🎯 SLIs, SLOs & Error Budgets</div>
+      <div class="concept-body">
+        Datadog supports SLO tracking natively. Define an <strong>SLI</strong> (Service Level Indicator) from a monitor or metric ratio. Set the <strong>SLO target</strong> (e.g., 99.9% availability). Datadog calculates the <strong>error budget</strong> (remaining downtime budget in the compliance window).
+Two SLO types: <strong>Monitor-based</strong> — SLO derived from monitor OK/Alert state over time. <strong>Metric-based</strong> — SLO derived from a ratio of good events / total events (e.g., <code>successful_requests / total_requests</code>). More accurate than monitor-based.
+<strong>Burn rate alerts:</strong> alert when the error budget is being consumed faster than sustainable. A burn rate of 1 = consuming budget at exactly the pace to exhaust it by window end. Alert at burn rate 14.4 (1-hour budget burn at 30-day window). Allows catching incidents early without waiting for the SLO to actually breach.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">metric-based SLO</span>
+          
+          <span class="tag orange">burn rate alerts</span>
+          
+          <span class="tag blue">error budget</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔬 Synthetics & RUM</div>
+      <div class="concept-body">
+        <strong>Synthetics</strong> proactively monitors APIs and UIs from external locations: - <strong>API tests:</strong> HTTP, gRPC, TCP, DNS, SSL health checks on a schedule from global
+  PoPs. Alert before users notice.
+- <strong>Browser tests:</strong> Selenium-like test recorded in a browser. Runs the full user
+  journey (login → checkout) on a schedule. Catches JS errors, layout issues.
+- <strong>Multistep API tests:</strong> chain of API calls simulating a workflow.
+<strong>Real User Monitoring (RUM):</strong> captures real user browser sessions — page load time, Core Web Vitals (LCP, FID, CLS), JS errors, user actions. Correlates with backend traces (RUM → APM → Logs) for end-to-end visibility into user-facing performance.
+<strong>CI Visibility:</strong> Synthetic tests can run in CI pipelines. RUM can be used in staging environments to catch frontend regressions before production.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">Synthetics = proactive</span>
+          
+          <span class="tag blue">RUM = real users</span>
+          
+          <span class="tag orange">global PoPs</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">💰 Cost Management</div>
+      <div class="concept-body">
+        Datadog pricing is based on: <strong>hosts</strong> (agents running), <strong>APM hosts</strong>, <strong>indexed logs</strong> (GB ingested × retention), <strong>custom metrics</strong> (cardinality), <strong>Synthetics</strong> (test runs), <strong>RUM sessions</strong>. Costs can escalate quickly if not managed.
+<strong>Cost levers:</strong> - <strong>Custom metrics:</strong> each unique tag combination = one metric. High-cardinality tags
+  (user_id, request_id) on metrics explode cardinality and cost. Use tags for dimensions
+  that have bounded cardinality (env, service, region — not user_id).
+- <strong>Log indexing:</strong> only index logs you actively query. Archive the rest to S3 (Flex Logs
+  for occasional ad-hoc queries). Use log sampling for high-volume debug logs.
+- <strong>APM sampling:</strong> Tracing Without Limits ingests all; retention filters reduce storage. - <strong>Metrics aggregation:</strong> use rollups to retain aggregated historical data; raw 1-second
+  metrics roll up to 1-minute after 15 hours.
+        
+        
+        <div class="tags">
+          
+          <span class="tag red">cardinality = cost</span>
+          
+          <span class="tag orange">archive logs</span>
+          
+          <span class="tag blue">tag governance</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">High-cardinality tags on metrics</span>
+      Every unique combination of tag values on a metric counts as a separate custom metric. Adding <code>user_id</code> as a tag to a request metric with 1M users creates 1M custom metrics — potentially thousands of dollars per month. Tags on metrics must have bounded cardinality (env, service, region, status_code are good; user_id, request_id, order_id are not). Use traces and logs for high-cardinality analysis.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Alert fatigue from noisy monitors</span>
+      Monitors that fire too often lose their urgency — on-call engineers start ignoring alerts. Common causes: thresholds too tight, no evaluation window (single data point triggers), alerting on symptoms with too much volatility. Fix: use longer evaluation windows, anomaly detection for variable metrics, composite monitors to AND conditions, and regular alert review to silence or tune noisy monitors.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Missing log-trace correlation</span>
+      Distributed debugging requires jumping between traces and logs for the same request. This only works if the trace ID is injected into log statements. Java: Datadog agent auto-injects into SLF4J MDC. Other languages may require manual injection. Without it, you have logs and traces as separate, disconnected data streams.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Sampling traces and missing critical errors</span>
+      Head-based sampling configured too aggressively (e.g., 1% sampling) means 99% of error traces are never stored. Use tail-based sampling (retention filters) to always keep traces with errors and slow traces, regardless of the sampling rate for normal traffic.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Dashboard scope too broad</span>
+      A single dashboard showing all services at once makes it impossible to identify which service has an issue. Build service-scoped dashboards using template variables. Reserve the global overview dashboard for executive SLO summary only.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use Datadog When</div>
+      <ul>
+        
+        <li>Full-stack observability across cloud infrastructure, containers, and application code</li>
+        
+        <li>Unified platform where correlating metrics, traces, and logs in one tool matters</li>
+        
+        <li>SLO tracking and error budget management for reliability engineering</li>
+        
+        <li>Proactive monitoring with Synthetics and anomaly detection before users are impacted</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use Datadog When</div>
+      <ul>
+        
+        <li>Cost-sensitive environments — Datadog can be expensive at scale; Prometheus + Grafana + Loki is a common open-source alternative</li>
+        
+        <li>Heavily regulated environments where sending telemetry to a SaaS vendor is prohibited</li>
+        
+        <li>Very simple single-service deployments where a basic hosted metrics solution suffices</li>
+        
+        <li>When deep OpenTelemetry-native tooling (Jaeger, Tempo, Prometheus) is already well-established</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Metric Types</div>
+      <table>
+        
+        <tr><td>COUNT</td><td>Number of events in a flush interval. Resets each interval. Use for: requests, errors, logins. Submit: statsd.increment('requests')</td></tr>
+        
+        <tr><td>RATE</td><td>COUNT per second. Datadog calculates automatically from COUNT. Normalized across flush intervals.</td></tr>
+        
+        <tr><td>GAUGE</td><td>Point-in-time value. Last value wins in flush interval. Use for: memory, CPU, queue depth, active connections.</td></tr>
+        
+        <tr><td>HISTOGRAM</td><td>Distribution of values per flush interval. Generates: .avg, .count, .median, .95percentile, .max. Use for: latency, response sizes.</td></tr>
+        
+        <tr><td>DISTRIBUTION</td><td>Like histogram but aggregated globally (not per-agent). Accurate percentiles across hosts. Preferred for latency at scale. Counts as custom metric per percentile.</td></tr>
+        
+        <tr><td>SET</td><td>Count of unique values per flush interval. Use for: unique users, unique IPs. submit: statsd.set('users', user_id)</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">APM Concepts</div>
+      <table>
+        
+        <tr><td>Trace</td><td>Complete request journey across all services. Has a trace_id. Composed of spans.</td></tr>
+        
+        <tr><td>Span</td><td>One unit of work (HTTP call, DB query, function). Has span_id, parent_span_id, start, duration, resource, service, error flag.</td></tr>
+        
+        <tr><td>Service</td><td>Logical grouping of spans. Configured via DD_SERVICE env var or tracer config. Appears as a node in the Service Map.</td></tr>
+        
+        <tr><td>Resource</td><td>The specific operation within a service. For HTTP: 'GET /orders/{id}'. For DB: the SQL query template.</td></tr>
+        
+        <tr><td>Sampling rate</td><td>Fraction of traces ingested. Default: automatic (prioritize errors and slow traces). Override per service with DD_TRACE_SAMPLE_RATE=0.1.</td></tr>
+        
+        <tr><td>Retention filter</td><td>Server-side rule keeping specific traces: all errors, P95 latency outliers, specific service. Ingestion and indexing are billed separately.</td></tr>
+        
+        <tr><td>Continuous Profiler</td><td>CPU/memory/lock profiles captured continuously and linked to traces. Identifies hot code paths without separate profiling sessions.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Monitor Types</div>
+      <table>
+        
+        <tr><td>Threshold</td><td>Alert when metric crosses a static threshold for N minutes. Simple and predictable. Needs manual tuning for seasonal traffic.</td></tr>
+        
+        <tr><td>Change</td><td>Alert when metric changes by X% or X units compared to N minutes/hours ago. Good for detecting sudden spikes.</td></tr>
+        
+        <tr><td>Anomaly</td><td>ML-based. Alert when metric deviates from expected pattern (learned from historical data). Good for cyclical metrics (day-of-week patterns).</td></tr>
+        
+        <tr><td>Forecast</td><td>Predicts when metric will cross threshold in the future. Use for capacity planning (disk will fill in 3 days).</td></tr>
+        
+        <tr><td>Outlier</td><td>Alert when one entity (host, container) behaves differently from its peers. Good for detecting bad pods in a fleet.</td></tr>
+        
+        <tr><td>Composite</td><td>Boolean combination of other monitors. 'Alert when error rate is high AND latency is high'. Reduces false positives.</td></tr>
+        
+        <tr><td>SLO Alert</td><td>Alert on burn rate: error budget consumed faster than safe rate. Two-window burn rate: fast (1hr) + slow (5hr) for precision + recall.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">DogStatsD Metric Submission</div>
+      <table>
+        
+        <tr><td>Increment count</td><td>statsd.increment('orders.created', tags=['env:prod','region:us-east'])</td></tr>
+        
+        <tr><td>Gauge</td><td>statsd.gauge('queue.depth', queue.size(), tags=['queue:orders'])</td></tr>
+        
+        <tr><td>Histogram</td><td>statsd.histogram('request.duration', elapsed_ms, tags=['service:api'])</td></tr>
+        
+        <tr><td>Distribution</td><td>statsd.distribution('db.query.time', query_ms, tags=['table:orders'])</td></tr>
+        
+        <tr><td>Timed decorator (Python)</td><td>@statsd.timed('function.duration', tags=['func:checkout'])</td></tr>
+        
+        <tr><td>Event</td><td>statsd.event('Deploy complete', 'v1.4.2 deployed', alert_type='info', tags=['env:prod'])</td></tr>
+        
+        <tr><td>Service check</td><td>statsd.service_check('payment.health', statsd.OK, tags=['env:prod'])</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Datadog vs Prometheus+Grafana vs New Relic vs Dynatrace</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Type</td>
+            
+            <td>SaaS, fully managed</td>
+            
+            <td>Open-source, self-hosted</td>
+            
+            <td>SaaS, fully managed</td>
+            
+            <td>SaaS, fully managed</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Metrics</td>
+            
+            <td>Agent + integrations</td>
+            
+            <td>Scrape-based pull model</td>
+            
+            <td>Agent + integrations</td>
+            
+            <td>OneAgent auto-discovery</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>APM</td>
+            
+            <td>dd-trace language agents</td>
+            
+            <td>OpenTelemetry + Tempo</td>
+            
+            <td>Language agents</td>
+            
+            <td>OneAgent (auto, no code)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Logs</td>
+            
+            <td>Agent + pipeline</td>
+            
+            <td>Loki (label-based)</td>
+            
+            <td>Logs UI</td>
+            
+            <td>Log management</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Dashboards</td>
+            
+            <td>Polished, built-in</td>
+            
+            <td>Grafana (powerful, complex)</td>
+            
+            <td>Polished</td>
+            
+            <td>Polished, auto-generated</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Alerting</td>
+            
+            <td>Monitors + PD/Slack</td>
+            
+            <td>Alertmanager</td>
+            
+            <td>Alert conditions</td>
+            
+            <td>Davis AI (auto-detect)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Auto-instrumentation</td>
+            
+            <td>Good (agents)</td>
+            
+            <td>Manual/OTel needed</td>
+            
+            <td>Good</td>
+            
+            <td>Best (OneAgent bytecode)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Cost model</td>
+            
+            <td>Per host + custom metrics</td>
+            
+            <td>Infrastructure cost only</td>
+            
+            <td>Per GB ingested</td>
+            
+            <td>Per host (DEM/APM)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best for</td>
+            
+            <td>All-in-one, fast time to value</td>
+            
+            <td>Cost control, OSS ecosystem</td>
+            
+            <td>Simple setup</td>
+            
+            <td>Enterprise, AI-ops</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
+  <div class="qa-controls">
+    <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
+    <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
+  </div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="S-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">What are the four golden signals and how would you monitor them in Datadog?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Google SRE's four golden signals are the minimum viable set of metrics for any service:
+<strong>Latency:</strong> time to serve a request. Track P50, P95, P99 — not just average. Datadog: APM Service Page shows latency distribution; metric <code>trace.http.request.duration</code> histogram; custom distribution metric from your code.
+<strong>Traffic:</strong> demand on the system. Requests per second, events per second, active users. Datadog: <code>trace.http.request.hits</code> (from APM); custom COUNT metric.
+<strong>Errors:</strong> rate of failing requests. 5xx rate, exception rate, business error rate. Datadog: <code>trace.http.request.errors</code> from APM; log-based monitor on ERROR-level logs; custom COUNT metric tagged with <code>status:error</code>.
+<strong>Saturation:</strong> how "full" the service is. CPU, memory, thread pool utilization, queue depth. Datadog: system metrics from the agent (<code>system.cpu.user</code>, <code>system.mem.used</code>); JVM metrics (<code>jvm.heap_memory</code>, <code>jvm.thread_count</code>); custom gauge for queue depth.
+<strong>Dashboard template:</strong> one timeseries widget per signal, scoped with <code>$service</code> template variable. Add SLO widget showing error budget. This becomes the default on-call dashboard for every service.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('datadog','S-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">How do you set up and tune a monitor to avoid alert fatigue?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Alert fatigue causes:</strong> threshold too tight (every spike alerts), no evaluation window (single point triggers), alerting on volatile proxy metrics (CPU), no priority differentiation.
+<strong>Tuning steps:</strong> 1. <strong>Alert on symptoms, not causes.</strong> <code>error_rate &gt; 1%</code> is a symptom. <code>cpu &gt; 80%</code> is
+   a cause (CPU high doesn't always mean user impact). Users experience latency and
+   errors — monitor those directly.
+2. <strong>Set evaluation window.</strong> Don't alert on a single data point. Alert if <code>error_rate &gt; 1%</code>
+   for the last 5 minutes (sustained, not a blip).
+3. <strong>Warning before Alert.</strong> Warning at 0.5% error rate, Alert at 1%. Gives early signal
+   without waking on-call immediately.
+4. <strong>Use anomaly detection</strong> for metrics with variable baseline (traffic is lower at 3am;
+   anomaly detection knows this and doesn't fire for normal low-traffic lulls).
+5. <strong>Composite monitors.</strong> Alert only when <code>error_rate &gt; 1% AND latency_p99 &gt; 2s</code>.
+   Single signal spikes don't page; correlated signals do.
+6. <strong>Include runbook</strong> in alert message: link to runbook, recent deploys (via event overlay),
+   related dashboards.
+7. <strong>Review monthly:</strong> mute monitors that fired &gt; 5 times with no action. That's noise.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('datadog','S-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">How does Datadog APM sampling work? What's the difference between head-based and tail-based sampling?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Head-based sampling:</strong> the sampling decision is made at the start of the trace (first span). A percentage of traces are sampled in; the rest are dropped entirely. Problem: a 1% head-based sample means 99% of error traces are never captured — you're flying blind on most incidents.
+<strong>Tail-based sampling (Datadog "Tracing Without Limits"):</strong> - Datadog ingests ALL spans from all services - After the trace is complete (or within a window), a decision is made on what to store - <strong>Retention filters</strong> define what's kept: "keep all traces with errors", "keep all
+  traces &gt; 5s P95", "keep 5% of healthy traces"
+- Errors and outliers are always kept; normal traffic is sampled down
+<strong>In practice:</strong> - Default: Datadog's adaptive sampling ingests 100% up to a volume limit, then
+  applies intelligent sampling prioritizing errors
+- <code>DD_TRACE_SAMPLE_RATE=0.1</code> sets the head-based rate for a service (10% of traces
+  enter Datadog at all). Combine with <code>DD_TRACE_ANALYTICS_ENABLED=true</code> so key spans
+  are still counted for metrics even when the trace is dropped.</p>
+<p><strong>Recommendation:</strong> let Datadog manage sampling with retention filters. Manually forcing low sample rates saves cost but blind-spots errors.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('datadog','S-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-04">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">How do you implement custom metrics in a Java Spring Boot application using Datadog?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Option 1: DogStatsD (UDP)</strong> <code>java @Bean public StatsDClient statsd() {
+    return new NonBlockingStatsDClientBuilder()
+        .prefix("myapp")
+        .hostname("localhost") // or DD_AGENT_HOST env
+        .port(8125)
+        .build();
+}
+// In service: statsd.incrementCounter("orders.created", "env:prod", "payment:card"); statsd.recordHistogramValue("checkout.duration", durationMs, "region:us-east"); statsd.recordGaugeValue("cart.items", cart.size());</code>
+<strong>Option 2: Micrometer (Spring Boot Actuator)</strong> Spring Boot auto-configures Micrometer. Add <code>micrometer-registry-datadog</code> dependency. All existing <code>@Timed</code>, <code>MeterRegistry</code> metrics automatically ship to Datadog. <code>yaml management.datadog.metrics.export.api-key: ${DD_API_KEY} management.datadog.metrics.export.step: 10s</code>
+<strong>Option 3: dd-trace Java agent custom spans</strong> <code>java Tracer tracer = GlobalTracer.get(); Span span = tracer.buildSpan("payment.process").start(); span.setTag("payment.method", "card"); span.setTag("amount", amount); // ... do work ... span.finish();</code>
+<strong>Tag discipline:</strong> never add high-cardinality tags (user_id, order_id) to metrics. Use traces for per-request detail; metrics for aggregated signals.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('datadog','S-04',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-05">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">How do you correlate a Datadog alert with the root cause across metrics, traces, and logs?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Structured investigation workflow:</strong>
+1. <strong>Alert fires</strong> → click the alert notification → lands on the triggered monitor with
+   the anomalous time window highlighted.</p>
+<ol>
+<li>
+<p><strong>Metrics context:</strong> look at the timeseries in the monitor. Add correlated metrics
+   to a dashboard (error rate + latency + DB connection pool + downstream error rate).
+   When did it start? What else changed at the same time?</p>
+</li>
+<li>
+<p><strong>Event overlay:</strong> add deployment events to the dashboard (<code>@deployment.env:prod</code>).
+   Did the metric change right after a deploy?</p>
+</li>
+<li>
+<p><strong>Traces:</strong> from the APM service page, filter to the error time window. Sort by
+   error rate. Open a sample failing trace. The flame graph shows exactly which span
+   failed and what the error was.</p>
+</li>
+<li>
+<p><strong>Logs:</strong> from the failing span, click "View Related Logs". Datadog uses the
+   <code>trace_id</code> injected in logs to show only log lines from that exact request.
+   The stack trace or error message is there.</p>
+</li>
+<li>
+<p><strong>Infrastructure correlation:</strong> from the span, pivot to the host/container metrics —
+   was the container OOMKilled? Was the DB instance at 100% CPU?</p>
+</li>
+</ol>
+<p>This flow — Alert → Metrics → Traces → Logs → Infrastructure — is the structured on-call investigation path. The critical enabler is <code>trace_id</code> propagated into logs.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('datadog','S-05',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-06">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">How would you set up SLOs and burn rate alerts in Datadog?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Step 1: Define the SLI</strong> Use a metric-based SLO (more accurate than monitor-based): - Good events: <code>sum:trace.http.request.hits{service:orders,http.status_code:2xx}.as_count()</code> - Total events: <code>sum:trace.http.request.hits{service:orders}.as_count()</code> - SLI = good / total
+<strong>Step 2: Set SLO target</strong> - Target: 99.9% (43.8 minutes downtime/month) - Window: 30 days rolling - Error budget: 0.1% of requests = allowed failures
+<strong>Step 3: Burn rate alert</strong> Alert when error budget is being consumed too fast. Multi-window burn rate (Datadog SLO alert): - Fast burn: burn rate &gt; 14.4 over 1-hour window (consumes 2% error budget in 1 hour) - Slow burn: burn rate &gt; 6 over 6-hour window (consumes 5% error budget in 6 hours) Alert if EITHER fires — catches both sudden spikes and slow degradation.
+<strong>Step 4: SLO widget in dashboard</strong> Add SLO widget showing: current burn rate, error budget remaining (%), and time to exhaustion. This is the team's reliability health at a glance.
+Burn rate = 1 means consuming budget at exactly the sustainable rate. Burn rate 14.4 means you'll exhaust a 30-day budget in ~2 days. Page immediately.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('datadog','S-06',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-07">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">How do you monitor Kubernetes workloads with Datadog?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Datadog Agent as DaemonSet:</strong> deploy the Datadog Agent as a DaemonSet (one pod per node). It collects: node metrics (CPU, memory, disk), container metrics (via cgroups), Kubernetes state metrics (pod status, deployments, replica counts) via <code>cluster-agent</code>, and application logs.
+<strong>Cluster Agent:</strong> a separate deployment providing: Kubernetes state metrics (aggregated, not per-node), HPA (Horizontal Pod Autoscaler) custom metrics support, and admission controller for auto-injecting APM config into pods.
+<strong>Auto-discovery:</strong> agent discovers pods and applies integrations based on annotations: <code>yaml annotations:
+  ad.datadoghq.com/app.check_names: '["http_check"]'
+  ad.datadoghq.com/app.init_configs: '[{}]'
+  ad.datadoghq.com/app.instances: '[{"url": "http://%%host%%:8080/health"}]'</code>
+<strong>APM injection:</strong> enable <code>DD_APM_INSTRUMENTATION_ENABLED=true</code> on the Cluster Agent. Admission controller automatically injects the APM init container and env vars into new pods — no Dockerfile changes needed.
+<strong>Key Kubernetes monitors:</strong> - Pod restarts &gt; 3 in 15 minutes (CrashLoopBackOff signal) - Deployment unavailable replicas &gt; 0 (rollout failure) - Node not ready (node problem) - HPA at max replicas for 30 minutes (capacity ceiling hit)</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('datadog','S-07',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-08">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-08</span>
+        <span class="acc-question">How would you use Datadog to investigate a P99 latency spike in production?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>1. Identify when and which service:</strong> Open the APM Service Catalog. Sort by P99 latency change. The spiking service is immediately visible. Note the start time.
+<strong>2. Check for recent deploys:</strong> On the service page, enable the deployment tracking overlay. If a deploy happened right before the spike, that's the primary suspect.
+<strong>3. Trace analysis:</strong> Filter traces to the spike window. Sort by duration (slowest first). Open the slowest trace. The flame graph shows exactly which span is slow — is it a DB query, a downstream service call, or the application code itself?
+<strong>4. If it's a DB span:</strong> - Click the DB span → "View in DBM" (Database Monitoring) - See exact SQL, execution plan, lock waits, query normalization - Check if a slow query recently appeared (lock contention, missing index, data growth)
+<strong>5. If it's a downstream service span:</strong> - The child service has its own spans — navigate into them - Check if the downstream had an infrastructure event (deploy, scaling, node issue)
+<strong>6. If it's the app itself:</strong> - Enable Continuous Profiler. The flame graph shows hot code paths at the P99 window. - Look for GC pauses in JVM metrics (<code>jvm.gc.pause_time</code> spike matches latency spike?)
+<strong>7. Infrastructure correlation:</strong> Was the host/pod at capacity? Check CPU, memory, thread pool metrics in the same time window. OOMKilled pods cause latency spikes as requests queue during restart.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('datadog','S-08',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="ST-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">How do you design a Datadog tagging strategy for a 50-service microservices platform?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Foundation: Unified Service Tagging</strong> Datadog's three required tags: <code>env</code> (prod/staging/dev), <code>service</code> (service name), <code>version</code> (deploy version/git SHA). Apply to ALL telemetry — metrics, traces, logs. This enables: filtering by environment, correlating a deploy version with a latency spike, filtering logs to a single service.
+<strong>Implementation:</strong> - Kubernetes: set <code>DD_ENV</code>, <code>DD_SERVICE</code>, <code>DD_VERSION</code> env vars from pod labels - Helm: standard values block in all service charts - Java agent: <code>DD_TRACE_GLOBAL_TAGS=env:${ENV},service:${SERVICE}</code>
+<strong>Additional tag taxonomy:</strong> - <code>team:</code> (e.g., <code>team:checkout</code>) — route alerts to the right team - <code>region:</code> / <code>az:</code> — identify regional issues - <code>tier:</code> (critical/standard) — priority-based alert routing - <code>feature_flag:</code> on spans — compare performance with flag on vs off
+<strong>Governance rules:</strong> - Banned on metrics: <code>user_id</code>, <code>request_id</code>, <code>order_id</code>, <code>trace_id</code> (unbounded cardinality) - Allowed on traces/logs: any cardinality (stored per-event, not per-combination) - Tag values must be lowercase, snake_case, bounded (&lt; 1000 unique values on metrics)
+<strong>Tag governance in practice:</strong> - OPA/Conftest policy in CI that validates <code>DD_ENV</code>, <code>DD_SERVICE</code>, <code>DD_VERSION</code> are
+  set in Kubernetes manifests before merge
+- Custom metric registry: teams register new metric names + tag schema; reviewed
+  for cardinality before shipping to production</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('datadog','ST-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">How do you build a reliability culture using Datadog SLOs across multiple teams?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Start with SLO definitions per service:</strong> Each service team defines: availability SLO (% successful requests), latency SLO (P99 &lt; threshold). Agreed with product — not set by engineering alone. Capture in code: SLO definitions in Terraform (Datadog provider) so they're version- controlled and reviewed like any infrastructure change.
+<strong>Error budget as a prioritization tool:</strong> Error budget remaining drives the conversation between reliability and feature work: - Budget &gt; 50% remaining: ship features, take risks - Budget &lt; 20% remaining: feature freeze, reliability sprint - Budget exhausted: incident post-mortem, no new features until replenished
+<strong>Monthly SLO review:</strong> Dashboard showing all services' SLOs, error budget consumed this month, and burn rate trend. Shared with engineering leadership and product. Makes reliability visible and creates organizational pressure to fix chronic low-error-budget services.
+<strong>Burn rate alerts as the primary paging mechanism:</strong> Replace ad-hoc threshold monitors with burn rate alerts for all customer-facing services. P1 alert: burn rate &gt; 14.4 (exhausts budget in 2 days). P2: burn rate &gt; 6 (exhausts in 5 days). On-call is called for budget-threatening burns, not every blip.
+<strong>Chaos engineering validation:</strong> Quarterly chaos game days: inject failures into prod-like staging, validate that SLO burn rate alerts fire within expected windows. Builds confidence in the alerting stack before a real incident.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('datadog','ST-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">How do you control Datadog costs at scale as ingestion grows?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Identify the spend drivers:</strong> Use Datadog's Cost Estimator and the <code>datadog_estimated_usage</code> metrics to understand current spend breakdown: hosts, APM hosts, custom metrics, indexed logs, Synthetics.
+<strong>Custom metrics (often the biggest surprise):</strong> - Audit with <code>datadog.estimated_usage.metrics.custom</code> grouped by metric name - Find the offenders: metrics with cardinality &gt; 10k are suspect - Fix: remove high-cardinality tags (user_id, request_id) from metrics - Use Log-based metrics: extract a metric from logs (count ERROR logs by service) —
+  cheaper than emitting from code if the log already exists</p>
+<p><strong>Log cost control:</strong> - Audit: which services generate the most log volume? (<code>@source</code> facet) - Sampling: high-volume debug logs — <code>DD_LOG_LEVEL=INFO</code> in prod; sample DEBUG at 10% - Exclusion filters: drop health check logs, static asset logs (always 200, no signal) - Flex Logs: archive instead of index; query ad-hoc when needed
+<strong>APM cost control:</strong> - APM host count = hosts running the tracer. Audit unexpected services with APM enabled. - Ingestion volume: set <code>DD_TRACE_SAMPLE_RATE=0.1</code> on high-throughput services;
+  always keep errors via retention filter.</p>
+<p><strong>Infrastructure hygiene:</strong> - Agent running on stopped/terminated instances still counts as a host for ~2 hours.
+  Ensure proper agent shutdown in auto-scaling termination hooks.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('datadog','ST-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="P-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How do you design an observability platform strategy for an engineering org with 100+ services across 20 teams?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>The core problem:</strong> 20 teams, each instrumenting differently — some using Datadog, some using home-grown logging, inconsistent tagging, no shared dashboards. The result: every incident requires different investigation paths per service.
+<strong>Standardize on OpenTelemetry as the instrumentation layer:</strong> Instrument with OTel SDKs; export to Datadog (or any backend) via the OTel Collector. This decouples instrumentation from the vendor — if you switch from Datadog to Grafana Cloud in 3 years, the instrumentation stays. Teams write OTel; the platform team decides the backend.
+<strong>Platform team responsibilities:</strong> - Maintain the OTel Collector fleet (DaemonSet in Kubernetes, aggregation layer) - Provide language-specific base libraries that wrap OTel with company conventions
+  (auto-set service name from pod labels, inject correlation IDs, apply tag governance)
+- Manage Datadog org: API keys, access controls, cost budgets per team - Maintain golden path dashboards (one template per service type: HTTP service,
+  Kafka consumer, batch job)</p>
+<p><strong>Paved roads:</strong> - Helm chart for all services includes the Datadog agent sidecar config automatically - Golden Prometheus recording rules and Datadog monitors deployed via Terraform module
+  — teams include the module, get standard monitors for free
+- Runbook templates in a shared repo; monitors link to them
+<strong>SLO governance:</strong> - All customer-facing services must have a published SLO - SLO definitions live in a central Terraform repository, reviewed by the SRE team - Monthly SLO review with engineering VPs: burn rate trends, error budget health
+<strong>Cost governance:</strong> - Monthly cost allocation report per team (custom metric cardinality, log volume, APM hosts) - Budget alerts: team lead is notified if their team's estimated monthly cost exceeds budget - Cardinality governance: PR check validates new metrics for tag cardinality before merge</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('datadog','P-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">Instrument a New Microservice for Production Readiness</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A new payment-service is being deployed to production. Before go-live, you need to ensure full observability: metrics, traces, logs, a service dashboard, and monitors that will page on-call if the service degrades.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Java Spring Boot service running in Kubernetes</li><li>Must follow company unified service tagging standard (env, service, version)</li><li>{'SLO': '99.9% availability, P99 latency < 500ms'}</li><li>On-call is shared; alert message must be actionable without deep service knowledge</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Unified service tagging:</strong> set <code>DD_ENV</code>, <code>DD_SERVICE=payment-service</code>, <code>DD_VERSION=${GIT_SHA}</code> as Kubernetes pod env vars (via Helm values). Apply the same labels as pod labels for auto-discovery. This ensures all telemetry (metrics, traces, logs) is correlated by service and version.</li><li><strong>APM auto-instrumentation:</strong> add the Datadog Java agent to the pod (<code>-javaagent:/dd-java-agent.jar</code>). It auto-instruments Spring Boot HTTP endpoints, JDBC, and common libraries. No code changes needed for basic tracing.</li><li><strong>Custom business metrics via Micrometer:</strong> Add <code>micrometer-registry-datadog</code>. Instrument critical business operations: payment success/failure counters, payment amount distribution, fraud score histogram. Tag all metrics with <code>payment_method</code> (bounded cardinality).</li><li><strong>Log configuration:</strong> ensure logs output JSON with <code>trace_id</code> and <code>span_id</code> fields (Datadog Java agent injects these into MDC automatically with Logback). Set log level INFO in prod. Ship via Kubernetes log pipeline (Datadog agent DaemonSet tails pod logs).</li><li><strong>Dashboard:</strong> create from the "Service" template. Add: request rate, error rate, P50/P95/P99 latency, payment success rate, downstream dependency health (bank API), JVM metrics (heap, GC, threads). Set <code>$env</code> template variable.</li><li><strong>Monitors:</strong> (1) Error rate &gt; 0.1% for 5 min → P1 alert to payment-oncall PagerDuty. (2) P99 latency &gt; 400ms for 5 min → P2 alert. (3) Payment success rate &lt; 99% for 10 min → P1. (4) SLO burn rate &gt; 14.4 → P1. Each monitor message includes: runbook link, dashboard link, "check recent deploys at <code>{{deploy_link}}</code>", escalation path.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>No SLO defined before go-live — you can't know if you're meeting reliability targets</li><li>Alerting on CPU/memory instead of error rate and latency — CPU high doesn't mean users are impacted</li><li>No trace_id in logs — trace correlation is impossible during incidents</li><li>No business metric (payment success rate) — technical metrics alone miss business impact</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Diagnose a Production Incident Using Datadog</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">PagerDuty fires at 2am: checkout-service error rate spiked from 0.1% to 8% over 10 minutes. Revenue impact is ~$50k/minute. You have Datadog APM, metrics, and logs. Walk through the investigation.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>30-minute SLA to restore service or escalate</li><li>{'Checkout calls': 'inventory-service, pricing-service, payment-service, fraud-service'}</li><li>A new version (v1.8.4) was deployed 25 minutes ago</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>First 2 minutes — establish scope:</strong> Open the Datadog alert → checkout-service APM service page. Confirm: error rate 8%, P99 latency up from 200ms to 4.2s. Started 25 minutes ago. Check deployment event overlay: v1.8.4 deployed 25 minutes ago. Likely cause.</li><li><strong>Minutes 2–5 — isolate the failing operation:</strong> On the APM service page, group by <code>resource</code> (endpoint). Which endpoint has 8% errors? <code>POST /checkout</code>. Click → top error traces. Open a failing trace.</li><li><strong>Minutes 5–10 — trace analysis:</strong> Flame graph: checkout-service → payment-service span shows red (error). Payment-service spans fail in 4.1s then return 503. The downstream payment-service is the failure point. Switch to payment-service APM page. It also shows error spike from the same time. Check payment-service deployment: v2.1.0 deployed 25 minutes ago simultaneously.</li><li><strong>Minutes 10–15 — log analysis:</strong> Click a failing payment-service span → "View Logs". Error message: <code>NullPointerException in FraudCheckService.evaluate() line 142</code>. New code in v2.1.0 introduced a null check bug in fraud evaluation.</li><li><strong>Decision — rollback:</strong> Root cause confirmed: payment-service v2.1.0 NPE in fraud check. Rollback payment-service to v2.0.9. Checkout-service needs no changes. Initiate rollback via Kubernetes: <code>kubectl rollout undo deployment/payment-service</code>. Monitor error rate — drops to 0.1% within 3 minutes.</li><li><strong>Post-incident:</strong> 15-minute correction time. Post-mortem: missing null check in v2.1.0, insufficient unit test coverage, no canary deployment. Action items: add null check test, implement canary with automatic rollback on error rate &gt; 1%.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Checking infrastructure (CPU, memory) before traces — traces tell you what failed; infra tells you why</li><li>Not checking deployment events overlay first — most production incidents correlate with a recent deploy</li><li>Investigating checkout-service deeply before confirming the error is in a downstream — the root cause was payment-service</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>// ── Theme (localStorage persistence) ─────────────────────────────────────
+function toggleTheme() {
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  h.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+// ── Tabs (with URL hash sync) ─────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+  history.replaceState(null, '', '#' + name);
+}
+
+// ── Accordion (JS-driven scrollHeight animation) ───────────────────────────
+function setAccOpen(item, open) {
+  const body = item.querySelector('.acc-body');
+  if (open) {
+    item.classList.add('open');
+    const h = body.scrollHeight;
+    body.style.maxHeight = h + 'px';
+    function onEnd(e) {
+      if (e.propertyName !== 'max-height') return;
+      body.removeEventListener('transitionend', onEnd);
+      if (item.classList.contains('open')) body.style.maxHeight = 'none';
+    }
+    body.addEventListener('transitionend', onEnd);
+  } else {
+    if (!body.style.maxHeight || body.style.maxHeight === 'none') {
+      body.style.maxHeight = body.scrollHeight + 'px';
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      item.classList.remove('open');
+      body.style.maxHeight = '0';
+    }));
+  }
+}
+
+function toggleAcc(header) {
+  setAccOpen(header.parentElement, !header.parentElement.classList.contains('open'));
+}
+
+// ── Expand / collapse all Q&A ─────────────────────────────────────────────
+function toggleAllAcc(btn) {
+  const items = [...document.querySelectorAll('#qa .acc-item')].filter(i => i.style.display !== 'none');
+  const allOpen = items.every(i => i.classList.contains('open'));
+  items.forEach(i => setAccOpen(i, !allOpen));
+  btn.textContent = allOpen ? 'Expand All' : 'Collapse All';
+}
+
+// ── Q&A keyword filter ────────────────────────────────────────────────────
+function filterQA(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.acc-item').forEach(item => {
+    const text = item.querySelector('.acc-question').textContent.toLowerCase();
+    item.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+  // Reset expand-all label whenever filter changes
+  const btn = document.querySelector('.expand-all-btn');
+  if (btn) btn.textContent = 'Expand All';
+}
+
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
+// ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
+document.addEventListener('DOMContentLoaded', function () {
+  // Sync toggle label with the actual current theme
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const label = document.getElementById('toggle-label');
+  if (label) label.textContent = isDark ? 'LIGHT MODE' : 'DARK MODE';
+
+  // Restore active tab from URL hash
+  const hash = location.hash.slice(1);
+  const validTabs = ['overview', 'deepdive', 'qa', 'scenarios'];
+  if (hash && validTabs.includes(hash)) {
+    const tab = document.querySelector(`.tab[data-tab="${hash}"]`);
+    if (tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(hash).classList.add('active');
+    }
+  }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
+
+  // Copy-to-clipboard on CLI command blocks
+  document.querySelectorAll('.cmd').forEach(cmd => {
+    cmd.title = 'Click to copy';
+    cmd.addEventListener('click', function () {
+      navigator.clipboard.writeText(this.textContent.trim()).then(() => {
+        const orig = this.style.opacity;
+        this.style.opacity = '0.4';
+        setTimeout(() => { this.style.opacity = orig; }, 600);
+      }).catch(() => {});
+    });
+  });
+});
+</script>
+</body>
+</html>
