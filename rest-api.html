@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REST API — Field Guide</title>
+<script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#0369a1;--accent2:#d95a1e;--accent3:#059669; --highlight-bg:#e0f2fe;--highlight-text:#0369a1;--highlight-border:#0284c7; --your-exp-bg:rgba(5,150,105,.06);--your-exp-border:rgba(5,150,105,.2);--your-exp-text:#065f46; --acc-hover:rgba(3,105,161,.04);--acc-open-border:#0369a1;--acc-open-bg:rgba(3,105,161,.03); --num-color:#0369a1;--num-bg:rgba(3,105,161,.1); --tag-color:#0369a1;--tag-bg:rgba(3,105,161,.08);--tag-border:rgba(3,105,161,.2); --flow-arrow:#0369a1;--h1-from:#075985;--h1-to:#0369a1; --badge-color:#075985;--stat-num:#0369a1; --tab-active-color:#0369a1;--tab-active-bg:rgba(3,105,161,.08);--tab-active-border:#0369a1; --section-title:#0369a1;--concept-title:#075985; --cheat-head-bg:#075985;--cheat-head-text:#ffffff;--cheat-key:#075985; --cmd-bg:#e0f2fe;--cmd-text:#075985; }
+  [data-theme="dark"]{ --accent:#38bdf8;--accent2:#ff9d6b;--accent3:#10b981; --highlight-bg:#0c4a6e;--highlight-text:#38bdf8;--highlight-border:#0284c7; --your-exp-bg:rgba(16,185,129,.1);--your-exp-border:rgba(16,185,129,.3);--your-exp-text:#6ee7b7; --acc-hover:rgba(56,189,248,.04);--acc-open-border:#38bdf8;--acc-open-bg:rgba(56,189,248,.03); --num-color:#38bdf8;--num-bg:rgba(56,189,248,.1); --tag-color:#38bdf8;--tag-bg:rgba(56,189,248,.08);--tag-border:rgba(56,189,248,.2); --flow-arrow:#38bdf8;--h1-from:#38bdf8;--h1-to:#0284c7; --badge-color:#38bdf8;--stat-num:#38bdf8; --tab-active-color:#38bdf8;--tab-active-bg:rgba(56,189,248,.08);--tab-active-border:#38bdf8; --section-title:#38bdf8;--concept-title:#38bdf8; --cheat-head-bg:#0c4a6e;--cheat-head-text:#38bdf8;--cheat-key:#38bdf8; --cmd-bg:#0c4a6e;--cmd-text:#38bdf8; }
+  [data-theme="light"] .toggle-knob{background:#0369a1;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#38bdf8;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Back navigation ─────────────────────────────────────────────────────── */
+.back-link{position:fixed;top:1.25rem;left:1.25rem;z-index:100;display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);text-decoration:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.back-link:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
+/* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
+.qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
+.qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
+.qa-search:focus{border-color:var(--tab-active-border,var(--text));}
+.qa-search::placeholder{color:var(--muted);}
+.expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
+.expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;cursor:pointer;transition:opacity .2s;}
+.cmd:hover{opacity:.75;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+  .back-link span{display:none;}
+}
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
+
+</style>
+</head>
+<body data-topic-id="rest-api">
+
+<a class="back-link" href="index.html">← <span>Field Guide</span></a>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>REST API</h1>
+  <p class="subtitle">// HTTP methods · status codes · resource design · versioning · pagination · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="overview" role="button" tabindex="0" onclick="switchTab('overview',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('overview',this);event.preventDefault();}">Overview</div>
+  <div class="tab" data-tab="deepdive" role="button" tabindex="0" onclick="switchTab('deepdive',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('deepdive',this);event.preventDefault();}">Deep Dive</div>
+  <div class="tab" data-tab="qa" role="button" tabindex="0" onclick="switchTab('qa',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('qa',this);event.preventDefault();}">Q &amp; A</div>
+  <div class="tab" data-tab="scenarios" role="button" tabindex="0" onclick="switchTab('scenarios',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('scenarios',this);event.preventDefault();}">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">📐 REST Constraints</div>
+      <div class="concept-body">
+        REST (Representational State Transfer) is an architectural style defined by 6 constraints: <strong>Client-Server</strong> (UI decoupled from data storage), <strong>Stateless</strong> (each request carries all context — no server-side session), <strong>Cacheable</strong> (responses declare cacheability), <strong>Uniform Interface</strong> (resources identified by URIs, manipulated via representations), <strong>Layered System</strong> (client can't tell if it's talking to origin or intermediary), and <strong>Code on Demand</strong> (optional — server can send executable code like JS). Violating <em>stateless</em> is the most common mistake: storing session state server-side breaks horizontal scaling.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">stateless</span>
+          
+          <span class="tag blue">uniform interface</span>
+          
+          <span class="tag green">cacheable</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔧 HTTP Methods & Semantics</div>
+      <div class="concept-body">
+        Each method carries precise semantics: <strong>GET</strong> — retrieve, safe + idempotent. <strong>POST</strong> — create or trigger action, neither safe nor idempotent. <strong>PUT</strong> — full replace, idempotent. <strong>PATCH</strong> — partial update, not guaranteed idempotent unless designed so. <strong>DELETE</strong> — remove, idempotent. <strong>HEAD</strong> — like GET but no body, used for metadata checks. <strong>OPTIONS</strong> — capabilities/CORS preflight. <em>Safe</em> means no server state change. <em>Idempotent</em> means N identical requests = same result as 1. These are contracts, not enforcement — the server must uphold them.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">GET safe+idempotent</span>
+          
+          <span class="tag red">POST neither</span>
+          
+          <span class="tag orange">PUT idempotent</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📊 HTTP Status Codes</div>
+      <div class="concept-body">
+        Status codes communicate outcome: <strong>1xx</strong> informational (100 Continue, 101 Switching). <strong>2xx</strong> success: 200 OK, 201 Created (with Location header), 202 Accepted (async), 204 No Content (DELETE/PATCH with no body). <strong>3xx</strong> redirects: 301 permanent, 302/307 temporary, 304 Not Modified (caching). <strong>4xx</strong> client errors: 400 Bad Request, 401 Unauthorized (no/bad auth), 403 Forbidden (authed but no permission), 404 Not Found, 409 Conflict, 422 Unprocessable Entity, 429 Too Many Requests. <strong>5xx</strong> server errors: 500 Internal, 502 Bad Gateway, 503 Unavailable, 504 Timeout.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">401 vs 403</span>
+          
+          <span class="tag green">201 + Location</span>
+          
+          <span class="tag blue">202 for async</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🗂️ Resource Design</div>
+      <div class="concept-body">
+        Resources are nouns, not verbs. URIs identify resources; methods express intent. Good: <code>GET /orders/{id}</code>, <code>POST /orders</code>, <code>DELETE /orders/{id}/items/{itemId}</code>. Bad: <code>POST /getOrder</code>, <code>GET /deleteUser</code>. Use plural nouns for collections (<code>/users</code>, <code>/products</code>). Nest sub-resources only when the child cannot exist without the parent and nesting depth stays ≤ 2 levels — deeper paths become brittle. For actions that don't map to CRUD cleanly, use a sub-resource noun: <code>POST /payments/{id}/refunds</code> rather than <code>POST /refundPayment</code>.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">nouns not verbs</span>
+          
+          <span class="tag blue">plural collections</span>
+          
+          <span class="tag orange">max 2 levels deep</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔢 API Versioning</div>
+      <div class="concept-body">
+        Three main strategies: <strong>URI versioning</strong> (<code>/v1/orders</code>) — explicit, easy to route, but pollutes URLs and breaks REST's uniform interface. <strong>Header versioning</strong> (<code>Accept: application/vnd.myapi.v2+json</code>) — clean URLs, but harder to test in a browser. <strong>Query param</strong> (<code>?version=2</code>) — easy to ignore by proxies, not RESTfully clean. URI versioning wins in practice for public APIs because it's visible and cacheable. Key rule: never break a published version. Additive changes (new fields, new endpoints) are backward-compatible; removing fields or changing types requires a new version.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">/v1/ most common</span>
+          
+          <span class="tag red">never break published</span>
+          
+          <span class="tag green">additive = safe</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📄 Pagination Patterns</div>
+      <div class="concept-body">
+        <strong>Offset/Limit</strong> (<code>?offset=40&amp;limit=20</code>) — simple, supports random access, but unstable when rows insert/delete mid-page (items skipped or duplicated). <strong>Page/Size</strong> (<code>?page=3&amp;size=20</code>) — same trade-offs as offset. <strong>Cursor-based</strong> (opaque token encoding last-seen position) — stable, efficient for large datasets and infinite scroll, but no random page jump. Preferred at scale. <strong>Keyset</strong> (<code>?after_id=1234</code>) — similar to cursor but uses a sortable key; very fast with an index. Always include total count (<code>X-Total-Count</code> header or response envelope) and next/prev links (HATEOAS) so clients don't hardcode offsets.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">cursor for scale</span>
+          
+          <span class="tag orange">offset unstable</span>
+          
+          <span class="tag blue">include links</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">⚡ Caching</div>
+      <div class="concept-body">
+        HTTP caching is built in: <code>Cache-Control</code> (max-age, no-store, no-cache, private/public), <code>ETag</code> (entity tag — server fingerprint of resource), <code>Last-Modified</code>. Conditional requests: <code>If-None-Match: &lt;etag&gt;</code> or <code>If-Modified-Since</code> → 304 if unchanged. <code>GET</code> and <code>HEAD</code> are cacheable by default; <code>POST</code> can be if explicitly declared. <code>PUT</code>/<code>DELETE</code> must invalidate caches. Vary header tells CDNs to cache separately per Accept-Language, Accept-Encoding, etc. ETags enable optimistic concurrency on updates: send <code>If-Match: &lt;etag&gt;</code> with a PUT; server returns 412 Precondition Failed if the resource changed since the client read it.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">ETag for concurrency</span>
+          
+          <span class="tag blue">304 Not Modified</span>
+          
+          <span class="tag orange">Cache-Control</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔗 HATEOAS</div>
+      <div class="concept-body">
+        Hypermedia As The Engine Of Application State — the highest REST maturity level (Richardson Level 3). Responses include links describing available actions, so clients don't hardcode URLs or know the API structure upfront. Example: a GET /orders/{id} response includes <code>"_links": {"cancel": {"href": "/orders/42/cancellations", "method": "POST"}}</code>. Practically: few public APIs implement full HATEOAS; most stop at Level 2 (resources + verbs). But including <code>next</code>/<code>prev</code> in paginated responses and <code>Location</code> on 201 are lightweight HATEOAS wins that pay off immediately.
+        
+        
+        <div class="tags">
+          
+          <span class="tag purple">Richardson Level 3</span>
+          
+          <span class="tag blue">self-describing</span>
+          
+          <span class="tag orange">rarely fully implemented</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🚦 Rate Limiting</div>
+      <div class="concept-body">
+        Rate limiting protects APIs from abuse and overload. Common response: <strong>429 Too Many Requests</strong> with <code>Retry-After</code> header. Standard informational headers: <code>X-RateLimit-Limit</code> (max requests), <code>X-RateLimit-Remaining</code>, <code>X-RateLimit-Reset</code> (epoch timestamp). Algorithms: <strong>Token Bucket</strong> (bursty traffic allowed, smooth average), <strong>Leaky Bucket</strong> (constant output rate), <strong>Fixed Window</strong> (simple but boundary spike), <strong>Sliding Window</strong> (smoother, no boundary spike). Apply limits per API key, per user, or per IP depending on the API's trust model.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">429 + Retry-After</span>
+          
+          <span class="tag green">token bucket</span>
+          
+          <span class="tag blue">sliding window</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Using GET for state-changing operations</span>
+      GET requests are logged, cached, and bookmarked by browsers and proxies. Using GET for actions like <code>/deleteUser?id=5</code> means those actions can be replayed unexpectedly, logged in access logs, and cached. Always use POST/PUT/DELETE for mutations.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Ignoring idempotency on retries</span>
+      Network failures cause clients to retry requests. If POST /payments is not idempotent, a retry after a timeout creates a duplicate charge. Use <strong>idempotency keys</strong> (<code>Idempotency-Key: &lt;uuid&gt;</code> header) on non-idempotent operations. The server deduplicates within a time window and returns the original response for duplicate keys.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Returning 200 with an error body</span>
+      A common anti-pattern: <code>200 OK</code> with <code>{"status": "error", "message": "Not found"}</code>. This breaks HTTP clients, monitoring tools, and caches that rely on status codes. Always return the correct HTTP status. Include a structured error body with a machine-readable <code>code</code> field and human-readable <code>message</code> — following RFC 7807 (Problem Details) is good practice.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Exposing internal model in the API</span>
+      Mapping DB columns directly to API fields creates tight coupling — every schema migration potentially breaks clients. API resources are a separate model. Use a DTO/view layer. This also avoids leaking sensitive internal fields (soft-delete flags, internal IDs, audit columns).
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Missing or wrong Content-Type</span>
+      Omitting <code>Content-Type: application/json</code> on requests with a body causes many frameworks to ignore or misparse the body. On responses, missing Content-Type prevents correct client parsing. Always set both <code>Content-Type</code> and <code>Accept</code> explicitly. For file uploads use <code>multipart/form-data</code>, not <code>application/json</code>.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">No backward-compatibility strategy</span>
+      Adding a required field to a POST body, removing a response field, or changing a field type all break existing clients silently. Treat every published API contract as immutable. Run contract tests (Pact, Spring Cloud Contract) against consumer expectations before deploying. Deprecate with a <code>Deprecated</code> header and sunset date before removal.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use REST When</div>
+      <ul>
+        
+        <li>Building public or partner-facing APIs consumed by diverse clients (web, mobile, third-party)</li>
+        
+        <li>Standard CRUD operations over HTTP where caching and statelessness matter</li>
+        
+        <li>Services that need to be discoverable, documented (OpenAPI), and version-controlled independently</li>
+        
+        <li>Systems integrating with existing HTTP infrastructure (proxies, CDNs, API gateways)</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use REST When</div>
+      <ul>
+        
+        <li>Real-time bidirectional communication — use WebSockets or SSE instead</li>
+        
+        <li>Complex, graph-like queries where over/under-fetching is a problem — GraphQL is a better fit</li>
+        
+        <li>High-performance internal microservice RPC — gRPC (HTTP/2 + Protobuf) is faster and type-safe</li>
+        
+        <li>Streaming large binary payloads where chunked HTTP or object storage is more appropriate</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">HTTP Methods Reference</div>
+      <table>
+        
+        <tr><td>GET</td><td>Retrieve resource. Safe + idempotent. Response cacheable. No body.</td></tr>
+        
+        <tr><td>POST</td><td>Create resource or trigger action. Not safe, not idempotent. 201 Created + Location on success.</td></tr>
+        
+        <tr><td>PUT</td><td>Full replace. Idempotent. 200 OK or 204 No Content. Client sends complete representation.</td></tr>
+        
+        <tr><td>PATCH</td><td>Partial update. Not inherently idempotent. Use JSON Patch (RFC 6902) or Merge Patch (RFC 7396).</td></tr>
+        
+        <tr><td>DELETE</td><td>Remove resource. Idempotent. 204 No Content. Repeated deletes: 404 or 204 both acceptable.</td></tr>
+        
+        <tr><td>HEAD</td><td>Same as GET but no body. Use to check existence or get headers (Content-Length, ETag) cheaply.</td></tr>
+        
+        <tr><td>OPTIONS</td><td>Returns allowed methods. Used for CORS preflight. Response includes Allow and Access-Control-* headers.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Status Code Quick Reference</div>
+      <table>
+        
+        <tr><td>200 OK</td><td>Generic success for GET, PUT, PATCH with body.</td></tr>
+        
+        <tr><td>201 Created</td><td>POST that created a resource. Must include Location header pointing to new resource.</td></tr>
+        
+        <tr><td>202 Accepted</td><td>Request accepted but processing async. Include a job/status URL in response.</td></tr>
+        
+        <tr><td>204 No Content</td><td>Success with no response body. Common for DELETE and PATCH.</td></tr>
+        
+        <tr><td>304 Not Modified</td><td>Conditional GET hit cache. ETag/Last-Modified still fresh. No body sent.</td></tr>
+        
+        <tr><td>400 Bad Request</td><td>Malformed request syntax, invalid parameters. Include field-level validation errors.</td></tr>
+        
+        <tr><td>401 Unauthorized</td><td>No valid authentication provided. Include WWW-Authenticate header.</td></tr>
+        
+        <tr><td>403 Forbidden</td><td>Authenticated but not authorized. Don't expose resource existence here.</td></tr>
+        
+        <tr><td>404 Not Found</td><td>Resource doesn't exist. Can also use 404 to hide 403 for sensitive resources.</td></tr>
+        
+        <tr><td>409 Conflict</td><td>State conflict — duplicate create, optimistic lock failure, business rule violation.</td></tr>
+        
+        <tr><td>412 Precondition Failed</td><td>If-Match or If-None-Match header condition failed. Used with ETags for optimistic concurrency.</td></tr>
+        
+        <tr><td>422 Unprocessable Entity</td><td>Syntactically valid but semantically invalid (e.g., end date before start date).</td></tr>
+        
+        <tr><td>429 Too Many Requests</td><td>Rate limit exceeded. Include Retry-After and X-RateLimit-* headers.</td></tr>
+        
+        <tr><td>500 Internal Server Error</td><td>Unhandled server error. Never expose stack traces. Log internally, return generic message.</td></tr>
+        
+        <tr><td>503 Service Unavailable</td><td>Temporarily overloaded or down. Include Retry-After. Used during maintenance/deploys.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">Key Request & Response Headers</div>
+      <table>
+        
+        <tr><td>Content-Type</td><td>Media type of the body. Request: what I'm sending. Response: what I'm returning. Always set.</td></tr>
+        
+        <tr><td>Accept</td><td>Client's preferred response media type. Enables content negotiation.</td></tr>
+        
+        <tr><td>Authorization</td><td>Credentials — Bearer <token>, Basic <b64>, API-Key <key>. Prefer Authorization over custom headers.</td></tr>
+        
+        <tr><td>ETag</td><td>Response fingerprint. Client sends back as If-Match (update) or If-None-Match (cache check).</td></tr>
+        
+        <tr><td>Cache-Control</td><td>Caching directives: max-age=<s>, no-store, no-cache, private, public, must-revalidate.</td></tr>
+        
+        <tr><td>Location</td><td>URI of newly created resource (201) or redirect target (3xx).</td></tr>
+        
+        <tr><td>Retry-After</td><td>Seconds (or HTTP date) until client may retry. Use with 429 and 503.</td></tr>
+        
+        <tr><td>Idempotency-Key</td><td>Client-generated UUID for deduplication of non-idempotent requests (payments, emails).</td></tr>
+        
+        <tr><td>X-Request-ID</td><td>Correlation ID for distributed tracing. Echo it in response for log correlation.</td></tr>
+        
+        <tr><td>Deprecation / Sunset</td><td>RFC 8594: Deprecation: <date>, Sunset: <date> — signals API version end-of-life to clients.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">Pagination Patterns</div>
+      <table>
+        
+        <tr><td>Offset / Limit</td><td>Simple. ?offset=40&limit=20. Supports random page jump. Unstable: inserts/deletes skew results. Bad on large offsets (DB scans all preceding rows).</td></tr>
+        
+        <tr><td>Page / Size</td><td>Same as offset but user-facing. ?page=3&size=20. Same trade-offs. Avoid for large tables.</td></tr>
+        
+        <tr><td>Cursor-based</td><td>Opaque encoded pointer (base64 timestamp+id). Stable across mutations. Fast. No random page jump. Preferred for infinite scroll and event feeds.</td></tr>
+        
+        <tr><td>Keyset</td><td>?after_id=1234. Requires sortable unique key. Very fast with index. Transparent (not opaque). Good for time-series data.</td></tr>
+        
+        <tr><td>Response envelope</td><td>Always include: { "data": [...], "pagination": { "next_cursor": "...", "has_more": true } } or use Link header (RFC 5988) for HATEOAS alignment.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">API Versioning Strategies</div>
+      <table>
+        
+        <tr><td>URI versioning (/v1/)</td><td>Most common. Explicit, easy to route, test, and cache. Pollutes URL namespace. Breaking: resource URIs change between versions. Best for public APIs.</td></tr>
+        
+        <tr><td>Header versioning</td><td>Accept: application/vnd.api.v2+json or custom X-API-Version header. Clean URLs. Hard to test in browser. Proxy/CDN routing is complex. Best for internal or partner APIs.</td></tr>
+        
+        <tr><td>Query param (?version=2)</td><td>Easy to add. Often ignored by proxies. Not cache-friendly. Suitable for simple tools where header control is hard.</td></tr>
+        
+        <tr><td>Additive changes (no bump)</td><td>New optional fields in response, new optional request params, new endpoints — always backward-compatible. No version bump needed.</td></tr>
+        
+        <tr><td>Breaking changes</td><td>Removing fields, changing types, renaming fields, making optional required. Always bump major version. Maintain old version for deprecation period (6–12 months min).</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">REST vs GraphQL vs gRPC</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Protocol</td>
+            
+            <td>HTTP/1.1 or HTTP/2</td>
+            
+            <td>HTTP/1.1 or HTTP/2</td>
+            
+            <td>HTTP/2 only</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Data format</td>
+            
+            <td>JSON (usually)</td>
+            
+            <td>JSON</td>
+            
+            <td>Protobuf (binary)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Schema / contract</td>
+            
+            <td>OpenAPI (optional)</td>
+            
+            <td>Strongly typed schema (SDL)</td>
+            
+            <td>Strongly typed .proto file</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Query flexibility</td>
+            
+            <td>Fixed endpoints per resource</td>
+            
+            <td>Client specifies exact fields</td>
+            
+            <td>Fixed RPCs per method</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Over-fetching</td>
+            
+            <td>Common</td>
+            
+            <td>Eliminated by design</td>
+            
+            <td>Minimal (schema-driven)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Streaming</td>
+            
+            <td>SSE / chunked</td>
+            
+            <td>Subscriptions</td>
+            
+            <td>Native bi-directional streaming</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Caching</td>
+            
+            <td>HTTP cache built-in</td>
+            
+            <td>Hard (POST by default)</td>
+            
+            <td>No HTTP caching; app-level only</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Browser support</td>
+            
+            <td>Native</td>
+            
+            <td>Native</td>
+            
+            <td>Needs grpc-web proxy</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Error handling</td>
+            
+            <td>HTTP status codes</td>
+            
+            <td>200 + errors[] array</td>
+            
+            <td>gRPC status codes</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best for</td>
+            
+            <td>Public APIs, CRUD, mobile</td>
+            
+            <td>Complex frontends, BFF layer</td>
+            
+            <td>Internal microservices, low latency</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Tooling maturity</td>
+            
+            <td>Excellent (Postman, curl)</td>
+            
+            <td>Good (Apollo, Altair)</td>
+            
+            <td>Good (grpcurl, BloomRPC)</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
+  <div class="qa-controls">
+    <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
+    <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
+  </div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="S-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">What does 'stateless' mean in REST and why does it matter for scalability?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Stateless means each HTTP request must contain all information needed to process it — no server-side session state. The server treats each request as independent.
+<strong>Why it matters for scalability:</strong> any server instance can handle any request because there's no affinity to a particular instance. This enables: - Horizontal scaling: spin up N replicas behind a load balancer - Resilience: a crashed instance loses no session data - Caching: responses can be cached by proxies without ambiguity
+<strong>Common violation:</strong> storing user session data in server memory. Fix: externalize session to Redis, or go fully stateless with JWTs that carry claims in the token.
+Statelessness increases per-request overhead (client resends auth, preferences every time) but the scaling and resilience benefits almost always outweigh this cost.</div>
+        
+        <div class="staff-add">At Staff level, connect this to infrastructure: statelessness is what lets you run behind Kubernetes HPA without sticky sessions, use CDN edge caching, and deploy blue/green without draining sessions. The trade-off conversation becomes: where do you draw the stateless boundary? Auth tokens in headers = stateless; but the token validation still hits a shared key store (JWKS endpoint or Redis token blacklist). True statelessness is a spectrum — design for <em>minimal</em> shared mutable state, not zero state.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','S-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">What's the difference between PUT and PATCH? When would you choose each?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>PUT</strong> replaces the entire resource with the provided representation. If you omit a field, it's set to null/default. It's idempotent: sending the same PUT twice produces the same state.
+<strong>PATCH</strong> applies a partial update — only the fields included are changed. It's not inherently idempotent (e.g., <code>increment counter by 1</code> is a PATCH that isn't idempotent), though most PATCH implementations are.
+<strong>Choose PUT when:</strong> the client always sends the complete resource (e.g., replacing a configuration object). <strong>Choose PATCH when:</strong> you want to update specific fields without knowing or sending the full resource (e.g., updating a user's email only).
+Two PATCH formats: <strong>JSON Merge Patch</strong> (RFC 7396) — simple key-value overlay, null means delete field. <strong>JSON Patch</strong> (RFC 6902) — operation array (<code>add</code>, <code>remove</code>, <code>replace</code>, <code>move</code>, <code>copy</code>, <code>test</code>), more expressive.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','S-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">Explain the difference between 401 and 403. When do you return each?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>401 Unauthorized</strong> — the request lacks valid authentication. The client is not identified. You don't know <em>who</em> is asking, so you can't determine what they're allowed to do. Response must include a <code>WWW-Authenticate</code> header indicating the auth scheme.
+<strong>403 Forbidden</strong> — the client is authenticated (you know who they are) but they don't have permission to access the resource.
+<strong>Decision tree:</strong> - No/invalid credentials → 401 - Valid credentials, wrong role/scope → 403 - Valid credentials, resource doesn't exist → 404 (or 403 to hide existence)
+<strong>Security note:</strong> returning 404 instead of 403 for sensitive resources prevents information leakage — an attacker learns neither the resource exists nor that they lack permission. Use this pattern for confidential resources.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','S-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-04">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">What is idempotency and how do you make POST endpoints idempotent?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">An operation is <strong>idempotent</strong> if applying it N times produces the same result as applying it once. GET, PUT, DELETE are idempotent by HTTP contract. POST is not.
+<strong>Why it matters:</strong> clients retry on network failures. If <code>POST /payments</code> isn't idempotent, a retry after a timeout creates a duplicate charge.
+<strong>Making POST idempotent with idempotency keys:</strong> 1. Client generates a UUID and sends it as <code>Idempotency-Key: &lt;uuid&gt;</code> header 2. Server stores <code>{key → response}</code> in a fast store (Redis) with a TTL (24 hours) 3. On receipt: if key seen before, return stored response immediately; if not,
+   process and store result atomically
+4. Return the same response (including status code) for duplicate requests
+The storage must be atomic: use Redis <code>SET key value NX EX &lt;ttl&gt;</code> to prevent races where two simultaneous requests with the same key both proceed.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','S-04',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-05">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">How would you design a pagination API for a large dataset? What are the trade-offs?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Offset/Limit</strong> (<code>?offset=40&amp;limit=20</code>): - Pro: random page access, simple to implement - Con: unstable (inserts/deletes shift rows between pages), slow at high offsets
+  (DB must scan all preceding rows), inconsistent results for real-time data</p>
+<p><strong>Cursor-based pagination:</strong> - Server returns an opaque cursor (base64 of timestamp + last ID) - Client passes <code>?cursor=&lt;token&gt;</code> on next request - Pro: stable, consistent, O(log n) with index, works for infinite scroll - Con: no random page jump, cursor becomes invalid if data is deleted
+<strong>Keyset pagination</strong> (<code>?after_id=1234&amp;after_created=2024-01-01T12:00:00Z</code>): - Similar to cursor but uses readable columns; very fast with composite index - Good for time-ordered data (logs, events)
+<strong>My recommendation:</strong> use cursor-based for anything &gt; 10k rows or with real-time updates. Always return <code>has_more</code>, total count where cheap, and next/prev links.</p></div>
+        
+        <div class="staff-add">At Staff level: discuss the index strategy. Cursor pagination requires an index on the sort column(s). Multi-column cursors need composite indexes. Also address: how do you handle cursor invalidation when rows are deleted? What do you return when the requested page no longer exists? Consider: for search results, offset may be fine (search indices handle it); for event feeds, keyset is correct.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','S-05',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-06">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-06</span>
+        <span class="acc-question">How does HTTP caching work with ETags and Cache-Control?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Cache-Control</strong> directives set cacheability: <code>max-age=3600</code> (cache for 1 hour), <code>no-store</code> (never cache), <code>no-cache</code> (cache but always revalidate), <code>private</code> (browser only), <code>public</code> (shared caches ok).
+<strong>ETag</strong> is an opaque fingerprint of the resource (hash of content or version). Server includes it in <code>GET</code> responses. Client stores it.
+<strong>Conditional requests:</strong> - <code>If-None-Match: &lt;etag&gt;</code> — client asks "return body only if changed." Server
+  returns <code>304 Not Modified</code> (no body, saves bandwidth) or <code>200</code> with new body.
+- <code>If-Match: &lt;etag&gt;</code> — client says "update only if resource still matches this etag."
+  Server returns <code>412 Precondition Failed</code> if modified by someone else.</p>
+<p><strong>ETags for optimistic concurrency:</strong> 1. <code>GET /resource</code> → response has <code>ETag: "v42"</code> 2. Client edits, sends <code>PUT /resource</code> with <code>If-Match: "v42"</code> 3. If another writer updated it in between, server returns 412 — no lost update</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','S-06',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-07">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-07</span>
+        <span class="acc-question">How would you design error responses? What should an error body contain?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">HTTP status code communicates the class of error. The body provides actionable detail.
+<strong>RFC 7807 Problem Details</strong> is the standard: <code>json {
+  "type": "https://api.example.com/errors/validation",
+  "title": "Validation Failed",
+  "status": 422,
+  "detail": "One or more fields failed validation.",
+  "instance": "/orders/abc",
+  "errors": [
+    {"field": "quantity", "message": "must be greater than 0"}
+  ]
+}</code>
+Key properties: - <code>type</code>: URI identifying the error type (machine-readable) - <code>title</code>: human-readable, stable (don't change per request) - <code>detail</code>: specific to this request - <code>instance</code>: URI of the specific occurrence (links to logs) - Extend with <code>errors</code> array for validation failures
+Never expose: stack traces, internal class names, SQL errors, server paths. Always log the correlation ID (<code>X-Request-ID</code>) so support can trace the request.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','S-07',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-08">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-08</span>
+        <span class="acc-question">What is content negotiation and how does it work?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Content negotiation lets the client and server agree on the representation format without hardcoding it.
+<strong>Client signals preference via Accept header:</strong> <code>Accept: application/json, application/xml;q=0.8, */*;q=0.5</code> (q values are quality factors, 0–1, default 1.0)
+<strong>Server responds with:</strong> - Best matching format and <code>Content-Type: application/json</code> - <code>406 Not Acceptable</code> if no match is possible
+<strong>Language negotiation:</strong> <code>Accept-Language: en-US, fr;q=0.8</code> <strong>Encoding:</strong> <code>Accept-Encoding: gzip, br</code> — server can compress response
+<strong>Why it matters:</strong> one endpoint serves multiple consumers (JSON for web, XML for legacy SOAP clients, CSV for analytics pipelines) without separate URLs. Also used for API versioning: <code>Accept: application/vnd.myapi.v2+json</code>.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','S-08',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-09">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-09</span>
+        <span class="acc-question">What is CORS and how does preflight work?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">CORS (Cross-Origin Resource Sharing) is a browser security mechanism. Browsers block cross-origin requests unless the server explicitly allows them.
+<strong>Simple requests</strong> (GET/POST with safe headers): browser sends request directly; server must return <code>Access-Control-Allow-Origin</code> header.
+<strong>Preflighted requests</strong> (non-simple methods or headers like PUT, DELETE, Authorization, custom headers): browser sends an <code>OPTIONS</code> request first: <code>OPTIONS /api/orders Origin: https://app.example.com Access-Control-Request-Method: DELETE Access-Control-Request-Headers: Authorization</code> Server responds: <code>Access-Control-Allow-Origin: https://app.example.com Access-Control-Allow-Methods: GET, POST, PUT, DELETE Access-Control-Allow-Headers: Authorization, Content-Type Access-Control-Max-Age: 86400   ← cache preflight for 24h</code> Browser then sends the actual request.
+<strong><code>Access-Control-Allow-Credentials: true</code></strong> needed if cookies/auth headers must be sent cross-origin. Cannot be combined with <code>Allow-Origin: *</code>.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','S-09',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-10">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-10</span>
+        <span class="acc-question">How do you handle API versioning when you need to introduce a breaking change?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p>Breaking changes require a version bump. Process:
+1. <strong>Release v2</strong> alongside v1 — never replace, always add 2. <strong>Announce deprecation</strong> on v1: add <code>Deprecation: true</code> and
+   <code>Sunset: Sat, 31 Dec 2025 00:00:00 GMT</code> headers (RFC 8594) to v1 responses
+3. <strong>Communicate migration guide</strong> — exact diff of what changed, code examples 4. <strong>Monitor v1 traffic</strong> — identify active callers using API key / request logs 5. <strong>Reach out to high-volume callers</strong> before sunset 6. <strong>Return 410 Gone</strong> after sunset date — never 404 (clients need to know the
+   resource existed and was intentionally removed)</p>
+<p><strong>What counts as breaking:</strong> removing fields, changing field types, renaming fields, making optional params required, changing auth scheme, changing status codes. <strong>Not breaking:</strong> adding new optional fields to responses, adding new optional request params, adding new endpoints, loosening validation.</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','S-10',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="ST-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">How would you design an idempotent payment API that handles retries, partial failures, and audit requirements?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Core mechanism: idempotency keys + saga pattern</strong>
+<strong>Request flow:</strong> 1. Client generates <code>Idempotency-Key: uuid-v4</code> (per payment attempt, not per session) 2. Server atomically: <code>INSERT INTO idempotency_keys (key, status='PROCESSING') ON CONFLICT DO NOTHING</code>
+   — if conflict, another request with same key is in-flight or done
+3. Execute payment: call payment processor, write to <code>payments</code> table 4. Update idempotency record: <code>{key, status='DONE', response_body, response_status}</code> 5. Return response; subsequent retries get stored response
+<strong>Handling partial failures:</strong> - Payment processor times out before confirmation: store <code>status='UNCERTAIN'</code> - Reconciliation job polls processor for final state and updates - Client retrying gets <code>202 Accepted</code> with a status check URL until resolved
+<strong>Audit trail:</strong> - Append-only <code>payment_events</code> table: every state transition (CREATED, AUTHORIZED, CAPTURED, REFUNDED, FAILED) - Include <code>actor</code>, <code>timestamp</code>, <code>idempotency_key</code>, <code>processor_response</code> on each event - Never update; read by replaying events or projecting to <code>payments</code> table
+<strong>Race condition prevention:</strong> - Redis <code>SET key 'PROCESSING' NX EX 30</code> as distributed lock before DB write - Expires after 30s so a crashed server doesn't lock forever</div>
+        
+        <div class="staff-add">Principal-level: frame this as a distributed transaction problem. Idempotency key is one component of an at-least-once delivery system. Discuss: how does this compose across services? If payment service calls fraud service then billing service, you need a saga coordinator or outbox pattern. Outbox: write payment event + payment record in one DB transaction; a relay process publishes to message bus. This decouples processing from notification without distributed transactions.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','ST-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">How do you design a rate limiting system that works across a distributed API fleet?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Challenge:</strong> a single server can rate-limit locally cheaply, but with N instances behind a load balancer, local counters are siloed — each instance allows full quota.
+<strong>Centralized counter (Redis):</strong> - Sliding window with Redis sorted sets or atomic INCR + EXPIRE - Key: <code>ratelimit:{api_key}:{window_start}</code> → count - Fast (sub-ms), consistent, but Redis is now a bottleneck and single point of failure - Mitigation: Redis Cluster, read replicas for quota checks
+<strong>Token bucket in Redis (atomic Lua script):</strong> <code>lua -- Atomically check and decrement token bucket local tokens = tonumber(redis.call('GET', key)) or capacity if tokens &gt; 0 then redis.call('SET', key, tokens-1, 'EX', window)
+  return 1 else return 0 end</code>
+<strong>Approximate local + sync:</strong> - Each instance tracks locally; periodically syncs with Redis - Trades perfect accuracy for resilience; over-allows briefly during sync interval - Acceptable for most APIs; unacceptable for billing/quota-critical limits
+<strong>Response headers</strong> (always include): <code>X-RateLimit-Limit: 1000 X-RateLimit-Remaining: 743 X-RateLimit-Reset: 1704067200 Retry-After: 57</code>
+<strong>Limit dimensions:</strong> per API key, per user, per IP, per endpoint, per tier (free/pro/enterprise). Implement as a middleware/filter at the API gateway level, not per service.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','ST-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">How would you evolve a public API to support a new data model without breaking existing consumers?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Strategy: expand-contract pattern (parallel run)</strong>
+<strong>Phase 1 — Expand (backward-compatible):</strong> - Add new optional fields to responses (old clients ignore unknown fields if they're
+  well-behaved JSON consumers — Postel's Law)
+- Accept new optional request fields with defaults that match old behavior - New endpoints can coexist with old ones
+<strong>Phase 2 — Migrate (dual write):</strong> - Internal logic writes to both old and new data models - New response includes both old fields (for compatibility) and new fields - Monitor which callers are using old vs new fields via analytics
+<strong>Phase 3 — Contract (sunset old):</strong> - Add <code>Deprecation</code> + <code>Sunset</code> headers to deprecated fields/endpoints - Remove old fields after sunset date; return 410 for removed endpoints
+<strong>Contract testing (Pact):</strong> - Consumer-driven: consumers publish their expectations (pacts) - Provider CI runs against pact broker; build fails if provider breaks a pact - Catches breaking changes before they reach production
+<strong>Field-level deprecation in OpenAPI:</strong> <code>yaml userId:
+  type: integer
+  deprecated: true
+  description: "Use userUuid instead. Removed after 2026-06-01."</code></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','ST-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-04">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-04</span>
+        <span class="acc-question">How do you secure a public REST API beyond just adding an auth token?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Defense in layers:</strong>
+<strong>Transport:</strong> TLS 1.2+ everywhere. HSTS header. Certificate pinning for mobile clients that control the client binary.
+<strong>Authentication:</strong> OAuth2 + JWT for user-facing, API keys (hashed, stored in DB — never plain text) for machine-to-machine. Rotate keys without downtime using key IDs in headers.
+<strong>Authorization:</strong> - Scopes on tokens (read:orders, write:payments) - Resource-level: user can only access their own resources — always filter by
+  authenticated identity, not a passed-in <code>user_id</code> param (IDOR prevention)
+- Rate limiting per API key + per IP
+<strong>Input validation:</strong> - Validate all inputs against strict schema (size limits, type, format, regex) - Reject unknown fields or strip them — prevents mass assignment - Limit JSON body size (e.g., 1MB max) to prevent large payload DoS
+<strong>Output filtering:</strong> - Never expose internal IDs, stack traces, DB column names in errors - Use opaque IDs (UUIDs or encoded IDs) — sequential IDs enable enumeration attacks
+<strong>Audit logging:</strong> - Log every mutating request with auth principal, timestamp, resource, diff - Store separately from application logs — immutable, tamper-evident
+<strong>API gateway features:</strong> TLS termination, auth, rate limiting, IP allowlisting, request/response logging — centralise here rather than per-service.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','ST-04',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="P-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">How do you design an API strategy for a platform that serves both internal microservices and external third-party developers?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>The core tension:</strong> internal APIs optimize for developer experience and velocity; external APIs optimize for stability, discoverability, and trust.
+<strong>Dual-layer architecture:</strong> - <strong>Internal APIs (BFFs and service-to-service):</strong> gRPC for performance-critical paths,
+  REST for simpler CRUD. Versioning via Protobuf evolution rules. Deployed continuously.
+  Contracts enforced by Pact/schema registries.
+- <strong>External APIs (developer platform):</strong> REST with OpenAPI spec as the contract.
+  Semantic versioning with long deprecation windows (6–12 months). API key management,
+  usage analytics, developer portal (docs, sandbox, SDKs).</p>
+<p><strong>API Gateway as the seam:</strong> - External requests hit the gateway first: auth, rate limiting, request translation - Gateway routes to internal services; internal callers bypass (or use internal gateway) - This decouples external API stability from internal service topology
+<strong>Design governance:</strong> - API design review board: new external APIs reviewed against style guide before release - OpenAPI-first: spec written before implementation; code generated from spec - Breaking change policy: documented, enforced, with automated Pact checks in CI
+<strong>Developer experience investment:</strong> - Interactive docs (Swagger UI / Redoc) generated from spec - SDKs in top languages auto-generated from OpenAPI spec (openapi-generator) - Sandbox environment with realistic test data - Webhook delivery with retry, delivery logs, and replay UI
+<strong>Metrics that matter for a platform:</strong> API adoption rate, SDK version distribution (how many still on deprecated versions), time-to-first-successful-call (DX metric), error rate per consumer, SLA breach rate.</p></div>
+        
+        <div class="staff-add">Push further: how do you enforce API standards at scale without becoming a bottleneck? Automated linting (Spectral rules on OpenAPI spec in CI). Paved roads: provide starter templates, base classes, and interceptors that implement auth, logging, rate limit headers correctly — teams use the paved road and get compliance for free. The governance model shifts from review-gate to enable-and-verify.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','P-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="P-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">P-02</span>
+        <span class="acc-question">A key external API is experiencing severe performance degradation under peak load. Walk through your diagnosis and architectural response.</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><p><strong>Immediate triage (minutes):</strong> - Check error rate, latency P50/P95/P99, saturation (CPU, connections, DB pool)
+  at each layer: CDN → API gateway → service → DB
+- Identify if degradation is global or per-endpoint/consumer - Pull slow query log; check connection pool exhaustion; check downstream dependency
+  health (DB, cache, third-party APIs)
+- Apply rate limiting tighter if specific consumers are causing the spike
+<strong>Short-term stabilization (hours):</strong> - Scale horizontally if CPU/connection-bound (add instances) - Enable aggressive caching at gateway for GET endpoints that can tolerate staleness - Shed load: return 503 with Retry-After for non-critical endpoints - Circuit break unhealthy downstream dependencies
+<strong>Root cause categories and fixes:</strong> - <strong>N+1 queries on REST responses:</strong> add projection endpoints, or GraphQL where
+  clients over-fetch; add read replicas; add response-level caching (Redis)
+- <strong>Missing indexes on filter params:</strong> profile slow queries, add targeted indexes - <strong>Hot partition:</strong> if sharding by customer ID and one customer is massive,
+  rethink sharding key or add dedicated capacity
+- <strong>Thundering herd on cache miss:</strong> cache stampede — use mutex/lock-based cache
+  population or probabilistic early expiration (XFetch algorithm)</p>
+<p><strong>Architectural response (weeks):</strong> - Read path: CQRS — separate read model (denormalized, cached) from write model - Write path: async where possible (202 + event); offload heavy processing to queues - Contract with consumers: add pagination where endpoints return unbounded results - SLA tiering: separate clusters for critical vs. background traffic; bulkhead pattern</p></div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('rest-api','P-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">Design a Paginated Event Feed API</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">You're building a REST API for a financial trading platform. It must expose a transaction history endpoint that serves up to 500 million records per customer, supports filtering by date range and transaction type, and is used by a mobile app (infinite scroll), a web dashboard (page navigation), and a batch export system (millions of records).</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Must respond in < 200ms at P99 for the mobile client</li><li>Batch export can export up to 5 million records but must not block the OLTP DB</li><li>Real-time inserts happen continuously; pagination must be stable</li><li>Multiple consumers with different UX needs</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Separate pagination strategies by consumer:</strong> The mobile app (infinite scroll) gets cursor-based pagination — stable across inserts, O(log n) with an index on (account_id, created_at, id). Return <code>{ "data": [...], "next_cursor": "&lt;base64&gt;", "has_more": true }</code>. The web dashboard can use the same cursor API but present page numbers as a UX affordation — map page clicks to cursor hops internally.</li><li><strong>Batch export — read replica + streaming cursor:</strong> Never run batch export against the OLTP primary. Route to a read replica. Use server-side streaming: endpoint accepts <code>?format=csv&amp;from=2024-01-01&amp;to=2024-12-31</code>, streams chunked response with <code>Transfer-Encoding: chunked</code>. Process in keyset batches of 10k rows using <code>(created_at, id) &gt; (last_created_at, last_id)</code>. Alternatively, trigger an async export job (202 Accepted + <code>Location: /exports/{jobId}</code>), write to S3, return a presigned download URL when done.</li><li><strong>Index design:</strong> composite index <code>(account_id, created_at DESC, id DESC)</code> covers all common filter patterns. Date range filter with account_id prefix is highly selective. Partial index on <code>transaction_type</code> if type filtering is frequent.</li><li><strong>Caching:</strong> cursor responses are immutable for a given cursor value — safe to cache at CDN with long TTL. Only the latest page (no cursor) needs short TTL or no-cache.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Using offset/limit on a 500M row table — O(n) scan for high offsets kills performance</li><li>Running batch exports against the primary DB — competing with OLTP workload</li><li>Returning unbounded result sets — no limit means a client can request all 500M rows</li><li>Not including has_more or next_cursor — client can't know when it has all results</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Design a Rate Limiting System for a Public API Platform</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Your company runs a public REST API platform used by 10,000 external developers. You need to implement rate limiting that: enforces per-API-key quotas (requests/minute and requests/month), handles burst traffic gracefully, is consistent across a 50-instance API fleet, and degrades gracefully if the rate limiting system itself fails.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>50 API gateway instances behind a load balancer, no sticky sessions</li><li>{'Rate limits': '100 req/min (short) + 10,000 req/month (long) per API key'}</li><li>{'P99 latency budget for the rate limit check': '< 5ms'}</li><li>System must not take down the API if the rate limiter fails</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Dual-window counters in Redis:</strong> Short window: <code>INCR ratelimit:{key}:min:{unix_minute}</code> with <code>EXPIRE 60</code>. Long window: <code>INCR ratelimit:{key}:month:{year_month}</code> with <code>EXPIRE 2678400</code> (31 days). Lua script combines both checks atomically — single round-trip. Redis latency is typically &lt; 1ms on the same rack; 5ms budget is achievable.</li><li><strong>Token bucket for burst handling:</strong> Sliding window with token bucket allows controlled bursts (e.g., 200 requests in the first 10 seconds of a minute) without a sharp reset spike at the minute boundary. Implement in Redis with <code>(last_refill_time, current_tokens)</code> per key and a Lua script that refills tokens proportional to elapsed time on each request.</li><li><strong>Fail-open with local fallback:</strong> If Redis is unreachable, fail-open (allow the request) rather than fail-closed (deny all). Log the failure. Implement a local in-memory approximate counter as a backstop — it won't be globally consistent but prevents total abuse during Redis outage. Circuit breaker pattern: if Redis error rate &gt; 50% for 10 seconds, switch to local mode and alert on-call.</li><li><strong>Response headers:</strong> always return <code>X-RateLimit-Limit</code>, <code>X-RateLimit-Remaining</code>, <code>X-RateLimit-Reset</code> (epoch of next window reset), and for 429 responses <code>Retry-After</code>. These headers let well-behaved clients implement client-side throttling and back-off before hitting the limit.</li><li><strong>Quota enforcement at the gateway:</strong> centralise rate limiting at the API gateway (Kong, Envoy, AWS API Gateway) rather than per-service — single enforcement point, no code duplication. Per-service limits are additive overhead, not a replacement.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Per-instance local counters — 50 instances each allow 100 req/min = 5,000 req/min effective</li><li>Fail-closed on Redis outage — takes down the entire API when rate limiter fails</li><li>Fixed window without handling boundary spikes — 100 requests in last second of minute N + 100 in first second of minute N+1 = 200 in 2 seconds</li><li>Not returning rate limit headers — clients have no way to implement polite back-off</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">Migrate a Monolith REST API to Microservices Without Breaking Consumers</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">A 5-year-old monolith exposes 200 REST endpoints used by 3 mobile apps (iOS, Android), a web frontend, and 15 partner integrations. You need to decompose it into microservices over 18 months while keeping all existing consumers working without forced upgrades.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Zero downtime during migration; no consumer-forced upgrades</li><li>Partners have 6-month contractual SLAs on API stability</li><li>Some endpoints have undocumented behavior that partners depend on</li><li>Team of 12 engineers; migration must be phased</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Strangler Fig pattern:</strong> don't rewrite — incrementally extract. An API gateway (or routing layer) sits in front of both monolith and new microservices. Traffic for extracted endpoints routes to the new service; unextracted endpoints still hit the monolith. Consumers see the same base URL throughout. No big-bang cutover.</li><li><strong>Reverse-engineer undocumented contracts before migrating:</strong> Record production traffic (shadow mode) for 30 days. Generate contract tests from real request/response pairs (Pact, Traffic Parrot). These become your regression suite and the "truth" for undocumented behavior. Run these against every deployment.</li><li><strong>Phased extraction order:</strong> extract by domain bounded context, starting with the most independently testable, least-coupled domains first (e.g., catalog/read-only data before orders/payments). Each extraction: (1) build new service, (2) run in shadow mode alongside monolith comparing responses, (3) gradually shift traffic (1% → 10% → 100% with feature flag), (4) deprecate monolith path.</li><li><strong>API gateway as the stability layer:</strong> Gateway handles: routing, auth, rate limiting, request/response transformation. If a new microservice changes its response shape, the gateway can transform it back to the v1 contract — consumers never see the internal change. This buys time to migrate consumers at their own pace.</li><li><strong>Communication to partners:</strong> 90-day advance notice for any route changes. Maintain a changelog and deprecation calendar. Provide a staging environment that mirrors production 2 weeks ahead so partners can test before production changes.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Big-bang rewrite with a cutover date — almost always fails or requires emergency rollback</li><li>Not generating contract tests from production traffic — undocumented behavior will break partners</li><li>Extracting tightly coupled domains first (e.g., billing before authentication) — maximizes coordination cost</li><li>No API gateway — direct consumer-to-microservice routing means consumers must update base URLs</li><li>Forcing consumer upgrades as part of the migration — violates the SLA and partner trust</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>// ── Theme (localStorage persistence) ─────────────────────────────────────
+function toggleTheme() {
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  h.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+// ── Tabs (with URL hash sync) ─────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+  history.replaceState(null, '', '#' + name);
+}
+
+// ── Accordion (JS-driven scrollHeight animation) ───────────────────────────
+function setAccOpen(item, open) {
+  const body = item.querySelector('.acc-body');
+  if (open) {
+    item.classList.add('open');
+    const h = body.scrollHeight;
+    body.style.maxHeight = h + 'px';
+    function onEnd(e) {
+      if (e.propertyName !== 'max-height') return;
+      body.removeEventListener('transitionend', onEnd);
+      if (item.classList.contains('open')) body.style.maxHeight = 'none';
+    }
+    body.addEventListener('transitionend', onEnd);
+  } else {
+    if (!body.style.maxHeight || body.style.maxHeight === 'none') {
+      body.style.maxHeight = body.scrollHeight + 'px';
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      item.classList.remove('open');
+      body.style.maxHeight = '0';
+    }));
+  }
+}
+
+function toggleAcc(header) {
+  setAccOpen(header.parentElement, !header.parentElement.classList.contains('open'));
+}
+
+// ── Expand / collapse all Q&A ─────────────────────────────────────────────
+function toggleAllAcc(btn) {
+  const items = [...document.querySelectorAll('#qa .acc-item')].filter(i => i.style.display !== 'none');
+  const allOpen = items.every(i => i.classList.contains('open'));
+  items.forEach(i => setAccOpen(i, !allOpen));
+  btn.textContent = allOpen ? 'Expand All' : 'Collapse All';
+}
+
+// ── Q&A keyword filter ────────────────────────────────────────────────────
+function filterQA(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.acc-item').forEach(item => {
+    const text = item.querySelector('.acc-question').textContent.toLowerCase();
+    item.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+  // Reset expand-all label whenever filter changes
+  const btn = document.querySelector('.expand-all-btn');
+  if (btn) btn.textContent = 'Expand All';
+}
+
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
+// ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
+document.addEventListener('DOMContentLoaded', function () {
+  // Sync toggle label with the actual current theme
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const label = document.getElementById('toggle-label');
+  if (label) label.textContent = isDark ? 'LIGHT MODE' : 'DARK MODE';
+
+  // Restore active tab from URL hash
+  const hash = location.hash.slice(1);
+  const validTabs = ['overview', 'deepdive', 'qa', 'scenarios'];
+  if (hash && validTabs.includes(hash)) {
+    const tab = document.querySelector(`.tab[data-tab="${hash}"]`);
+    if (tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(hash).classList.add('active');
+    }
+  }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
+
+  // Copy-to-clipboard on CLI command blocks
+  document.querySelectorAll('.cmd').forEach(cmd => {
+    cmd.title = 'Click to copy';
+    cmd.addEventListener('click', function () {
+      navigator.clipboard.writeText(this.textContent.trim()).then(() => {
+        const orig = this.style.opacity;
+        this.style.opacity = '0.4';
+        setTimeout(() => { this.style.opacity = orig; }, 600);
+      }).catch(() => {});
+    });
+  });
+});
+</script>
+</body>
+</html>
