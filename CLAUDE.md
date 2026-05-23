@@ -48,6 +48,7 @@ meta:
   title: Apache Kafka     # displayed as <h1>
   title_short: Kafka      # used in "Use X When" / "Don't Use X When" headings
   subtitle: "// ..."      # monospace tagline under the title
+  description: "..."      # shown on the index card below the title (1 sentence)
   category: Backend       # groups the card on the index page
   icon: "📨"              # emoji shown on the index card
 
@@ -81,6 +82,10 @@ scenarios:                # each with title, problem, constraints[], discussion[
 
 The Jinja2 template applies a `| md` filter to render Markdown → HTML. Fields that support Markdown: `concepts[].body`, `gotchas[].body`, `qa.*.answer`, `qa.*.staff_add`, `scenarios[].problem`, `scenarios[].discussion[]`, `scenarios[].red_flags[]`. All other fields are plain text.
 
+### Q&A progress tracking
+
+Q&A reviewed state is stored in `localStorage` keyed as `reviewed:{topicId}:{questionId}`. The `<body>` carries `data-topic-id="{{ meta.id }}"`. On load, `initReviewedState()` in `script.js` restores the reviewed state. The progress bar and label update via `updateQAProgress()`. Tab URL fragment sync uses `history.replaceState` with the tab name as the hash.
+
 ### Optional template sections
 
 `deep_dive.cli`, `deep_dive.comparison`, `qa.senior`, `qa.staff`, and `qa.principal` are guarded by `{% if %}` in the template and can be omitted from the YAML with no errors.
@@ -99,7 +104,7 @@ The Jinja2 template applies a `| md` filter to render Markdown → HTML. Fields 
 | Class | Purpose |
 |---|---|
 | `.concept-card` | Cards in a 3-column grid; left accent border, hover shadow |
-| `.accordion` / `.acc-item` / `.acc-body` | Collapsible Q&A; max-height 3000px (no clip) |
+| `.accordion` / `.acc-item` / `.acc-body` | Collapsible Q&A; JS scrollHeight animation (`setAccOpen` in script.js) |
 | `.level-badge` `.level-senior/staff/principal` | Colored level tags on Q&A items |
 | `.staff-add` | "What a Staff+ adds on top" box after answers |
 | `.gotcha` / `.gotcha-list` | Warning-styled gotcha entries |
@@ -110,6 +115,11 @@ The Jinja2 template applies a `| md` filter to render Markdown → HTML. Fields 
 | `.flow` / `.flow-step` / `.flow-arrow` | Horizontal step-flow diagrams |
 | `.tag` | Inline chips; variants: `.green`, `.orange`, `.red`, `.purple` |
 | `.section-title` / `.section-sub` | Section headings — both prefixed with `//` via CSS `::before` |
+| `.back-link` | Top-left "← Field Guide" link on topic pages; `span` hidden on mobile |
+| `.qa-progress` / `.qa-progress-track` / `.qa-progress-fill` / `.qa-progress-label` | Progress bar tracking reviewed Q&As (persisted in localStorage) |
+| `.qa-controls` / `.qa-search` / `.expand-all-btn` | Search input + expand/collapse all button above Q&A accordion |
+| `.acc-footer` / `.mark-reviewed-btn` | Footer inside each accordion body with "Mark reviewed" button |
+| `.acc-item.reviewed` | Applies strikethrough + muted style to reviewed Q&A items |
 
 ## Theming
 
@@ -131,6 +141,29 @@ Live URL: `https://www.balasubramanyamlanka.com/projects/field-guide`
 
 ## Topics
 
-**Current (11):** kafka (Backend), golang (Backend), distributed-systems (Backend), springboot (Backend), postgresql (Data), kubernetes (Infrastructure), ocp (Infrastructure), oauth2 (Security), jwt (Security), vault (Security), spring-security (Security)
+**Current (20):**
 
-**Planned:** aws, datadog, helm, springboot, kibana, snowflake_qlik, sonarqube_gatling_cucumber, trident_jfrog_nexusiq
+| Topic | Category |
+|---|---|
+| kafka | Backend |
+| golang | Backend |
+| distributed-systems | Backend |
+| springboot | Backend |
+| hibernate-jpa | Backend |
+| rest-api | Backend |
+| microservices | Backend |
+| jvm-tuning | Backend |
+| kubernetes | Infrastructure |
+| ocp | Infrastructure |
+| docker | Infrastructure |
+| oauth2 | Security |
+| jwt | Security |
+| vault | Security |
+| spring-security | Security |
+| datadog | Observability |
+| postgresql | Data |
+| load-testing | Quality |
+| maven-gradle | DevOps |
+| jenkins-cicd | DevOps |
+
+**Planned:** aws, helm, kibana, snowflake, sonarqube, trident, jfrog-nexus
