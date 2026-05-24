@@ -15,6 +15,7 @@ BASE = Path(__file__).parent
 CONTENT_DIR = BASE / "content"
 TEMPLATE_DIR = BASE / "templates"
 SHARED_DIR = BASE / "shared"
+SITE_DIR = BASE / "site"
 
 
 # ── Markdown filter ────────────────────────────────────────────────────────
@@ -136,13 +137,15 @@ def main():
             continue
 
         html = template.render(**data, shared_css=shared_css, shared_js=shared_js)
-        out = BASE / f"{topic_id}.html"
+        SITE_DIR.mkdir(exist_ok=True)
+        out = SITE_DIR / f"{topic_id}.html"
         out.write_text(html, encoding="utf-8")
         print(f"  ✓  {out.name}")
 
     # Always rebuild index
     index_html = build_index(all_topics)
-    (BASE / "index.html").write_text(index_html, encoding="utf-8")
+    SITE_DIR.mkdir(exist_ok=True)
+    (SITE_DIR / "index.html").write_text(index_html, encoding="utf-8")
     print(f"  ✓  index.html  ({len(all_topics)} topics)")
 
 

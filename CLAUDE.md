@@ -15,9 +15,10 @@ content/        ← one YAML file per technology (source of truth)
 templates/      ← topic.html.j2 (Jinja2 template)
 shared/         ← style.css + script.js (inlined into every output file)
 generate.py     ← reads content/*.yaml → renders template → writes HTML
-index.html      ← generated hub page (auto-rebuilt on every generate run)
-{id}.html       ← generated topic pages (self-contained, offline-capable)
+site/           ← generated output (committed); index.html + all topic pages
 ```
+
+Generated HTML files live in `site/` and are committed alongside the source YAMLs. The deploy workflow re-runs the generator then publishes `site/` directly to GitHub Pages — CSS and JS are inlined so no separate assets are needed.
 
 **Adding a new topic = write one YAML file + run `python generate.py`.**
 
@@ -47,6 +48,7 @@ meta:
   id: kafka               # used as output filename: kafka.html
   title: Apache Kafka     # displayed as <h1>
   title_short: Kafka      # used in "Use X When" / "Don't Use X When" headings
+  badge: "Interview Prep · Distributed Systems"  # small pill shown on the topic header
   subtitle: "// ..."      # monospace tagline under the title
   description: "..."      # shown on the index card below the title (1 sentence)
   category: Backend       # groups the card on the index page
@@ -60,15 +62,34 @@ colors:
   dark_vars: >-           # same for [data-theme="dark"]
 
 overview:
-  concepts:               # shown 3 per row; each card supports body (markdown), tags, flows
-  gotchas:                # warning-styled list with title + body (markdown)
-  when_to_use: []
+  concepts:               # shown 3 per row
+    - title: "..."
+      body: "..."         # markdown
+      tags:
+        - {text: "label", color: green}   # color: green|orange|red|purple (optional)
+      flows:              # array of step-arrays; each inner array renders as a → chain
+        - ["Step A", "Step B", "Step C"]
+  gotchas:                # warning-styled list
+    - title: "..."
+      body: "..."         # markdown
+  when_to_use: []         # plain text strings
   when_not_to_use: []
 
 deep_dive:
-  tables:                 # key/value reference tables; set full_width:true to span both columns
+  tables:                 # key/value reference tables
+    - title: "..."
+      full_width: true    # optional — spans both columns instead of half-width
+      rows:
+        - {key: "setting-name", value: "description"}
   cli:                    # grouped CLI commands (optional)
-  comparison:             # full-width multi-column comparison table (optional)
+    - group: "Group Name"
+      commands:
+        - {cmd: "...", desc: "..."}
+  comparison:             # full-width multi-column table (optional)
+    title: "..."
+    headers: ["Col1", "Col2", "Col3"]
+    rows:
+      - ["row1col1", "row1col2", "row1col3"]
 
 qa:
   senior: []              # questions with id (S-01), question, answer (markdown), staff_add (markdown)
