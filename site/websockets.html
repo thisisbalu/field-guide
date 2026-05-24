@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebSockets — Field Guide</title>
+<script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  /* Per-topic accent colors */
+  [data-theme="light"]{ --accent:#4338ca;--accent2:#be123c;--accent3:#0f766e; --highlight-bg:#eef2ff;--highlight-text:#4338ca;--highlight-border:#6366f1; --your-exp-bg:rgba(15,118,110,.06);--your-exp-border:rgba(15,118,110,.2);--your-exp-text:#0f766e; --acc-hover:rgba(67,56,202,.04);--acc-open-border:#6366f1;--acc-open-bg:rgba(99,102,241,.04); --num-color:#4338ca;--num-bg:rgba(67,56,202,.1); --tag-color:#4338ca;--tag-bg:rgba(67,56,202,.08);--tag-border:rgba(67,56,202,.2); --flow-arrow:#4338ca;--h1-from:#312e81;--h1-to:#4338ca; --badge-color:#312e81;--stat-num:#4338ca; --tab-active-color:#6366f1;--tab-active-bg:rgba(99,102,241,.08);--tab-active-border:#6366f1; --section-title:#4338ca;--concept-title:#312e81; --cheat-head-bg:#312e81;--cheat-head-text:#ffffff;--cheat-key:#4338ca; --cmd-bg:#eef2ff;--cmd-text:#312e81; }
+  [data-theme="dark"]{ --accent:#818cf8;--accent2:#f43f5e;--accent3:#2dd4bf; --highlight-bg:#1e1b4b;--highlight-text:#818cf8;--highlight-border:#818cf8; --your-exp-bg:rgba(45,212,191,.08);--your-exp-border:rgba(45,212,191,.25);--your-exp-text:#2dd4bf; --acc-hover:rgba(129,140,248,.04);--acc-open-border:#818cf8;--acc-open-bg:rgba(129,140,248,.04); --num-color:#818cf8;--num-bg:rgba(129,140,248,.1); --tag-color:#818cf8;--tag-bg:rgba(129,140,248,.08);--tag-border:rgba(129,140,248,.2); --flow-arrow:#818cf8;--h1-from:#818cf8;--h1-to:#c7d2fe; --badge-color:#818cf8;--stat-num:#818cf8; --tab-active-color:#818cf8;--tab-active-bg:rgba(129,140,248,.08);--tab-active-border:#818cf8; --section-title:#818cf8;--concept-title:#818cf8; --cheat-head-bg:#1e1b4b;--cheat-head-text:#818cf8;--cheat-key:#818cf8; --cmd-bg:#1e1b4b;--cmd-text:#818cf8; }
+  [data-theme="light"] .toggle-knob{background:#4338ca;transform:translateX(0);}
+  [data-theme="dark"] .toggle-knob{background:#818cf8;transform:translateX(16px);}
+
+  /* Shared component styles */
+  /* ── Fixed theme variables (same across all topics) ─────────────────────── */
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e2e8f0;--border:#c5d4e8;
+  --text:#1a2235;--muted:#64748b;
+  --green:#059669;--yellow:#d97706;--red:#dc2626;
+  --answer-text:#475569;
+  --cheat-row-alt:#f7f9fc;--cheat-border:#c5d4e8;--cheat-val:#1a2235;
+  --tip-bg:rgba(5,150,105,.07);--tip-border:#059669;--tip-text:#065f46;
+  --warn-bg:rgba(217,119,6,.07);--warn-border:#d97706;--warn-text:#92400e;
+}
+[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#64748b;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --answer-text:#94a3b8;
+  --cheat-row-alt:#0f1623;--cheat-border:#1e3a5f;--cheat-val:#e2e8f0;
+  --tip-bg:rgba(16,185,129,.08);--tip-border:#10b981;--tip-text:#6ee7b7;
+  --warn-bg:rgba(245,158,11,.08);--warn-border:#f59e0b;--warn-text:#fcd34d;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 2rem 4rem;transition:background .3s,color .3s;}
+
+/* ── Back navigation ─────────────────────────────────────────────────────── */
+.back-link{position:fixed;top:1.25rem;left:1.25rem;z-index:100;display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);text-decoration:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.back-link:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Theme toggle ────────────────────────────────────────────────────────── */
+.theme-toggle{position:fixed;top:1.25rem;right:1.25rem;z-index:100;display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.45rem 1rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;}
+.theme-toggle:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.toggle-track{width:34px;height:18px;border-radius:9px;position:relative;transition:background .3s;}
+[data-theme="light"] .toggle-track{background:#c5d4e8;}
+[data-theme="dark"] .toggle-track{background:#1e3a5f;}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header{text-align:center;margin-bottom:2rem;padding-top:.5rem;}
+.badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--badge-color);border:1px solid var(--badge-color);padding:.2rem .7rem;border-radius:2px;letter-spacing:.15em;margin-bottom:.75rem;text-transform:uppercase;}
+h1{font-size:2.75rem;font-weight:800;background:linear-gradient(135deg,var(--h1-from),var(--h1-to));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;}
+.subtitle{color:var(--muted);font-size:.85rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;}
+.tab{padding:.45rem 1.1rem;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:4px;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;}
+.tab:hover{border-color:var(--tab-active-border);color:var(--tab-active-color);}
+.tab.active{border-color:var(--tab-active-border);color:var(--tab-active-color);background:var(--tab-active-bg);font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title{font-size:1rem;font-weight:600;color:var(--section-title);margin-bottom:1rem;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:.5rem;}
+.section-title::before{content:'//';color:var(--muted);}
+.section-sub{font-size:.8rem;font-weight:600;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem;}
+.section-sub::before{content:'//';color:var(--muted);opacity:.6;}
+
+/* ── Concept cards ───────────────────────────────────────────────────────── */
+.concepts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;}
+.concept-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--concept-title);border-radius:8px;padding:1.4rem 1.5rem;transition:box-shadow .2s;}
+.concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+[data-theme="dark"] .concept-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.concept-title{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--concept-title);margin-bottom:.75rem;font-weight:600;}
+.concept-body{font-size:.82rem;color:var(--answer-text);line-height:1.65;}
+.concept-body p{margin-bottom:.5rem;}
+.concept-body p:last-child{margin-bottom:0;}
+
+/* ── Tags ────────────────────────────────────────────────────────────────── */
+.tags{margin-top:.6rem;}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.63rem;padding:.12rem .4rem;border-radius:3px;margin:.12rem;background:var(--tag-bg);color:var(--tag-color);border:1px solid var(--tag-border);}
+.tag.orange{background:rgba(217,90,30,.08);color:var(--accent2);border-color:rgba(217,90,30,.2);}
+.tag.green{background:rgba(5,150,105,.08);color:var(--green);border-color:rgba(5,150,105,.2);}
+[data-theme="dark"] .tag.green{background:rgba(16,185,129,.08);}
+.tag.red{background:rgba(220,38,38,.08);color:var(--red);border-color:rgba(220,38,38,.2);}
+.tag.purple{background:rgba(91,33,182,.08);color:#5b21b6;border-color:rgba(91,33,182,.2);}
+[data-theme="dark"] .tag.purple{color:#a78bfa;border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.08);}
+
+/* ── Flow diagrams ───────────────────────────────────────────────────────── */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.75rem;margin:.6rem 0;}
+.flow-step{background:var(--surface2);border:1px solid var(--border);padding:.3rem .6rem;border-radius:4px;color:var(--text);}
+.flow-arrow{color:var(--flow-arrow);font-size:.9rem;}
+
+/* ── Gotchas ─────────────────────────────────────────────────────────────── */
+.gotcha-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.25rem;}
+.gotcha{background:var(--warn-bg);border-left:3px solid var(--warn-border);padding:.7rem 1rem;border-radius:0 4px 4px 0;font-size:.83rem;color:var(--warn-text);line-height:1.6;}
+.gotcha-title{font-family:'IBM Plex Mono',monospace;display:block;font-size:.76rem;font-weight:600;margin-bottom:.2rem;}
+
+/* ── When to use ─────────────────────────────────────────────────────────── */
+.when-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem;}
+.when-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem;}
+.when-title{font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.when-use .when-title{color:var(--green);}
+.when-not .when-title{color:var(--red);}
+.when-block ul{padding-left:1.1rem;font-size:.82rem;color:var(--answer-text);line-height:1.8;}
+
+/* ── Q&A progress bar ────────────────────────────────────────────────────── */
+.qa-progress{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+.qa-progress-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qa-progress-fill{height:100%;width:0;background:var(--green);border-radius:2px;transition:width .35s ease;}
+.qa-progress-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);white-space:nowrap;}
+
+/* ── Q&A controls (search + expand-all) ─────────────────────────────────── */
+.qa-controls{display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;}
+.qa-search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text);outline:none;transition:border-color .2s;}
+.qa-search:focus{border-color:var(--tab-active-border,var(--text));}
+.qa-search::placeholder{color:var(--muted);}
+.expand-all-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:.45rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
+.expand-all-btn:hover{border-color:var(--tab-active-border,var(--text));color:var(--tab-active-color,var(--text));}
+
+/* ── Mark reviewed ───────────────────────────────────────────────────────── */
+.acc-footer{display:flex;justify-content:flex-end;margin-top:.6rem;}
+.mark-reviewed-btn{background:transparent;border:1px solid var(--border);border-radius:3px;padding:.22rem .65rem;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.06em;}
+.mark-reviewed-btn:hover{border-color:var(--green);color:var(--green);}
+.acc-item.reviewed .mark-reviewed-btn{border-color:var(--green);color:var(--green);background:rgba(5,150,105,.08);}
+[data-theme="dark"] .acc-item.reviewed .mark-reviewed-btn{background:rgba(16,185,129,.08);}
+.acc-item.reviewed .acc-num{color:var(--green);}
+
+/* ── Accordion ───────────────────────────────────────────────────────────── */
+.accordion{display:flex;flex-direction:column;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.acc-item{border-bottom:1px solid var(--border);transition:background .2s;border-left:3px solid transparent;}
+.acc-item:last-child{border-bottom:none;}
+.acc-item.open{background:var(--acc-open-bg);border-left-color:var(--acc-open-border);}
+.acc-header{display:flex;align-items:center;gap:.75rem;padding:.95rem 1.1rem;cursor:pointer;user-select:none;transition:background .15s;}
+.acc-header:hover{background:var(--acc-hover);}
+.acc-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--num-color);background:var(--num-bg);padding:.18rem .45rem;border-radius:3px;flex-shrink:0;min-width:3rem;text-align:center;}
+.acc-question{font-size:.9rem;font-weight:600;flex:1;line-height:1.4;}
+.acc-chevron{font-size:.7rem;color:var(--muted);flex-shrink:0;transition:transform .25s;}
+.acc-item.open .acc-chevron{transform:rotate(180deg);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;padding:0 1.1rem;}
+.acc-item.open .acc-body{padding:0 1.1rem 1.75rem;}
+.acc-answer{font-size:.86rem;line-height:1.75;color:var(--answer-text);margin-bottom:.85rem;padding-top:.1rem;}
+.acc-answer p{margin-bottom:.5rem;}
+.acc-answer ul{padding-left:1.1rem;margin:.4rem 0;}
+.acc-answer li{margin-bottom:.25rem;}
+
+/* ── Level badges ────────────────────────────────────────────────────────── */
+.level-badge{font-size:.6rem;padding:.12rem .5rem;border-radius:3px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.level-senior{background:rgba(5,150,105,.12);color:var(--green);border:1px solid rgba(5,150,105,.25);}
+[data-theme="dark"] .level-senior{background:rgba(16,185,129,.12);}
+.level-staff{background:rgba(0,119,170,.1);color:#0077aa;border:1px solid rgba(0,119,170,.25);}
+[data-theme="dark"] .level-staff{color:#00d4ff;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08);}
+.level-principal{background:rgba(91,33,182,.08);color:#5b21b6;border:1px solid rgba(91,33,182,.2);}
+[data-theme="dark"] .level-principal{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);}
+
+/* ── Staff+ add-on box ───────────────────────────────────────────────────── */
+.staff-add{background:var(--your-exp-bg);border:1px solid var(--your-exp-border);border-radius:4px;padding:.8rem 1rem;font-size:.83rem;line-height:1.7;color:var(--your-exp-text);}
+.staff-add::before{content:'⬆ WHAT A STAFF+ ADDS ON TOP';display:block;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.12em;margin-bottom:.5rem;opacity:.75;}
+.staff-add p{margin-bottom:.4rem;}
+.staff-add p:last-child{margin-bottom:0;}
+
+/* ── Highlight / callout ─────────────────────────────────────────────────── */
+.highlight{background:var(--highlight-bg);border-left:3px solid var(--highlight-border);padding:.65rem .9rem;border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--highlight-text);margin-bottom:.75rem;line-height:1.65;}
+.callout{display:flex;gap:.6rem;padding:.7rem 1rem;font-size:.82rem;line-height:1.6;border-radius:4px;margin:.6rem 0;}
+.callout.tip{background:var(--tip-bg);border-left:3px solid var(--tip-border);color:var(--tip-text);}
+.callout.warn{background:var(--warn-bg);border-left:3px solid var(--warn-border);color:var(--warn-text);}
+
+/* ── Reference tables ───────────────────────────────────────────────────── */
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;}
+.cheat-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.cheat-full{grid-column:1/-1;}
+.cheat-block-title{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.75rem;font-weight:700;padding:.65rem 1.1rem;letter-spacing:.1em;text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+tr:nth-child(even){background:var(--cheat-row-alt);}
+td{padding:.7rem 1.1rem;font-size:.82rem;border-bottom:1px solid var(--cheat-border);vertical-align:top;line-height:1.6;}
+tr:last-child td{border-bottom:none;}
+td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:35%;vertical-align:middle;}
+td:last-child{color:var(--cheat-val);}
+
+/* ── CLI command blocks ──────────────────────────────────────────────────── */
+.cmd-block{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem 1.5rem;padding:.85rem 1.1rem;}
+.cmd-group{display:flex;flex-direction:column;}
+.cmd-label{font-size:.68rem;color:var(--muted);margin-bottom:.3rem;font-family:'IBM Plex Mono',monospace;margin-top:0;}
+.cmd{display:block;background:var(--cmd-bg);color:var(--cmd-text);font-family:'IBM Plex Mono',monospace;font-size:.74rem;padding:.45rem .75rem;border-radius:4px;margin-bottom:.4rem;border-left:3px solid var(--cmd-text);word-break:break-all;cursor:pointer;transition:opacity .2s;}
+.cmd:hover{opacity:.75;}
+
+/* ── Comparison table ────────────────────────────────────────────────────── */
+.comparison-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.comparison-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:680px;}
+.comparison-table th{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.65rem 1rem;text-align:left;font-weight:700;letter-spacing:.06em;border-right:1px solid rgba(255,255,255,.1);}
+.comparison-table th:last-child{border-right:none;}
+.comparison-table td{padding:.65rem 1rem;border-bottom:1px solid var(--cheat-border);border-right:1px solid var(--cheat-border);vertical-align:top;line-height:1.5;color:var(--cheat-val);}
+.comparison-table td:last-child{border-right:none;}
+.comparison-table tr:nth-child(even){background:var(--cheat-row-alt);}
+.comparison-table tr:last-child td{border-bottom:none;}
+.comparison-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--cheat-key);font-weight:600;white-space:nowrap;width:18%;}
+
+/* ── Scenarios ───────────────────────────────────────────────────────────── */
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:1.75rem;overflow:hidden;}
+.scenario:last-child{margin-bottom:0;}
+.scenario-header{background:var(--cheat-head-bg);color:var(--cheat-head-text);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:700;padding:.8rem 1.1rem;letter-spacing:.06em;}
+.scenario-body{padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.scenario-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;}
+.scenario-content{font-size:.83rem;color:var(--answer-text);line-height:1.65;}
+.scenario-content ul{padding-left:1.1rem;margin-top:.3rem;}
+.scenario-content li{margin-bottom:.3rem;}
+.scenario-content p{margin-bottom:.4rem;}
+.red-flags-block{background:rgba(220,38,38,.06);border-left:3px solid var(--red);padding:.75rem 1rem;border-radius:0 4px 4px 0;grid-column:1/-1;}
+[data-theme="dark"] .red-flags-block{background:rgba(239,68,68,.07);}
+.red-flags-block .scenario-label{color:var(--red);}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .scenario-body{grid-template-columns:1fr;}
+  .when-grid{grid-template-columns:1fr;}
+  h1{font-size:2rem;}
+  .back-link span{display:none;}
+}
+@media(max-width:500px){
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:.4rem;}
+  .tab{flex-shrink:0;padding:.4rem .75rem;font-size:.65rem;letter-spacing:.04em;}
+}
+
+</style>
+</head>
+<body data-topic-id="websockets">
+
+<a class="back-link" href="index.html">← <span>Field Guide</span></a>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+  <div class="toggle-track"><div class="toggle-knob"></div></div>
+  <span id="toggle-label">DARK MODE</span>
+</div>
+
+<div class="header">
+  <h1>WebSockets</h1>
+  <p class="subtitle">// full-duplex · persistent TCP · real-time · scaling · security · senior → principal</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="overview" role="button" tabindex="0" onclick="switchTab('overview',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('overview',this);event.preventDefault();}">Overview</div>
+  <div class="tab" data-tab="deepdive" role="button" tabindex="0" onclick="switchTab('deepdive',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('deepdive',this);event.preventDefault();}">Deep Dive</div>
+  <div class="tab" data-tab="qa" role="button" tabindex="0" onclick="switchTab('qa',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('qa',this);event.preventDefault();}">Q &amp; A</div>
+  <div class="tab" data-tab="scenarios" role="button" tabindex="0" onclick="switchTab('scenarios',this)" onkeydown="if(event.key==='Enter'||event.key===' '){switchTab('scenarios',this);event.preventDefault();}">Scenarios</div>
+</div>
+
+
+<div class="section active" id="overview">
+  <div class="section-title">Core Concepts</div>
+  <div class="concepts">
+    
+    <div class="concept-card">
+      <div class="concept-title">⚡ What WebSockets Is</div>
+      <div class="concept-body">
+        A <strong>persistent, full-duplex communication channel</strong> over a single TCP connection. Unlike HTTP, which follows a request/response cycle, a WebSocket connection stays open — either side can send data at any time without waiting for the other to ask. The protocol is framed (not streaming), message-oriented, and operates at the application layer just above TCP. Once established, there is no HTTP overhead per message — just a small frame header.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">full-duplex</span>
+          
+          <span class="tag">persistent TCP</span>
+          
+          <span class="tag orange">low latency</span>
+          
+          <span class="tag purple">bidirectional</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🤝 The HTTP Upgrade Handshake</div>
+      <div class="concept-body">
+        A WebSocket connection starts as an HTTP/1.1 request. The client sends an <code>Upgrade: websocket</code> header with a random base64 nonce (<code>Sec-WebSocket-Key</code>). The server responds <strong>101 Switching Protocols</strong>, signs the nonce with a fixed GUID using SHA-1, and returns it as <code>Sec-WebSocket-Accept</code>. After this, the TCP connection is repurposed — HTTP is gone, WebSocket frames flow on the same socket.
+The handshake is intentional: it lets WebSockets traverse firewalls and proxies that understand HTTP, and the nonce exchange prevents HTTP caches from accidentally serving WebSocket data.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Client HTTP Upgrade</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">101 Switching Protocols</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Full-duplex frames</span>
+          
+        </div>
+        
+        
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🖼️ Frame Protocol & Opcodes</div>
+      <div class="concept-body">
+        WebSocket messages are sent as one or more <strong>frames</strong>. Each frame has a 2–10 byte header: FIN bit (last frame of message), opcode, mask bit, and payload length.
+Key opcodes: - <strong>0x1</strong> Text frame (UTF-8) - <strong>0x2</strong> Binary frame - <strong>0x8</strong> Close — initiates graceful shutdown; includes a 2-byte status code - <strong>0x9</strong> Ping — sent to check connection liveness - <strong>0xA</strong> Pong — mandatory reply to a Ping
+Browser clients <strong>must mask</strong> all frames they send (XOR with a 4-byte random key). Servers must not mask. This prevents cache-poisoning attacks against HTTP proxies.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">text/binary</span>
+          
+          <span class="tag orange">ping/pong</span>
+          
+          <span class="tag red">close frame</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔄 Connection Lifecycle & Events</div>
+      <div class="concept-body">
+        The browser <code>WebSocket</code> API surfaces four events:
+- <strong>onopen</strong> — handshake complete, safe to send - <strong>onmessage</strong> — data frame received - <strong>onerror</strong> — transport error (always followed by onclose) - <strong>onclose</strong> — connection closed; inspect <code>code</code> and <code>reason</code>
+Common close codes: <strong>1000</strong> Normal closure · <strong>1001</strong> Going away (page navigate) · <strong>1006</strong> Abnormal closure (no Close frame sent — TCP dropped) · <strong>1008</strong> Policy violation · <strong>1011</strong> Server error.
+A <code>readyState</code> of CONNECTING (0), OPEN (1), CLOSING (2), or CLOSED (3) tracks connection phase.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">1000 normal</span>
+          
+          <span class="tag red">1006 abnormal</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">💓 Heartbeats: Ping / Pong</div>
+      <div class="concept-body">
+        TCP connections silently die behind NAT gateways and load balancers after idle periods (often 30–60 seconds). The WebSocket spec has a built-in solution: the server sends a <strong>Ping</strong> frame; the client must respond with a <strong>Pong</strong> immediately. If no Pong arrives within a timeout, the server closes the socket.
+Most server-side frameworks (Spring, Node ws, Netty) handle Ping/Pong automatically. Configure interval and timeout explicitly — defaults are often too long for production. Clients that disappear without sending a Close frame (mobile clients backgrounded, network loss) are only detectable this way.
+        
+        
+        <div class="tags">
+          
+          <span class="tag green">keep-alive</span>
+          
+          <span class="tag orange">zombie detection</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">📡 Scaling: Sticky Sessions & Pub/Sub</div>
+      <div class="concept-body">
+        A WebSocket connection is stateful — it's pinned to one server process. Horizontal scaling requires <strong>sticky sessions</strong> (affinity routing by session ID or IP hash at the load balancer) so all messages for a connection reach the right process.
+For broadcasting messages across servers (e.g., a chat message to all users in a room distributed across 10 servers), use a <strong>pub/sub bus</strong> — typically Redis Pub/Sub or a Kafka topic. Each server subscribes; when any server receives a message to broadcast, it publishes to the bus; all servers relay it to their local connections.
+        
+        
+        <div class="flow">
+          
+          <span class="flow-step">Client</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">LB (sticky)</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Server A / B / C</span><span class="flow-arrow">→</span>
+          
+          <span class="flow-step">Redis Pub/Sub</span>
+          
+        </div>
+        
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">sticky sessions</span>
+          
+          <span class="tag purple">Redis pub/sub</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">🔒 Security: WSS & Authentication</div>
+      <div class="concept-body">
+        <strong>Always use <code>wss://</code></strong> (WebSocket Secure) — it is WebSocket over TLS, identical to HTTPS. Plain <code>ws://</code> exposes frame data and allows proxies to inject or modify content.
+<strong>Authentication is the hard part.</strong> The browser's <code>WebSocket</code> constructor does not support custom headers — you cannot pass an <code>Authorization</code> header. Three patterns:
+- <strong>Cookie auth</strong>: if the user is already cookie-authenticated (same-origin), the browser
+  sends cookies on the upgrade request automatically — simplest.
+- <strong>Token in query string</strong>: <code>wss://host/ws?token=...</code> — works but tokens appear in server
+  logs; use short-lived tokens.
+- <strong>First-message auth</strong>: connect first, then immediately send an auth message; server
+  enforces a timeout and closes unauthenticated connections.
+        
+        
+        <div class="tags">
+          
+          <span class="tag red">wss:// required</span>
+          
+          <span class="tag orange">no custom headers</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="concept-card">
+      <div class="concept-title">⏸️ Back-pressure & Flow Control</div>
+      <div class="concept-body">
+        WebSocket has no built-in flow control — a sender can write faster than the receiver can process. Unread data accumulates in the socket's send buffer; when the buffer is full, writes block (server) or <code>bufferedAmount</code> grows without bound (browser).
+Server side: check <code>channel.isWritable()</code> (Netty) or use reactive streams backpressure (Spring WebFlux). If a client is slow, drop non-critical messages, apply a rate limit, or close the connection rather than letting the buffer grow unboundedly.
+Browser side: check <code>ws.bufferedAmount</code> before each send — if it's large, the network is lagging and you're queuing up data that hasn't left the browser yet.
+        
+        
+        <div class="tags">
+          
+          <span class="tag orange">bufferedAmount</span>
+          
+          <span class="tag purple">isWritable()</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  <div class="section-sub">Gotchas &amp; Failure Modes</div>
+  <div class="gotcha-list">
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Sticky sessions are not optional</span>
+      Round-robin load balancers will route reconnections to a different server, losing all in-memory connection state. You must configure session affinity at the LB (IP hash or cookie-based). Without it, reconnects silently drop users from rooms/subscriptions.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Proxies and firewalls kill idle connections</span>
+      Enterprise proxies and cloud load balancers (AWS ALB: 60s default, Nginx: 75s) terminate connections that appear idle. Ping/Pong heartbeats must be shorter than the lowest timeout in the path. Symptom: connections drop intermittently, always after the same interval, with close code 1006.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">No built-in reconnection</span>
+      The WebSocket spec defines no reconnection logic. When a connection drops, nothing reconnects automatically. You must implement exponential backoff with jitter, re-subscribe to channels, and re-authenticate on every reconnect. Libraries like <code>reconnecting-websocket</code> handle the mechanics; your app logic must handle the state recovery.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Browser API cannot set custom headers</span>
+      <code>new WebSocket(url)</code> ignores any headers you pass. <code>Authorization: Bearer ...</code> is not possible on the initial upgrade request from a browser. Use query-string tokens (short-lived, single-use), cookie auth, or a post-connect auth message.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Memory cost per connection</span>
+      Each open WebSocket holds a TCP connection, a file descriptor, and framework-level buffers. At 100k concurrent connections on one server you're holding ~100k file descriptors and substantial kernel socket buffer memory. Plan capacity explicitly — benchmark your framework's memory per idle connection, set <code>ulimit -n</code> appropriately, and track connection count as a first-class metric.
+    </div>
+    
+    <div class="gotcha">
+      <span class="gotcha-title">Graceful server shutdown must drain connections</span>
+      Stopping a server process immediately drops all its connections with code 1006 (abnormal). A graceful shutdown sends Close frames to all clients (code 1001 Going Away), waits for acknowledgment or a timeout, then exits. Without this, clients see unexpected drops and trigger aggressive reconnect storms just as a new server is starting.
+    </div>
+    
+  </div>
+
+  <div class="section-sub">When to Use / When Not To</div>
+  <div class="when-grid">
+    <div class="when-block when-use">
+      <div class="when-title">✓ Use WebSockets When</div>
+      <ul>
+        
+        <li>Real-time chat and collaborative messaging where both sides send frequently</li>
+        
+        <li>Live collaborative editing — multiple users changing shared state simultaneously</li>
+        
+        <li>Multiplayer games requiring continuous low-latency state synchronization</li>
+        
+        <li>Financial dashboards and trading UIs receiving sub-second price updates</li>
+        
+        <li>Presence and typing indicators — server must push unsolicited updates</li>
+        
+        <li>Operational dashboards where the server streams live metrics to the browser</li>
+        
+      </ul>
+    </div>
+    <div class="when-block when-not">
+      <div class="when-title">✗ Don't Use WebSockets When</div>
+      <ul>
+        
+        <li>One-way server push with infrequent updates — Server-Sent Events (SSE) is simpler, auto-reconnects, works through HTTP/2 multiplexing, and doesn't need sticky sessions</li>
+        
+        <li>Simple request/response patterns — HTTP REST or gRPC handles this with less operational complexity</li>
+        
+        <li>Clients on restrictive corporate networks where WebSocket upgrades are blocked by deep-packet inspection proxies</li>
+        
+        <li>Large file or media streaming — HTTP range requests and chunked transfer are better suited and CDN-cacheable</li>
+        
+        <li>Rare updates (< once per minute) — polling is simpler, stateless, and easier to scale horizontally</li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="section" id="deepdive">
+  <div class="section-title">Quick Reference &amp; Comparisons</div>
+  <div class="cheat-grid">
+
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">🖼️ WebSocket Frame Opcodes</div>
+      <table>
+        
+        <tr><td>0x0</td><td>Continuation frame — subsequent frame of a multi-frame message</td></tr>
+        
+        <tr><td>0x1</td><td>Text frame — payload must be valid UTF-8</td></tr>
+        
+        <tr><td>0x2</td><td>Binary frame — arbitrary bytes, no encoding constraint</td></tr>
+        
+        <tr><td>0x8</td><td>Close frame — optional 2-byte status code + UTF-8 reason in payload</td></tr>
+        
+        <tr><td>0x9</td><td>Ping — control frame; peer must respond with Pong</td></tr>
+        
+        <tr><td>0xA</td><td>Pong — response to Ping; may also be sent unsolicited</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">⚙️ Key Protocol Limits & Defaults</div>
+      <table>
+        
+        <tr><td>Max frame payload</td><td>2^63 - 1 bytes (theoretical); keep messages under 64KB in practice for browser compatibility</td></tr>
+        
+        <tr><td>Masking</td><td>Client→server frames must be masked (4-byte XOR key). Server→client must NOT be masked.</td></tr>
+        
+        <tr><td>Close status 1000</td><td>Normal closure — both sides finished cleanly</td></tr>
+        
+        <tr><td>Close status 1001</td><td>Going Away — server shutting down or browser navigating away</td></tr>
+        
+        <tr><td>Close status 1006</td><td>Abnormal closure — TCP dropped without a Close frame (network failure, process killed)</td></tr>
+        
+        <tr><td>Close status 1011</td><td>Internal server error — server encountered an unexpected condition</td></tr>
+        
+        <tr><td>Sec-WebSocket-Version</td><td>Must be 13 (RFC 6455). The only version in production use.</td></tr>
+        
+        <tr><td>Sec-WebSocket-Protocol</td><td>Optional sub-protocol negotiation (e.g., 'stomp', 'graphql-ws', 'chat')</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">⚙️ Spring WebSocket / STOMP Config Reference</div>
+      <table>
+        
+        <tr><td>setMessageSizeLimit</td><td>Max inbound message size in bytes. Default 64KB. Increase for large payloads.</td></tr>
+        
+        <tr><td>setSendBufferSizeLimit</td><td>Per-session outbound buffer. Default 512KB. If full, session is closed.</td></tr>
+        
+        <tr><td>setSendTimeLimit</td><td>Max time (ms) to send a message to a client. Default 10s. Slow clients are closed.</td></tr>
+        
+        <tr><td>setHeartbeatValue</td><td>STOMP heartbeat: {server-interval, client-interval} in ms. Both parties negotiate minimum.</td></tr>
+        
+        <tr><td>setAllowedOrigins / setAllowedOriginPatterns</td><td>CORS-equivalent for the upgrade request. Default: same-origin only.</td></tr>
+        
+        <tr><td>withSockJS()</td><td>Adds SockJS fallback (long-polling / EventSource) for clients that can't upgrade. Adds overhead.</td></tr>
+        
+        <tr><td>TaskScheduler (heartbeat)</td><td>Required bean when heartbeats are enabled. Without it, heartbeats silently don't run.</td></tr>
+        
+      </table>
+    </div>
+    
+    <div class="cheat-block">
+      <div class="cheat-block-title">🔧 Nginx WebSocket Proxy Config</div>
+      <table>
+        
+        <tr><td>proxy_http_version 1.1</td><td>Required — HTTP/2 does not support the Upgrade mechanism WebSockets use.</td></tr>
+        
+        <tr><td>proxy_set_header Upgrade $http_upgrade</td><td>Forwards the Upgrade header to the upstream server.</td></tr>
+        
+        <tr><td>proxy_set_header Connection 'upgrade'</td><td>Signals to the upstream that this is an upgrade request.</td></tr>
+        
+        <tr><td>proxy_read_timeout</td><td>How long Nginx waits for data before closing the connection. Default 60s — set to 3600s+ for long-lived sockets.</td></tr>
+        
+        <tr><td>proxy_send_timeout</td><td>How long Nginx waits to send data to the upstream. Also extend for long-lived connections.</td></tr>
+        
+        <tr><td>ip_hash / sticky</td><td>Enable sticky sessions so reconnects route to the same upstream. Required for stateful WebSocket servers.</td></tr>
+        
+      </table>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">💻 CLI Commands</div>
+      <div class="cmd-block">
+        
+        <div class="cmd-group">
+          <div class="cmd-label">wscat — interactive WebSocket client (npm install -g wscat)</div>
+          
+          <span class="cmd">wscat -c wss://api.example.com/ws</span>
+          
+          <span class="cmd">wscat -c wss://api.example.com/ws -H 'Cookie: session=abc'</span>
+          
+          <span class="cmd">wscat -c ws://localhost:8080/ws --no-check</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">websocat — curl-like CLI for WebSockets</div>
+          
+          <span class="cmd">websocat wss://api.example.com/ws</span>
+          
+          <span class="cmd">echo '{"type":"subscribe","channel":"prices"}' | websocat wss://api.example.com/ws</span>
+          
+          <span class="cmd">websocat -t --ping-interval 30 wss://api.example.com/ws</span>
+          
+        </div>
+        
+        <div class="cmd-group">
+          <div class="cmd-label">Connection diagnostics</div>
+          
+          <span class="cmd">curl -i -N -H 'Upgrade: websocket' -H 'Connection: Upgrade' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' -H 'Sec-WebSocket-Version: 13' http://localhost:8080/ws</span>
+          
+          <span class="cmd">ss -tnp | grep :8080</span>
+          
+          <span class="cmd">lsof -i :8080 | wc -l</span>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+
+    
+    <div class="cheat-block cheat-full">
+      <div class="cheat-block-title">⚖️ WebSockets vs SSE vs Long Polling vs HTTP/2 Push</div>
+      <div class="comparison-wrap">
+        <table class="comparison-table">
+          <tr>
+            
+            <th>Dimension</th>
+            
+            <th>WebSockets</th>
+            
+            <th>Server-Sent Events (SSE)</th>
+            
+            <th>Long Polling</th>
+            
+            <th>HTTP/2 Push</th>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Direction</td>
+            
+            <td>Full-duplex — client and server send freely</td>
+            
+            <td>Server → client only; client sends via separate HTTP</td>
+            
+            <td>Server → client only; client re-polls</td>
+            
+            <td>Server → client only; client sends via separate HTTP</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Protocol</td>
+            
+            <td>Custom framed protocol over TCP after HTTP upgrade</td>
+            
+            <td>Plain HTTP/1.1 or HTTP/2 chunked response</td>
+            
+            <td>Standard HTTP request/response cycle</td>
+            
+            <td>HTTP/2 server push (PUSH_PROMISE)</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Auto-reconnect</td>
+            
+            <td>No — must implement with exponential backoff</td>
+            
+            <td>Yes — browser reconnects automatically; EventSource handles it</td>
+            
+            <td>Implicit — client reissues request after each response</td>
+            
+            <td>No — part of a single HTTP/2 connection lifecycle</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Sticky sessions needed</td>
+            
+            <td>Yes — connection is stateful and pinned to one server</td>
+            
+            <td>No — each reconnect can hit a different server; stateless</td>
+            
+            <td>No — each request is independent</td>
+            
+            <td>No — tied to HTTP/2 connection which can be load-balanced</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Proxy/firewall support</td>
+            
+            <td>Issues with HTTP proxies that don't understand Upgrade</td>
+            
+            <td>Excellent — looks like slow HTTP; works everywhere</td>
+            
+            <td>Excellent — standard HTTP request</td>
+            
+            <td>Limited — many proxies don't support HTTP/2 push</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Latency</td>
+            
+            <td>Very low — persistent socket, no handshake per message</td>
+            
+            <td>Low — persistent response stream, no reconnect overhead for delivery</td>
+            
+            <td>Medium — includes polling delay and new TCP/TLS per cycle without keep-alive</td>
+            
+            <td>Very low when supported</td>
+            
+          </tr>
+          
+          <tr>
+            
+            <td>Best for</td>
+            
+            <td>Chat, games, live collaboration, bidirectional signaling</td>
+            
+            <td>Live feeds, notifications, dashboards where server pushes only</td>
+            
+            <td>Simple polling when WebSockets are blocked; legacy clients</td>
+            
+            <td>Resource hints, pre-loading assets — not general messaging</td>
+            
+          </tr>
+          
+        </table>
+      </div>
+    </div>
+    
+
+  </div>
+</div>
+
+
+<div class="section" id="qa">
+  <div class="section-title">Interview Q &amp; A</div>
+
+  <div class="qa-progress">
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qa-progress-bar"></div></div>
+    <span class="qa-progress-label" id="qa-progress-label">0 / 0 reviewed</span>
+  </div>
+
+  <div class="qa-controls">
+    <input type="text" class="qa-search" placeholder="// filter questions..." oninput="filterQA(this.value)" aria-label="Filter questions">
+    <button class="expand-all-btn" onclick="toggleAllAcc(this)">Expand All</button>
+  </div>
+
+  
+  <div class="section-sub">Senior Engineer — Execution Depth</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="S-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-01</span>
+        <span class="acc-question">Walk through the WebSocket handshake step by step. What does each part accomplish?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The client sends an HTTP/1.1 GET request with four key headers: <code>Upgrade: websocket</code>, <code>Connection: Upgrade</code>, <code>Sec-WebSocket-Key: &lt;base64 random 16 bytes&gt;</code>, and <code>Sec-WebSocket-Version: 13</code>.
+The server responds with <strong>101 Switching Protocols</strong> and a <code>Sec-WebSocket-Accept</code> header computed as <code>base64(sha1(key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))</code>. The GUID is fixed in the spec — it's there to prevent a misconfigured HTTP server from accidentally accepting a WebSocket upgrade.
+After 101, the TCP connection is no longer used for HTTP. Both sides switch to the WebSocket framing protocol on the same socket. No new connection is created — the upgrade repurposes the existing TCP stream.
+The handshake being HTTP is intentional: it lets WebSockets work through firewalls on port 443 that allow HTTPS, and it gives intermediaries (proxies, load balancers) a familiar signal to route the connection correctly.</div>
+        
+        <div class="staff-add">The nonce exchange (<code>Sec-WebSocket-Key</code> / <code>Accept</code>) is not for security — it's a cache-buster. Without it, a naïve HTTP cache could interpret WebSocket frames as cached HTTP responses and serve garbage. The fixed GUID ensures the Accept value is only derivable by a server that knows the WebSocket spec, preventing accidental upgrades by servers that just echo headers. Real security comes from TLS (<code>wss://</code>) — the handshake crypto does nothing for confidentiality or authentication.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('websockets','S-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-02</span>
+        <span class="acc-question">How does WebSocket message framing work? Why does the browser have to mask outbound frames?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">Each WebSocket message is split into one or more <strong>frames</strong>. A frame has a header containing: FIN bit (1 = this is the last frame of the message), RSV bits (reserved for extensions), a 4-bit opcode, a MASK bit, and a 7-bit payload length (extended to 16 or 64 bits for larger payloads). For masked frames, a 4-byte masking key follows the length, and the payload is XORed byte-by-byte with the key cycling across all 4 bytes.
+<strong>Why masking?</strong> A browser is a shared environment — any website can open a WebSocket to any server. Without masking, a malicious page could send carefully crafted binary frames that look like valid HTTP requests to an intermediate proxy. If a proxy caches those "responses," a subsequent request from a legitimate user could be served poisoned data. Masking makes the wire bytes unpredictable, breaking this attack. Server-to-client frames are not masked because servers are trusted and don't operate in the shared-origin browser environment.</div>
+        
+        <div class="staff-add">The masking overhead is often cited as a WebSocket performance concern — it's actually negligible (a few XOR operations per frame). The real framing cost is the per-message overhead for large numbers of small messages: a 1-byte payload still requires a 6-byte masked frame header, so at very high small-message rates, protocol overhead starts to matter. For high-frequency small messages (gaming telemetry, sensor data), batching multiple logical messages into one WebSocket frame reduces that overhead.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('websockets','S-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-03</span>
+        <span class="acc-question">How do you authenticate WebSocket connections? Why can't you use an Authorization header?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The browser's <code>WebSocket</code> constructor does not accept custom headers — there is no option to pass <code>Authorization: Bearer &lt;token&gt;</code>. This is a spec limitation.
+Three patterns, ordered by preference:
+<strong>Cookie auth</strong> — if the user is already authenticated via cookie on the same origin, the browser automatically includes cookies in the upgrade request. The server validates the session cookie. No special handling needed. Works only for same-origin.
+<strong>Token in the first message</strong> — connect without authentication, then immediately send an auth message as the first WebSocket frame. The server enforces a strict timeout (e.g., 5s): if no valid auth message arrives, it closes with 1008 Policy Violation. Prevents anonymous connections from sitting open.
+<strong>Short-lived token in query string</strong> — <code>wss://host/ws?token=&lt;jwt&gt;</code>. Tokens appear in server access logs and browser history. Mitigate by generating single-use, short-TTL tokens on a REST endpoint immediately before connecting. The token exchange endpoint is authenticated via cookie or normal <code>Authorization</code> header.</div>
+        
+        <div class="staff-add">The query-string token approach is the most commonly used for SPAs with JWT auth — but teams often skip the "single-use, short-lived" part and pass long-lived JWTs directly in the URL. That's a real risk: the token is logged by every reverse proxy and load balancer in the path, and the token is visible in browser network tabs. Generate a dedicated WebSocket handshake token (30s TTL, single-use, stored in Redis) from your auth service, and exchange it at connection time. The first-message pattern is architecturally cleaner but requires more server-side state to manage the pending-auth window correctly at scale.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('websockets','S-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-04">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-04</span>
+        <span class="acc-question">What happens when a WebSocket connection drops unexpectedly? How do you implement robust client-side reconnection?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">An unexpected drop fires <code>onerror</code> (if there's a transport error) immediately followed by <code>onclose</code> with code <strong>1006</strong> (abnormal closure — no Close frame was sent, the TCP connection just died). The browser does not automatically reconnect.
+A robust reconnection implementation:
+<strong>1. Exponential backoff with jitter</strong> — first retry at ~1s, double each attempt up to a cap (~30s), add random jitter (±25%) to prevent thundering herds when a server restarts and many clients reconnect simultaneously.
+<strong>2. Reconnect on 1006, 1001, 1011</strong> — all indicate unclean closure. Don't reconnect on 1000 (normal close) or 1008 (policy violation) — those are intentional.
+<strong>3. Re-authenticate on reconnect</strong> — the new connection has no memory of the old one; session state must be re-established.
+<strong>4. Re-subscribe to channels</strong> — if using pub/sub, the server has no record of what the new connection was subscribed to; the client must re-declare subscriptions in <code>onopen</code>.
+<strong>5. Track missed messages</strong> — if ordering matters, send a <code>last_received_seq</code> to the server on reconnect so it can replay what was missed.</div>
+        
+        <div class="staff-add">The reconnection logic is straightforward; the hard part is <strong>application-level state recovery</strong>. The connection is ephemeral but the application thinks it's continuous. Common failure: the UI shows live data but silently stopped updating because a reconnection succeeded but channel re-subscriptions failed. Treat reconnection as a distinct application lifecycle event with explicit recovery code, not just a transport detail. Monitor reconnection rate as a metric — a spike indicates proxy timeouts, server restarts, or network instability that no individual client would notice.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('websockets','S-04',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="S-05">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">S-05</span>
+        <span class="acc-question">How do you detect and clean up zombie connections — clients that are silently gone?</span>
+        <span class="level-badge level-senior">Senior</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">TCP does not detect a dead peer without sending data. A client that loses network connectivity (mobile backgrounded, cable unplugged) does not send a Close frame — the server's socket stays ESTABLISHED indefinitely with no data flowing.
+The solution is <strong>application-level heartbeats via Ping/Pong</strong>:
+The server sends a Ping frame every N seconds (e.g., 30s). The client must respond with a Pong. If no Pong arrives within a timeout (e.g., 10s), the server closes the socket and cleans up the connection record.
+Implementation: most server frameworks (Spring WebSocket, Netty, Node.js <code>ws</code>) handle Ping/Pong automatically if configured. The key parameters are <code>pingInterval</code> and <code>pingTimeout</code>. Set the interval shorter than the load balancer's idle timeout — typically 25–45s if the LB drops connections after 60s.
+Also monitor OS-level socket state — <code>ss -tnp | grep CLOSE_WAIT</code> — CLOSE_WAIT sockets that are not being closed indicate the server is not handling Close frames in application code.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('websockets','S-05',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Staff Engineer — Design &amp; Cross-System Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="ST-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-01</span>
+        <span class="acc-question">How do you scale a WebSocket server horizontally? What breaks and how do you fix it?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">The fundamental problem: a WebSocket connection is pinned to one server process. A simple round-robin load balancer will route a client's reconnection to a different server, which knows nothing about that client's subscriptions or session state.
+<strong>Sticky sessions</strong> (session affinity): the load balancer routes connections from the same client to the same server, using IP hash or a cookie set during the handshake. This solves routing — but doesn't help with cross-server broadcasting.
+<strong>Cross-server messaging with a pub/sub bus</strong>: when server A needs to send a message to a user whose connection is on server B, server A publishes to a Redis channel (or Kafka topic). Server B is subscribed to that channel and delivers the message to the right connection. This is the standard pattern for chat, presence, and any broadcast/multicast use case.
+<strong>Stateless design where possible</strong>: move connection state (subscriptions, user metadata) out of process memory into a fast shared store (Redis). On reconnect, the new server reloads state from Redis — sticky sessions become a performance optimization, not a correctness requirement.
+At very high scale, sticky sessions become a load distribution problem: a "hot" server serves more connections than others, and a server restart sends all its connections reconnecting simultaneously (thundering herd). Counter with gradual shutdowns, draining connections over minutes, and circuit breakers on reconnection.</div>
+        
+        <div class="staff-add">The deeper design question is whether you need true statefulness per connection at all. Many systems that appear to need WebSocket state actually don't — the client knows what it's subscribed to and re-declares on reconnect, the server doesn't store it. This makes scaling trivially horizontal. Only accept the complexity of cross-server state synchronization when the use case genuinely requires it (e.g., collaborative editing where the server holds authoritative state between clients). For presence systems, consider replacing per-connection in-memory tracking with Redis sorted sets updated on heartbeat — this is both more scalable and more resilient.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('websockets','ST-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-02</span>
+        <span class="acc-question">How do you handle back-pressure in WebSocket connections? What happens when a client is slow?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">WebSocket has no built-in flow control. The server can write faster than the client can read. Unacknowledged data accumulates in the TCP send buffer; once full, the OS write call blocks (or throws in non-blocking mode). Left unhandled, one slow client can stall a server thread or exhaust buffer memory.
+<strong>Detection</strong>: server-side frameworks expose buffer state. In Netty: <code>channel.isWritable()</code> returns false when the high-water mark is breached. In Spring WebFlux: use reactive streams backpressure — <code>Flux.sink</code> with overflow strategies. In Node.js <code>ws</code>: listen for <code>drain</code> events after <code>send()</code> returns false.
+<strong>Strategies by use case</strong>:
+- <strong>Drop non-critical messages</strong>: for live tickers, dashboards, or telemetry — if
+  the client is lagging, drop the oldest pending message and send only the latest.
+  The client sees slightly stale data, not a crash.
+- <strong>Rate-limit per connection</strong>: enforce a per-session send queue with a max depth.
+  When the queue is full, either drop or close the connection with a warning.
+- <strong>Close slow clients</strong>: for real-time systems where staleness is harmful (e.g.,
+  game state), disconnect clients that can't keep up. They reconnect with a fresh
+  state snapshot.
+- <strong>Apply backpressure upstream</strong>: in reactive pipelines, propagate backpressure
+  back to the data source — stop reading from Kafka/DB until the client catches up.</div>
+        
+        <div class="staff-add">Back-pressure is often the last thing considered in WebSocket architectures and the first thing that causes production incidents. A single slow or misbehaving client consuming a dedicated server thread (non-async frameworks) creates a resource leak that accumulates over hours. In async frameworks (Netty, WebFlux), it manifests as unbounded memory growth. The architectural safeguard: enforce per-connection send queue limits as a hard constraint in the framework config (Spring's <code>setSendBufferSizeLimit</code>, <code>setSendTimeLimit</code>), not as application logic. Make connection closure under back-pressure a first-class, logged, monitored event — not a silent failure.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('websockets','ST-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="ST-03">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">ST-03</span>
+        <span class="acc-question">Compare WebSockets, SSE, and long polling. When do you reach for each, and when is the choice wrong?</span>
+        <span class="level-badge level-staff">Staff</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Server-Sent Events (SSE)</strong> when: the server pushes data to the client, the client sends infrequently (via separate HTTP calls), and you want simplicity. SSE is an HTTP chunked response with <code>text/event-stream</code> content type. The browser auto-reconnects, sends <code>Last-Event-ID</code> so the server can resume, and it works through HTTP/2 multiplexing (no sticky sessions). Proxy support is excellent — it looks like a slow HTTP response.
+<strong>WebSockets</strong> when: the client sends data frequently enough that opening a new HTTP request per send is too expensive (chat input, game controls, collaborative editing ops), or when you need full-duplex with sub-50ms latency in both directions.
+<strong>Long polling</strong> when: both WebSockets and SSE are blocked by network policy (rare now, but real in enterprise environments), or when you need a simpler fallback for old clients. Long polling is inefficient — it creates a new TCP connection per message without keep-alive, and each response triggers a new request with full HTTP headers.
+<strong>When the choice is wrong</strong>: using WebSockets for a notification system where the server pushes events every few minutes and the client never sends — SSE would be simpler, more scalable (no sticky sessions), and auto-reconnecting. Using SSE for a collaborative editor — the round-trip latency of a separate POST for each keystroke vs. a WebSocket frame is significant, and the implementation is more complex.</div>
+        
+        <div class="staff-add">The WebSocket vs. SSE decision is often made wrong for political rather than technical reasons — "we already have WebSockets for X, let's use it for Y too." The operational cost of WebSockets (sticky sessions, connection state management, custom reconnect logic) is non-trivial. SSE eliminates all of it for server-push use cases. Default to SSE for dashboards and notification feeds; reserve WebSockets for genuinely bidirectional, latency-sensitive communication. For new systems, HTTP/2 SSE is the sweet spot for most server-push needs — one persistent multiplexed connection, no sticky sessions, automatic reconnect.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('websockets','ST-03',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+  
+  <div class="section-sub">Principal Engineer — Architecture &amp; Org-Scale Thinking</div>
+  <div class="accordion">
+    
+    <div class="acc-item" data-qid="P-01">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">P-01</span>
+        <span class="acc-question">Design a real-time collaborative document editing system (Figma / Google Docs style) for 500k concurrent users.</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer"><strong>Core insight</strong>: collaborative editing is a distributed state synchronization problem, not a messaging problem. Two users editing the same document simultaneously must reach the same final state regardless of network order. The algorithm choice (OT or CRDT) drives most of the architecture.
+<strong>Algorithm layer</strong>: Operational Transformation (OT) — used by Google Docs — requires a central server to order all operations for a document. CRDTs (Yjs, Automerge) are peer-to-peer friendly and eventually consistent without a coordinator, at the cost of more complex merge semantics. For a centralized system with a server component, OT is more predictable; for multi-leader or offline-first, CRDTs are superior.
+<strong>Server topology</strong>: shard documents across servers by document ID. All connections to the same document route to the same server (sticky by document ID, not user ID). Each document's editing session is handled by a single process — this avoids the complexity of distributed OT. At 500k concurrent users, assume most documents have few active editors — a document server handles hundreds to thousands of active documents.
+<strong>Persistence layer</strong>: operations are appended to a log (Kafka topic or Postgres table) per document, in order. The current document state is a snapshot plus replayed operations since the snapshot. New collaborators receive the snapshot + delta, not the full history replay.
+<strong>Presence and cursors</strong>: a separate lightweight pub/sub channel per document (Redis Pub/Sub) broadcasts cursor positions and selection state. These are ephemeral (not persisted) and can be dropped under back-pressure without data loss.
+<strong>Conflict resolution</strong>: operations are transformed relative to concurrent ops by the server before acknowledgment. The client applies operations optimistically (for feel) and reconciles when the server ack arrives with the transformed operation.
+<strong>Scale path</strong>: 500k users across thousands of documents. Each active document shard handles ~50-200 concurrent editors. Shard servers are stateful within a session — crash recovery replays from the operation log. Global state (document metadata, user identity) lives in shared stores (Postgres, Redis) accessible to all shards.</div>
+        
+        <div class="staff-add">The hardest operational problem in collaborative editing isn't the algorithm — it's document session lifecycle management. When was a document last active? When can we evict its session from memory? When a server crashes mid-edit, which operations were acknowledged vs. unacknowledged? The operation log is the source of truth: design for recovery-from-log as the primary path, not an exception path. At the principal level, the interviewer wants to see: awareness that CRDT vs. OT is a foundational choice with real trade-offs, not just "Google uses OT so we'll do that"; a model for how you'd shard across documents; and a clear answer for what happens on server crash mid-session.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('websockets','P-01',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="acc-item" data-qid="P-02">
+      <div class="acc-header" role="button" tabindex="0" onclick="toggleAcc(this)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleAcc(this);event.preventDefault();}">
+        <span class="acc-num">P-02</span>
+        <span class="acc-question">Your WebSocket infrastructure handles 2M concurrent connections across 50 servers. How do you achieve a rolling restart with zero dropped connections?</span>
+        <span class="level-badge level-principal">Principal</span>
+        <span class="acc-chevron">▾</span>
+      </div>
+      <div class="acc-body">
+        <div class="acc-answer">A naive restart drops all connections on the restarting server simultaneously, triggering 40k clients to reconnect with exponential backoff — a thundering herd that can overload the reconnect target servers.
+<strong>Graceful drain protocol</strong>:
+<strong>1. Signal the server to stop accepting new connections</strong> — remove it from the load balancer's target group (or mark it unhealthy in health checks). New connections stop routing here within one health check interval (5–15s).
+<strong>2. Send Close frames to existing connections</strong> — iterate all open connections and send Close with code 1001 (Going Away) and a <code>Retry-After</code>-equivalent reconnect hint in the reason string (or via a custom message before closing). This signals clients to reconnect immediately rather than backing off.
+<strong>3. Reconnect hint includes server exclusion</strong> — pass a flag in the close reason that tells the client to avoid this server's address for N minutes. Implement in the load balancer by removing it from rotation before draining starts.
+<strong>4. Set a drain deadline</strong> — some clients will not respond to Close frames (backgrounded mobile, misbehaving clients). Force-close all remaining connections after a timeout (e.g., 60s). Accept that a small percentage will see 1006.
+<strong>5. Stagger the rolling restart</strong> — restart one server at a time with a cooldown (wait until reconnect load is absorbed before starting the next drain). Monitor aggregate connection count and reconnection rate as gating signals.
+<strong>Reconnection amplification</strong>: each closed connection generates at least one reconnect request. 40k connections draining ≈ 40k reconnects in ~10s. Design load balancer and server capacity for 2× normal connection rate during maintenance windows.</div>
+        
+        <div class="staff-add">The reconnection hint is the piece most teams skip. Without it, clients use their configured backoff — which for a 10s base delay means reconnections trickle in over minutes, some lagging users. With a close-frame hint, clients reconnect immediately but to a healthy server. Implement this as a client-side protocol: on receipt of code 1001, reconnect with no backoff delay. For all other close codes, use backoff. The operational discipline is the rolling cadence: never drain more than one server at a time, and use automated health gates (connection count stabilized, reconnect rate back to baseline) before triggering the next drain.</div>
+        
+        <div class="acc-footer">
+          <button class="mark-reviewed-btn" onclick="toggleReviewed('websockets','P-02',this)">Mark reviewed</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+
+</div>
+
+
+<div class="section" id="scenarios">
+  <div class="section-title">System Design Scenarios</div>
+
+  
+  <div class="scenario">
+    <div class="scenario-header">🎮 Scenario 1 — Real-Time Multiplayer Game Backend</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Design the server-side WebSocket infrastructure for a browser-based multiplayer game. Players join game rooms of up to 50 players. The server ticks game state to all players in a room at 20Hz. Players send input events at up to 60Hz. Target: 100k concurrent players at launch, 1M within 12 months.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Game state tick: every 50ms (20 updates/sec) to all players in a room</li><li>Input latency: player inputs must be processed within 20ms of receipt</li><li>State consistency: all players in a room must see the same game state (same tick)</li><li>Reconnection: a player who drops must be able to rejoin within 5s without losing their game session</li><li>No message persistence required — game state is ephemeral</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Room-based sharding</strong>: a game room is the unit of consistency — all players in a room must be on the same server so the game loop runs in one process without distributed coordination. Shard by room ID at the load balancer.</li><li><strong>Game loop vs. WebSocket layer separation</strong>: the game loop runs on a fixed 50ms timer thread that reads all pending inputs, computes the next game state, and queues it for broadcast. The WebSocket layer is separate — it receives inputs from clients and drains the outbound queue. This prevents slow clients from stalling the game tick.</li><li><strong>Back-pressure per player</strong>: if a player's outbound buffer is full (slow network), drop that player's pending state frames and send only the most recent — never block the room's game loop for one slow client. Track dropped frames per player as a metric.</li><li><strong>Input processing</strong>: buffer incoming inputs per player within a tick window. At tick time, process all buffered inputs in arrival order. Inputs arriving after tick N is computed are held for tick N+1.</li><li><strong>Reconnection</strong>: a rejoining player receives the current authoritative game state snapshot over the WebSocket, then resumes receiving ticks. The game session persists in server memory (or Redis for crash recovery) keyed by session ID, not connection ID.</li><li><strong>Scaling to 1M</strong>: at 100k players across ~2k rooms, one room per server thread is wasteful. Use async I/O (Netty, Node.js) — a single server handles hundreds of rooms. Horizontal scale: consistent hash rooms to servers. Room migration is complex — avoid it; let rooms end when their server restarts.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>One WebSocket server for all rooms with round-robin LB — players in the same room land on different servers, requiring distributed game loop synchronization; complexity is extreme and latency doubles</li><li>Blocking the game tick on slow client writes — one lagging player causes all 50 players to miss their 50ms tick window</li><li>Persisting every game state frame to a database — game state is ephemeral and high-frequency; database writes at 20Hz × 100k players would saturate any RDBMS</li><li>Using HTTP polling or SSE for input events — a POST per input at 60Hz is 60 HTTP requests/second per player; at 100k players that's 6M req/s just for inputs</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">💬 Scenario 2 — Chat System with 10M Daily Active Users</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Design the WebSocket infrastructure for a chat application. Users can be in multiple channels simultaneously. Messages must be delivered to all online members of a channel within 100ms. Offline users receive messages when they reconnect (no missed messages). The system must support 500k concurrent WebSocket connections at peak.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>500k concurrent WebSocket connections at peak</li><li>Message delivery to online members within 100ms p99</li><li>At-least-once delivery to offline users on reconnect (no message loss)</li><li>Channels can have up to 10k members (most have < 100)</li><li>Read receipts and typing indicators are best-effort (can be lost)</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Persistence vs. fanout separation</strong>: messages are always written to the database first (Postgres or DynamoDB), then fanned out to online users. The write path (message persistence) and the push path (WebSocket fanout) are decoupled via an async queue (Kafka topic per channel or a pub/sub bus).</li><li><strong>WebSocket server design</strong>: each server maintains an in-process map of {user_id → connection}. Servers subscribe to a Redis Pub/Sub channel per active user they're serving. When a message arrives for user X, the server holding X's connection receives it from Redis and delivers it.</li><li><strong>Fan-out at scale</strong>: for a channel with 10k members, fanning out means looking up which servers hold each member's connection, then publishing 10k messages to Redis. Optimization: fan-out service reads the channel member list, groups by server, and publishes once per server with a list of target user IDs.</li><li><strong>Offline delivery</strong>: when a user reconnects, the client sends a <code>last_seen_message_id</code>. The server queries the database for messages in their channels after that ID and flushes them over the WebSocket before switching to live delivery.</li><li><strong>Ephemeral events (typing, presence)</strong>: publish directly to Redis Pub/Sub, not to the database. TTL of a few seconds. If a subscriber misses it, no harm — the user stopped typing.</li><li><strong>Sticky sessions</strong>: not required for correctness here — reconnects re-establish subscriptions. Use IP hash at the LB for connection locality (reduces Redis pub/sub cross-server hops) but don't treat it as a hard requirement.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Delivering messages directly from the API server to WebSocket connections in-process — the API server is stateless; it doesn't know which WebSocket server holds the recipient's connection without a directory lookup</li><li>One Redis Pub/Sub channel for all messages — at 500k connections receiving messages, one channel is a single point of serialization; shard by channel ID or user ID range</li><li>Fanning out to 10k members synchronously in the HTTP write path — the sender's request blocks until 10k pushes complete; use async fan-out off the hot path</li><li>Relying on WebSocket delivery for offline users without a persistent message store — WebSocket delivery is best-effort; a user offline at delivery time simply misses the message without a database fallback</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+  <div class="scenario">
+    <div class="scenario-header">📈 Scenario 3 — Production Incident: WebSocket Connections Dropping After ~60 Seconds</div>
+    <div class="scenario-body">
+
+      <div>
+        <div class="scenario-label">Problem</div>
+        <div class="scenario-content">Users report that the app disconnects every minute or so and reconnects. The reconnection is seamless (the app handles it), but users notice the brief interruption. The issue started after a network infrastructure change last week. Connections consistently drop at 58–62 seconds regardless of activity level.</div>
+      </div>
+
+      <div>
+        <div class="scenario-label">Constraints</div>
+        <div class="scenario-content">
+          <ul><li>Consistent drop at 58–62s — activity level doesn't matter</li><li>Reconnections succeed immediately — server is healthy</li><li>Close code is 1006 (abnormal — no Close frame from server or client)</li><li>Only affects users on the production network path; staging is fine</li><li>Infrastructure change last week: new AWS ALB was deployed in front of the WebSocket servers</li></ul>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <div class="scenario-label">Key Discussion Points</div>
+        <div class="scenario-content">
+          <ul><li><strong>Root cause identification</strong>: 1006 + consistent ~60s interval + new ALB = ALB idle connection timeout. AWS ALB has a default idle timeout of 60 seconds. If no data traverses the connection in 60s, the ALB silently drops the TCP connection. The server never sends a Close frame (it doesn't know the connection died) — hence 1006.</li><li><strong>Immediate fix</strong>: configure the ALB idle timeout to a longer value (e.g., 3600s for long-lived WebSocket connections). This is a one-line change in the ALB settings.</li><li><strong>Proper fix</strong>: implement Ping/Pong heartbeats on the server at an interval shorter than the ALB timeout (e.g., every 30s). The Ping traverses the full path including the ALB, resetting its idle timer. The connection stays alive regardless of ALB timeout setting.</li><li><strong>Why the proper fix is better</strong>: ALB settings can change, other infrastructure can be added with different timeouts (WAF, CDN), and you may not always control the network path. Heartbeats make the application resilient to any intermediate timeout without relying on infrastructure config.</li><li><strong>Verify</strong>: after enabling heartbeats, check that connections stay open for hours and that Ping/Pong frames are visible in a packet capture or WebSocket debug proxy.</li></ul>
+        </div>
+      </div>
+
+      <div class="red-flags-block">
+        <div class="scenario-label">🚩 Red Flags</div>
+        <div class="scenario-content">
+          <ul><li>Disabling the idle timeout entirely on the ALB — timeouts exist to reclaim resources for truly dead connections; removing them entirely causes resource leaks when clients disconnect without Close frames</li><li>Implementing heartbeats only on the client side — the client sending data resets the client-side timer, but Ping frames from the server are what traverse the full path and reset the ALB timer; both sides should ping</li><li>Treating 1006 as an application bug — abnormal closure is a transport-layer signal; no amount of application code changes will fix a network component terminating the connection</li><li>Not correlating with the infrastructure change timeline — a consistent, timing-based drop after an infra change is a configuration issue until proven otherwise; don't debug application code first</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+</div>
+
+<script>// ── Theme (localStorage persistence) ─────────────────────────────────────
+function toggleTheme() {
+  const h = document.documentElement;
+  const isDark = h.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  h.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('toggle-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+// ── Tabs (with URL hash sync) ─────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+  history.replaceState(null, '', '#' + name);
+}
+
+// ── Accordion (JS-driven scrollHeight animation) ───────────────────────────
+function setAccOpen(item, open) {
+  const body = item.querySelector('.acc-body');
+  if (open) {
+    item.classList.add('open');
+    const h = body.scrollHeight;
+    body.style.maxHeight = h + 'px';
+    function onEnd(e) {
+      if (e.propertyName !== 'max-height') return;
+      body.removeEventListener('transitionend', onEnd);
+      if (item.classList.contains('open')) body.style.maxHeight = 'none';
+    }
+    body.addEventListener('transitionend', onEnd);
+  } else {
+    if (!body.style.maxHeight || body.style.maxHeight === 'none') {
+      body.style.maxHeight = body.scrollHeight + 'px';
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      item.classList.remove('open');
+      body.style.maxHeight = '0';
+    }));
+  }
+}
+
+function toggleAcc(header) {
+  setAccOpen(header.parentElement, !header.parentElement.classList.contains('open'));
+}
+
+// ── Expand / collapse all Q&A ─────────────────────────────────────────────
+function toggleAllAcc(btn) {
+  const items = [...document.querySelectorAll('#qa .acc-item')].filter(i => i.style.display !== 'none');
+  const allOpen = items.every(i => i.classList.contains('open'));
+  items.forEach(i => setAccOpen(i, !allOpen));
+  btn.textContent = allOpen ? 'Expand All' : 'Collapse All';
+}
+
+// ── Q&A keyword filter ────────────────────────────────────────────────────
+function filterQA(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.acc-item').forEach(item => {
+    const text = item.querySelector('.acc-question').textContent.toLowerCase();
+    item.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+  // Reset expand-all label whenever filter changes
+  const btn = document.querySelector('.expand-all-btn');
+  if (btn) btn.textContent = 'Expand All';
+}
+
+// ── Q&A review progress (localStorage) ───────────────────────────────────
+function toggleReviewed(topicId, qId, btn) {
+  const key = 'reviewed:' + topicId + ':' + qId;
+  const item = btn.closest('.acc-item');
+  if (localStorage.getItem(key) === '1') {
+    localStorage.removeItem(key);
+    item.classList.remove('reviewed');
+    btn.textContent = 'Mark reviewed';
+  } else {
+    localStorage.setItem(key, '1');
+    item.classList.add('reviewed');
+    btn.textContent = '✓ Reviewed';
+  }
+  updateQAProgress(topicId);
+}
+
+function updateQAProgress(topicId) {
+  const allItems = document.querySelectorAll('.acc-item[data-qid]');
+  const total = allItems.length;
+  const done = [...allItems].filter(i => i.classList.contains('reviewed')).length;
+  const fill = document.getElementById('qa-progress-bar');
+  const label = document.getElementById('qa-progress-label');
+  if (fill) fill.style.width = (total ? (done / total * 100) : 0) + '%';
+  if (label) label.textContent = done + ' / ' + total + ' reviewed';
+}
+
+function initReviewedState(topicId) {
+  document.querySelectorAll('.acc-item[data-qid]').forEach(item => {
+    const qId = item.dataset.qid;
+    if (localStorage.getItem('reviewed:' + topicId + ':' + qId) === '1') {
+      item.classList.add('reviewed');
+      const btn = item.querySelector('.mark-reviewed-btn');
+      if (btn) btn.textContent = '✓ Reviewed';
+    }
+  });
+  updateQAProgress(topicId);
+}
+
+// ── DOMContentLoaded: tab restore, toggle label, copy-to-clipboard ────────
+document.addEventListener('DOMContentLoaded', function () {
+  // Sync toggle label with the actual current theme
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const label = document.getElementById('toggle-label');
+  if (label) label.textContent = isDark ? 'LIGHT MODE' : 'DARK MODE';
+
+  // Restore active tab from URL hash
+  const hash = location.hash.slice(1);
+  const validTabs = ['overview', 'deepdive', 'qa', 'scenarios'];
+  if (hash && validTabs.includes(hash)) {
+    const tab = document.querySelector(`.tab[data-tab="${hash}"]`);
+    if (tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(hash).classList.add('active');
+    }
+  }
+
+  // Restore reviewed state for topic pages
+  const topicId = document.body.dataset.topicId;
+  if (topicId) initReviewedState(topicId);
+
+  // Copy-to-clipboard on CLI command blocks
+  document.querySelectorAll('.cmd').forEach(cmd => {
+    cmd.title = 'Click to copy';
+    cmd.addEventListener('click', function () {
+      navigator.clipboard.writeText(this.textContent.trim()).then(() => {
+        const orig = this.style.opacity;
+        this.style.opacity = '0.4';
+        setTimeout(() => { this.style.opacity = orig; }, 600);
+      }).catch(() => {});
+    });
+  });
+});
+</script>
+</body>
+</html>

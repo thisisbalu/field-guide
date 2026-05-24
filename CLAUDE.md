@@ -162,7 +162,7 @@ Live URL: `https://www.balasubramanyamlanka.com/projects/field-guide`
 
 ## Topics
 
-**Current (20):**
+**Current (21):**
 
 | Topic | Category |
 |---|---|
@@ -174,6 +174,7 @@ Live URL: `https://www.balasubramanyamlanka.com/projects/field-guide`
 | rest-api | Backend |
 | microservices | Backend |
 | jvm-tuning | Backend |
+| websockets | Backend |
 | kubernetes | Infrastructure |
 | ocp | Infrastructure |
 | docker | Infrastructure |

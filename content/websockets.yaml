@@ -1,0 +1,725 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# WebSockets — Interview Field Guide Content
+# Edit this file to update the guide. Run: python generate.py websockets
+# ══════════════════════════════════════════════════════════════════════════════
+
+meta:
+  id: websockets
+  title: WebSockets
+  title_short: WebSockets
+  badge: "Interview Prep · Real-Time Systems"
+  subtitle: "// full-duplex · persistent TCP · real-time · scaling · security · senior → principal"
+  description: "Persistent, full-duplex TCP connections enabling real-time bidirectional communication between client and server."
+  category: Backend
+  icon: "⚡"
+
+colors:
+  toggle_light: "#4338ca"
+  toggle_dark:  "#818cf8"
+  light_vars: >-
+    --accent:#4338ca;--accent2:#be123c;--accent3:#0f766e;
+    --highlight-bg:#eef2ff;--highlight-text:#4338ca;--highlight-border:#6366f1;
+    --your-exp-bg:rgba(15,118,110,.06);--your-exp-border:rgba(15,118,110,.2);--your-exp-text:#0f766e;
+    --acc-hover:rgba(67,56,202,.04);--acc-open-border:#6366f1;--acc-open-bg:rgba(99,102,241,.04);
+    --num-color:#4338ca;--num-bg:rgba(67,56,202,.1);
+    --tag-color:#4338ca;--tag-bg:rgba(67,56,202,.08);--tag-border:rgba(67,56,202,.2);
+    --flow-arrow:#4338ca;--h1-from:#312e81;--h1-to:#4338ca;
+    --badge-color:#312e81;--stat-num:#4338ca;
+    --tab-active-color:#6366f1;--tab-active-bg:rgba(99,102,241,.08);--tab-active-border:#6366f1;
+    --section-title:#4338ca;--concept-title:#312e81;
+    --cheat-head-bg:#312e81;--cheat-head-text:#ffffff;--cheat-key:#4338ca;
+    --cmd-bg:#eef2ff;--cmd-text:#312e81;
+  dark_vars: >-
+    --accent:#818cf8;--accent2:#f43f5e;--accent3:#2dd4bf;
+    --highlight-bg:#1e1b4b;--highlight-text:#818cf8;--highlight-border:#818cf8;
+    --your-exp-bg:rgba(45,212,191,.08);--your-exp-border:rgba(45,212,191,.25);--your-exp-text:#2dd4bf;
+    --acc-hover:rgba(129,140,248,.04);--acc-open-border:#818cf8;--acc-open-bg:rgba(129,140,248,.04);
+    --num-color:#818cf8;--num-bg:rgba(129,140,248,.1);
+    --tag-color:#818cf8;--tag-bg:rgba(129,140,248,.08);--tag-border:rgba(129,140,248,.2);
+    --flow-arrow:#818cf8;--h1-from:#818cf8;--h1-to:#c7d2fe;
+    --badge-color:#818cf8;--stat-num:#818cf8;
+    --tab-active-color:#818cf8;--tab-active-bg:rgba(129,140,248,.08);--tab-active-border:#818cf8;
+    --section-title:#818cf8;--concept-title:#818cf8;
+    --cheat-head-bg:#1e1b4b;--cheat-head-text:#818cf8;--cheat-key:#818cf8;
+    --cmd-bg:#1e1b4b;--cmd-text:#818cf8;
+
+# ── OVERVIEW ──────────────────────────────────────────────────────────────────
+overview:
+  concepts:
+    - title: "⚡ What WebSockets Is"
+      body: >
+        A **persistent, full-duplex communication channel** over a single TCP connection.
+        Unlike HTTP, which follows a request/response cycle, a WebSocket connection stays
+        open — either side can send data at any time without waiting for the other to ask.
+        The protocol is framed (not streaming), message-oriented, and operates at the
+        application layer just above TCP. Once established, there is no HTTP overhead per
+        message — just a small frame header.
+      tags:
+        - {text: "full-duplex", color: green}
+        - {text: "persistent TCP"}
+        - {text: "low latency", color: orange}
+        - {text: "bidirectional", color: purple}
+
+    - title: "🤝 The HTTP Upgrade Handshake"
+      body: >
+        A WebSocket connection starts as an HTTP/1.1 request. The client sends an
+        `Upgrade: websocket` header with a random base64 nonce (`Sec-WebSocket-Key`).
+        The server responds **101 Switching Protocols**, signs the nonce with a fixed GUID
+        using SHA-1, and returns it as `Sec-WebSocket-Accept`. After this, the TCP connection
+        is repurposed — HTTP is gone, WebSocket frames flow on the same socket.
+
+        The handshake is intentional: it lets WebSockets traverse firewalls and proxies
+        that understand HTTP, and the nonce exchange prevents HTTP caches from accidentally
+        serving WebSocket data.
+      flows:
+        - ["Client HTTP Upgrade", "101 Switching Protocols", "Full-duplex frames"]
+
+    - title: "🖼️ Frame Protocol & Opcodes"
+      body: >
+        WebSocket messages are sent as one or more **frames**. Each frame has a 2–10 byte header:
+        FIN bit (last frame of message), opcode, mask bit, and payload length.
+
+        Key opcodes:
+        - **0x1** Text frame (UTF-8)
+        - **0x2** Binary frame
+        - **0x8** Close — initiates graceful shutdown; includes a 2-byte status code
+        - **0x9** Ping — sent to check connection liveness
+        - **0xA** Pong — mandatory reply to a Ping
+
+        Browser clients **must mask** all frames they send (XOR with a 4-byte random key).
+        Servers must not mask. This prevents cache-poisoning attacks against HTTP proxies.
+      tags:
+        - {text: "text/binary", color: green}
+        - {text: "ping/pong", color: orange}
+        - {text: "close frame", color: red}
+
+    - title: "🔄 Connection Lifecycle & Events"
+      body: >
+        The browser `WebSocket` API surfaces four events:
+
+        - **onopen** — handshake complete, safe to send
+        - **onmessage** — data frame received
+        - **onerror** — transport error (always followed by onclose)
+        - **onclose** — connection closed; inspect `code` and `reason`
+
+        Common close codes: **1000** Normal closure · **1001** Going away (page navigate) ·
+        **1006** Abnormal closure (no Close frame sent — TCP dropped) · **1008** Policy violation ·
+        **1011** Server error.
+
+        A `readyState` of CONNECTING (0), OPEN (1), CLOSING (2), or CLOSED (3) tracks connection phase.
+      tags:
+        - {text: "1000 normal", color: green}
+        - {text: "1006 abnormal", color: red}
+
+    - title: "💓 Heartbeats: Ping / Pong"
+      body: >
+        TCP connections silently die behind NAT gateways and load balancers after idle periods
+        (often 30–60 seconds). The WebSocket spec has a built-in solution: the server sends a
+        **Ping** frame; the client must respond with a **Pong** immediately. If no Pong arrives
+        within a timeout, the server closes the socket.
+
+        Most server-side frameworks (Spring, Node ws, Netty) handle Ping/Pong automatically.
+        Configure interval and timeout explicitly — defaults are often too long for production.
+        Clients that disappear without sending a Close frame (mobile clients backgrounded, network
+        loss) are only detectable this way.
+      tags:
+        - {text: "keep-alive", color: green}
+        - {text: "zombie detection", color: orange}
+
+    - title: "📡 Scaling: Sticky Sessions & Pub/Sub"
+      body: >
+        A WebSocket connection is stateful — it's pinned to one server process. Horizontal
+        scaling requires **sticky sessions** (affinity routing by session ID or IP hash at the
+        load balancer) so all messages for a connection reach the right process.
+
+        For broadcasting messages across servers (e.g., a chat message to all users in a room
+        distributed across 10 servers), use a **pub/sub bus** — typically Redis Pub/Sub or
+        a Kafka topic. Each server subscribes; when any server receives a message to broadcast,
+        it publishes to the bus; all servers relay it to their local connections.
+      flows:
+        - ["Client", "LB (sticky)", "Server A / B / C", "Redis Pub/Sub"]
+      tags:
+        - {text: "sticky sessions", color: orange}
+        - {text: "Redis pub/sub", color: purple}
+
+    - title: "🔒 Security: WSS & Authentication"
+      body: >
+        **Always use `wss://`** (WebSocket Secure) — it is WebSocket over TLS, identical to HTTPS.
+        Plain `ws://` exposes frame data and allows proxies to inject or modify content.
+
+        **Authentication is the hard part.** The browser's `WebSocket` constructor does not
+        support custom headers — you cannot pass an `Authorization` header. Three patterns:
+
+        - **Cookie auth**: if the user is already cookie-authenticated (same-origin), the browser
+          sends cookies on the upgrade request automatically — simplest.
+        - **Token in query string**: `wss://host/ws?token=...` — works but tokens appear in server
+          logs; use short-lived tokens.
+        - **First-message auth**: connect first, then immediately send an auth message; server
+          enforces a timeout and closes unauthenticated connections.
+      tags:
+        - {text: "wss:// required", color: red}
+        - {text: "no custom headers", color: orange}
+
+    - title: "⏸️ Back-pressure & Flow Control"
+      body: >
+        WebSocket has no built-in flow control — a sender can write faster than the receiver
+        can process. Unread data accumulates in the socket's send buffer; when the buffer is full,
+        writes block (server) or `bufferedAmount` grows without bound (browser).
+
+        Server side: check `channel.isWritable()` (Netty) or use reactive streams backpressure
+        (Spring WebFlux). If a client is slow, drop non-critical messages, apply a rate limit,
+        or close the connection rather than letting the buffer grow unboundedly.
+
+        Browser side: check `ws.bufferedAmount` before each send — if it's large, the network
+        is lagging and you're queuing up data that hasn't left the browser yet.
+      tags:
+        - {text: "bufferedAmount", color: orange}
+        - {text: "isWritable()", color: purple}
+
+  gotchas:
+    - title: "Sticky sessions are not optional"
+      body: >
+        Round-robin load balancers will route reconnections to a different server, losing all
+        in-memory connection state. You must configure session affinity at the LB (IP hash or
+        cookie-based). Without it, reconnects silently drop users from rooms/subscriptions.
+
+    - title: "Proxies and firewalls kill idle connections"
+      body: >
+        Enterprise proxies and cloud load balancers (AWS ALB: 60s default, Nginx: 75s) terminate
+        connections that appear idle. Ping/Pong heartbeats must be shorter than the lowest
+        timeout in the path. Symptom: connections drop intermittently, always after the same
+        interval, with close code 1006.
+
+    - title: "No built-in reconnection"
+      body: >
+        The WebSocket spec defines no reconnection logic. When a connection drops, nothing
+        reconnects automatically. You must implement exponential backoff with jitter, re-subscribe
+        to channels, and re-authenticate on every reconnect. Libraries like `reconnecting-websocket`
+        handle the mechanics; your app logic must handle the state recovery.
+
+    - title: "Browser API cannot set custom headers"
+      body: >
+        `new WebSocket(url)` ignores any headers you pass. `Authorization: Bearer ...` is not
+        possible on the initial upgrade request from a browser. Use query-string tokens
+        (short-lived, single-use), cookie auth, or a post-connect auth message.
+
+    - title: "Memory cost per connection"
+      body: >
+        Each open WebSocket holds a TCP connection, a file descriptor, and framework-level
+        buffers. At 100k concurrent connections on one server you're holding ~100k file
+        descriptors and substantial kernel socket buffer memory. Plan capacity explicitly —
+        benchmark your framework's memory per idle connection, set `ulimit -n` appropriately,
+        and track connection count as a first-class metric.
+
+    - title: "Graceful server shutdown must drain connections"
+      body: >
+        Stopping a server process immediately drops all its connections with code 1006 (abnormal).
+        A graceful shutdown sends Close frames to all clients (code 1001 Going Away), waits
+        for acknowledgment or a timeout, then exits. Without this, clients see unexpected drops
+        and trigger aggressive reconnect storms just as a new server is starting.
+
+  when_to_use:
+    - "Real-time chat and collaborative messaging where both sides send frequently"
+    - "Live collaborative editing — multiple users changing shared state simultaneously"
+    - "Multiplayer games requiring continuous low-latency state synchronization"
+    - "Financial dashboards and trading UIs receiving sub-second price updates"
+    - "Presence and typing indicators — server must push unsolicited updates"
+    - "Operational dashboards where the server streams live metrics to the browser"
+
+  when_not_to_use:
+    - "One-way server push with infrequent updates — Server-Sent Events (SSE) is simpler, auto-reconnects, works through HTTP/2 multiplexing, and doesn't need sticky sessions"
+    - "Simple request/response patterns — HTTP REST or gRPC handles this with less operational complexity"
+    - "Clients on restrictive corporate networks where WebSocket upgrades are blocked by deep-packet inspection proxies"
+    - "Large file or media streaming — HTTP range requests and chunked transfer are better suited and CDN-cacheable"
+    - "Rare updates (< once per minute) — polling is simpler, stateless, and easier to scale horizontally"
+
+# ── DEEP DIVE ─────────────────────────────────────────────────────────────────
+deep_dive:
+  tables:
+    - title: "🖼️ WebSocket Frame Opcodes"
+      rows:
+        - {key: "0x0", value: "Continuation frame — subsequent frame of a multi-frame message"}
+        - {key: "0x1", value: "Text frame — payload must be valid UTF-8"}
+        - {key: "0x2", value: "Binary frame — arbitrary bytes, no encoding constraint"}
+        - {key: "0x8", value: "Close frame — optional 2-byte status code + UTF-8 reason in payload"}
+        - {key: "0x9", value: "Ping — control frame; peer must respond with Pong"}
+        - {key: "0xA", value: "Pong — response to Ping; may also be sent unsolicited"}
+
+    - title: "⚙️ Key Protocol Limits & Defaults"
+      rows:
+        - {key: "Max frame payload", value: "2^63 - 1 bytes (theoretical); keep messages under 64KB in practice for browser compatibility"}
+        - {key: "Masking", value: "Client→server frames must be masked (4-byte XOR key). Server→client must NOT be masked."}
+        - {key: "Close status 1000", value: "Normal closure — both sides finished cleanly"}
+        - {key: "Close status 1001", value: "Going Away — server shutting down or browser navigating away"}
+        - {key: "Close status 1006", value: "Abnormal closure — TCP dropped without a Close frame (network failure, process killed)"}
+        - {key: "Close status 1011", value: "Internal server error — server encountered an unexpected condition"}
+        - {key: "Sec-WebSocket-Version", value: "Must be 13 (RFC 6455). The only version in production use."}
+        - {key: "Sec-WebSocket-Protocol", value: "Optional sub-protocol negotiation (e.g., 'stomp', 'graphql-ws', 'chat')"}
+
+    - title: "⚙️ Spring WebSocket / STOMP Config Reference"
+      rows:
+        - {key: "setMessageSizeLimit", value: "Max inbound message size in bytes. Default 64KB. Increase for large payloads."}
+        - {key: "setSendBufferSizeLimit", value: "Per-session outbound buffer. Default 512KB. If full, session is closed."}
+        - {key: "setSendTimeLimit", value: "Max time (ms) to send a message to a client. Default 10s. Slow clients are closed."}
+        - {key: "setHeartbeatValue", value: "STOMP heartbeat: {server-interval, client-interval} in ms. Both parties negotiate minimum."}
+        - {key: "setAllowedOrigins / setAllowedOriginPatterns", value: "CORS-equivalent for the upgrade request. Default: same-origin only."}
+        - {key: "withSockJS()", value: "Adds SockJS fallback (long-polling / EventSource) for clients that can't upgrade. Adds overhead."}
+        - {key: "TaskScheduler (heartbeat)", value: "Required bean when heartbeats are enabled. Without it, heartbeats silently don't run."}
+
+    - title: "🔧 Nginx WebSocket Proxy Config"
+      rows:
+        - {key: "proxy_http_version 1.1", value: "Required — HTTP/2 does not support the Upgrade mechanism WebSockets use."}
+        - {key: "proxy_set_header Upgrade $http_upgrade", value: "Forwards the Upgrade header to the upstream server."}
+        - {key: "proxy_set_header Connection 'upgrade'", value: "Signals to the upstream that this is an upgrade request."}
+        - {key: "proxy_read_timeout", value: "How long Nginx waits for data before closing the connection. Default 60s — set to 3600s+ for long-lived sockets."}
+        - {key: "proxy_send_timeout", value: "How long Nginx waits to send data to the upstream. Also extend for long-lived connections."}
+        - {key: "ip_hash / sticky", value: "Enable sticky sessions so reconnects route to the same upstream. Required for stateful WebSocket servers."}
+
+  cli:
+    - label: "wscat — interactive WebSocket client (npm install -g wscat)"
+      commands:
+        - "wscat -c wss://api.example.com/ws"
+        - "wscat -c wss://api.example.com/ws -H 'Cookie: session=abc'"
+        - "wscat -c ws://localhost:8080/ws --no-check"
+    - label: "websocat — curl-like CLI for WebSockets"
+      commands:
+        - "websocat wss://api.example.com/ws"
+        - "echo '{\"type\":\"subscribe\",\"channel\":\"prices\"}' | websocat wss://api.example.com/ws"
+        - "websocat -t --ping-interval 30 wss://api.example.com/ws"
+    - label: "Connection diagnostics"
+      commands:
+        - "curl -i -N -H 'Upgrade: websocket' -H 'Connection: Upgrade' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' -H 'Sec-WebSocket-Version: 13' http://localhost:8080/ws"
+        - "ss -tnp | grep :8080"
+        - "lsof -i :8080 | wc -l"
+
+  comparison:
+    title: "⚖️ WebSockets vs SSE vs Long Polling vs HTTP/2 Push"
+    headers: ["Dimension", "WebSockets", "Server-Sent Events (SSE)", "Long Polling", "HTTP/2 Push"]
+    rows:
+      - ["Direction", "Full-duplex — client and server send freely", "Server → client only; client sends via separate HTTP", "Server → client only; client re-polls", "Server → client only; client sends via separate HTTP"]
+      - ["Protocol", "Custom framed protocol over TCP after HTTP upgrade", "Plain HTTP/1.1 or HTTP/2 chunked response", "Standard HTTP request/response cycle", "HTTP/2 server push (PUSH_PROMISE)"]
+      - ["Auto-reconnect", "No — must implement with exponential backoff", "Yes — browser reconnects automatically; EventSource handles it", "Implicit — client reissues request after each response", "No — part of a single HTTP/2 connection lifecycle"]
+      - ["Sticky sessions needed", "Yes — connection is stateful and pinned to one server", "No — each reconnect can hit a different server; stateless", "No — each request is independent", "No — tied to HTTP/2 connection which can be load-balanced"]
+      - ["Proxy/firewall support", "Issues with HTTP proxies that don't understand Upgrade", "Excellent — looks like slow HTTP; works everywhere", "Excellent — standard HTTP request", "Limited — many proxies don't support HTTP/2 push"]
+      - ["Latency", "Very low — persistent socket, no handshake per message", "Low — persistent response stream, no reconnect overhead for delivery", "Medium — includes polling delay and new TCP/TLS per cycle without keep-alive", "Very low when supported"]
+      - ["Best for", "Chat, games, live collaboration, bidirectional signaling", "Live feeds, notifications, dashboards where server pushes only", "Simple polling when WebSockets are blocked; legacy clients", "Resource hints, pre-loading assets — not general messaging"]
+
+# ── Q & A ─────────────────────────────────────────────────────────────────────
+qa:
+  senior:
+    - id: S-01
+      question: "Walk through the WebSocket handshake step by step. What does each part accomplish?"
+      answer: >
+        The client sends an HTTP/1.1 GET request with four key headers:
+        `Upgrade: websocket`, `Connection: Upgrade`,
+        `Sec-WebSocket-Key: <base64 random 16 bytes>`, and `Sec-WebSocket-Version: 13`.
+
+        The server responds with **101 Switching Protocols** and a `Sec-WebSocket-Accept`
+        header computed as `base64(sha1(key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))`.
+        The GUID is fixed in the spec — it's there to prevent a misconfigured HTTP server
+        from accidentally accepting a WebSocket upgrade.
+
+        After 101, the TCP connection is no longer used for HTTP. Both sides switch to the
+        WebSocket framing protocol on the same socket. No new connection is created — the
+        upgrade repurposes the existing TCP stream.
+
+        The handshake being HTTP is intentional: it lets WebSockets work through firewalls
+        on port 443 that allow HTTPS, and it gives intermediaries (proxies, load balancers)
+        a familiar signal to route the connection correctly.
+      staff_add: >
+        The nonce exchange (`Sec-WebSocket-Key` / `Accept`) is not for security — it's
+        a cache-buster. Without it, a naïve HTTP cache could interpret WebSocket frames as
+        cached HTTP responses and serve garbage. The fixed GUID ensures the Accept value
+        is only derivable by a server that knows the WebSocket spec, preventing accidental
+        upgrades by servers that just echo headers. Real security comes from TLS (`wss://`)
+        — the handshake crypto does nothing for confidentiality or authentication.
+
+    - id: S-02
+      question: "How does WebSocket message framing work? Why does the browser have to mask outbound frames?"
+      answer: >
+        Each WebSocket message is split into one or more **frames**. A frame has a header
+        containing: FIN bit (1 = this is the last frame of the message), RSV bits (reserved
+        for extensions), a 4-bit opcode, a MASK bit, and a 7-bit payload length (extended
+        to 16 or 64 bits for larger payloads). For masked frames, a 4-byte masking key
+        follows the length, and the payload is XORed byte-by-byte with the key cycling
+        across all 4 bytes.
+
+        **Why masking?** A browser is a shared environment — any website can open a
+        WebSocket to any server. Without masking, a malicious page could send carefully
+        crafted binary frames that look like valid HTTP requests to an intermediate proxy.
+        If a proxy caches those "responses," a subsequent request from a legitimate user
+        could be served poisoned data. Masking makes the wire bytes unpredictable, breaking
+        this attack. Server-to-client frames are not masked because servers are trusted
+        and don't operate in the shared-origin browser environment.
+      staff_add: >
+        The masking overhead is often cited as a WebSocket performance concern — it's
+        actually negligible (a few XOR operations per frame). The real framing cost is
+        the per-message overhead for large numbers of small messages: a 1-byte payload
+        still requires a 6-byte masked frame header, so at very high small-message rates,
+        protocol overhead starts to matter. For high-frequency small messages (gaming
+        telemetry, sensor data), batching multiple logical messages into one WebSocket
+        frame reduces that overhead.
+
+    - id: S-03
+      question: "How do you authenticate WebSocket connections? Why can't you use an Authorization header?"
+      answer: >
+        The browser's `WebSocket` constructor does not accept custom headers — there is no
+        option to pass `Authorization: Bearer <token>`. This is a spec limitation.
+
+        Three patterns, ordered by preference:
+
+        **Cookie auth** — if the user is already authenticated via cookie on the same
+        origin, the browser automatically includes cookies in the upgrade request. The server
+        validates the session cookie. No special handling needed. Works only for same-origin.
+
+        **Token in the first message** — connect without authentication, then immediately
+        send an auth message as the first WebSocket frame. The server enforces a strict
+        timeout (e.g., 5s): if no valid auth message arrives, it closes with 1008 Policy
+        Violation. Prevents anonymous connections from sitting open.
+
+        **Short-lived token in query string** — `wss://host/ws?token=<jwt>`. Tokens appear
+        in server access logs and browser history. Mitigate by generating single-use,
+        short-TTL tokens on a REST endpoint immediately before connecting. The token
+        exchange endpoint is authenticated via cookie or normal `Authorization` header.
+      staff_add: >
+        The query-string token approach is the most commonly used for SPAs with JWT auth —
+        but teams often skip the "single-use, short-lived" part and pass long-lived JWTs
+        directly in the URL. That's a real risk: the token is logged by every reverse proxy
+        and load balancer in the path, and the token is visible in browser network tabs.
+        Generate a dedicated WebSocket handshake token (30s TTL, single-use, stored in Redis)
+        from your auth service, and exchange it at connection time. The first-message pattern
+        is architecturally cleaner but requires more server-side state to manage the
+        pending-auth window correctly at scale.
+
+    - id: S-04
+      question: "What happens when a WebSocket connection drops unexpectedly? How do you implement robust client-side reconnection?"
+      answer: >
+        An unexpected drop fires `onerror` (if there's a transport error) immediately
+        followed by `onclose` with code **1006** (abnormal closure — no Close frame was
+        sent, the TCP connection just died). The browser does not automatically reconnect.
+
+        A robust reconnection implementation:
+
+        **1. Exponential backoff with jitter** — first retry at ~1s, double each attempt
+        up to a cap (~30s), add random jitter (±25%) to prevent thundering herds when a
+        server restarts and many clients reconnect simultaneously.
+
+        **2. Reconnect on 1006, 1001, 1011** — all indicate unclean closure. Don't
+        reconnect on 1000 (normal close) or 1008 (policy violation) — those are intentional.
+
+        **3. Re-authenticate on reconnect** — the new connection has no memory of the old
+        one; session state must be re-established.
+
+        **4. Re-subscribe to channels** — if using pub/sub, the server has no record of
+        what the new connection was subscribed to; the client must re-declare subscriptions
+        in `onopen`.
+
+        **5. Track missed messages** — if ordering matters, send a `last_received_seq`
+        to the server on reconnect so it can replay what was missed.
+      staff_add: >
+        The reconnection logic is straightforward; the hard part is **application-level
+        state recovery**. The connection is ephemeral but the application thinks it's
+        continuous. Common failure: the UI shows live data but silently stopped updating
+        because a reconnection succeeded but channel re-subscriptions failed. Treat
+        reconnection as a distinct application lifecycle event with explicit recovery code,
+        not just a transport detail. Monitor reconnection rate as a metric — a spike
+        indicates proxy timeouts, server restarts, or network instability that no individual
+        client would notice.
+
+    - id: S-05
+      question: "How do you detect and clean up zombie connections — clients that are silently gone?"
+      answer: >
+        TCP does not detect a dead peer without sending data. A client that loses network
+        connectivity (mobile backgrounded, cable unplugged) does not send a Close frame —
+        the server's socket stays ESTABLISHED indefinitely with no data flowing.
+
+        The solution is **application-level heartbeats via Ping/Pong**:
+
+        The server sends a Ping frame every N seconds (e.g., 30s). The client must respond
+        with a Pong. If no Pong arrives within a timeout (e.g., 10s), the server closes
+        the socket and cleans up the connection record.
+
+        Implementation: most server frameworks (Spring WebSocket, Netty, Node.js `ws`)
+        handle Ping/Pong automatically if configured. The key parameters are
+        `pingInterval` and `pingTimeout`. Set the interval shorter than the load balancer's
+        idle timeout — typically 25–45s if the LB drops connections after 60s.
+
+        Also monitor OS-level socket state — `ss -tnp | grep CLOSE_WAIT` — CLOSE_WAIT
+        sockets that are not being closed indicate the server is not handling Close frames
+        in application code.
+
+  staff:
+    - id: ST-01
+      question: "How do you scale a WebSocket server horizontally? What breaks and how do you fix it?"
+      answer: >
+        The fundamental problem: a WebSocket connection is pinned to one server process.
+        A simple round-robin load balancer will route a client's reconnection to a different
+        server, which knows nothing about that client's subscriptions or session state.
+
+        **Sticky sessions** (session affinity): the load balancer routes connections from
+        the same client to the same server, using IP hash or a cookie set during the
+        handshake. This solves routing — but doesn't help with cross-server broadcasting.
+
+        **Cross-server messaging with a pub/sub bus**: when server A needs to send a
+        message to a user whose connection is on server B, server A publishes to a Redis
+        channel (or Kafka topic). Server B is subscribed to that channel and delivers
+        the message to the right connection. This is the standard pattern for chat, presence,
+        and any broadcast/multicast use case.
+
+        **Stateless design where possible**: move connection state (subscriptions, user
+        metadata) out of process memory into a fast shared store (Redis). On reconnect,
+        the new server reloads state from Redis — sticky sessions become a performance
+        optimization, not a correctness requirement.
+
+        At very high scale, sticky sessions become a load distribution problem: a "hot" server
+        serves more connections than others, and a server restart sends all its connections
+        reconnecting simultaneously (thundering herd). Counter with gradual shutdowns,
+        draining connections over minutes, and circuit breakers on reconnection.
+      staff_add: >
+        The deeper design question is whether you need true statefulness per connection at
+        all. Many systems that appear to need WebSocket state actually don't — the client
+        knows what it's subscribed to and re-declares on reconnect, the server doesn't store
+        it. This makes scaling trivially horizontal. Only accept the complexity of cross-server
+        state synchronization when the use case genuinely requires it (e.g., collaborative
+        editing where the server holds authoritative state between clients). For presence
+        systems, consider replacing per-connection in-memory tracking with Redis sorted sets
+        updated on heartbeat — this is both more scalable and more resilient.
+
+    - id: ST-02
+      question: "How do you handle back-pressure in WebSocket connections? What happens when a client is slow?"
+      answer: >
+        WebSocket has no built-in flow control. The server can write faster than the client
+        can read. Unacknowledged data accumulates in the TCP send buffer; once full, the
+        OS write call blocks (or throws in non-blocking mode). Left unhandled, one slow client
+        can stall a server thread or exhaust buffer memory.
+
+        **Detection**: server-side frameworks expose buffer state. In Netty: `channel.isWritable()`
+        returns false when the high-water mark is breached. In Spring WebFlux: use reactive
+        streams backpressure — `Flux.sink` with overflow strategies. In Node.js `ws`: listen
+        for `drain` events after `send()` returns false.
+
+        **Strategies by use case**:
+
+        - **Drop non-critical messages**: for live tickers, dashboards, or telemetry — if
+          the client is lagging, drop the oldest pending message and send only the latest.
+          The client sees slightly stale data, not a crash.
+        - **Rate-limit per connection**: enforce a per-session send queue with a max depth.
+          When the queue is full, either drop or close the connection with a warning.
+        - **Close slow clients**: for real-time systems where staleness is harmful (e.g.,
+          game state), disconnect clients that can't keep up. They reconnect with a fresh
+          state snapshot.
+        - **Apply backpressure upstream**: in reactive pipelines, propagate backpressure
+          back to the data source — stop reading from Kafka/DB until the client catches up.
+      staff_add: >
+        Back-pressure is often the last thing considered in WebSocket architectures and
+        the first thing that causes production incidents. A single slow or misbehaving client
+        consuming a dedicated server thread (non-async frameworks) creates a resource leak
+        that accumulates over hours. In async frameworks (Netty, WebFlux), it manifests as
+        unbounded memory growth.
+        The architectural safeguard: enforce per-connection send queue limits as a hard
+        constraint in the framework config (Spring's `setSendBufferSizeLimit`,
+        `setSendTimeLimit`), not as application logic. Make connection closure under
+        back-pressure a first-class, logged, monitored event — not a silent failure.
+
+    - id: ST-03
+      question: "Compare WebSockets, SSE, and long polling. When do you reach for each, and when is the choice wrong?"
+      answer: >
+        **Server-Sent Events (SSE)** when: the server pushes data to the client, the client
+        sends infrequently (via separate HTTP calls), and you want simplicity. SSE is an HTTP
+        chunked response with `text/event-stream` content type. The browser auto-reconnects,
+        sends `Last-Event-ID` so the server can resume, and it works through HTTP/2
+        multiplexing (no sticky sessions). Proxy support is excellent — it looks like a slow
+        HTTP response.
+
+        **WebSockets** when: the client sends data frequently enough that opening a new HTTP
+        request per send is too expensive (chat input, game controls, collaborative editing
+        ops), or when you need full-duplex with sub-50ms latency in both directions.
+
+        **Long polling** when: both WebSockets and SSE are blocked by network policy (rare
+        now, but real in enterprise environments), or when you need a simpler fallback for
+        old clients. Long polling is inefficient — it creates a new TCP connection per message
+        without keep-alive, and each response triggers a new request with full HTTP headers.
+
+        **When the choice is wrong**: using WebSockets for a notification system where the
+        server pushes events every few minutes and the client never sends — SSE would be
+        simpler, more scalable (no sticky sessions), and auto-reconnecting. Using SSE for
+        a collaborative editor — the round-trip latency of a separate POST for each
+        keystroke vs. a WebSocket frame is significant, and the implementation is more complex.
+      staff_add: >
+        The WebSocket vs. SSE decision is often made wrong for political rather than technical
+        reasons — "we already have WebSockets for X, let's use it for Y too." The operational
+        cost of WebSockets (sticky sessions, connection state management, custom reconnect
+        logic) is non-trivial. SSE eliminates all of it for server-push use cases. Default
+        to SSE for dashboards and notification feeds; reserve WebSockets for genuinely
+        bidirectional, latency-sensitive communication. For new systems, HTTP/2 SSE is the
+        sweet spot for most server-push needs — one persistent multiplexed connection,
+        no sticky sessions, automatic reconnect.
+
+  principal:
+    - id: P-01
+      question: "Design a real-time collaborative document editing system (Figma / Google Docs style) for 500k concurrent users."
+      answer: >
+        **Core insight**: collaborative editing is a distributed state synchronization problem,
+        not a messaging problem. Two users editing the same document simultaneously must
+        reach the same final state regardless of network order. The algorithm choice
+        (OT or CRDT) drives most of the architecture.
+
+        **Algorithm layer**: Operational Transformation (OT) — used by Google Docs — requires a
+        central server to order all operations for a document. CRDTs (Yjs, Automerge) are
+        peer-to-peer friendly and eventually consistent without a coordinator, at the cost
+        of more complex merge semantics. For a centralized system with a server component,
+        OT is more predictable; for multi-leader or offline-first, CRDTs are superior.
+
+        **Server topology**: shard documents across servers by document ID. All connections
+        to the same document route to the same server (sticky by document ID, not user ID).
+        Each document's editing session is handled by a single process — this avoids the
+        complexity of distributed OT. At 500k concurrent users, assume most documents have
+        few active editors — a document server handles hundreds to thousands of active documents.
+
+        **Persistence layer**: operations are appended to a log (Kafka topic or Postgres table)
+        per document, in order. The current document state is a snapshot plus replayed operations
+        since the snapshot. New collaborators receive the snapshot + delta, not the full
+        history replay.
+
+        **Presence and cursors**: a separate lightweight pub/sub channel per document
+        (Redis Pub/Sub) broadcasts cursor positions and selection state. These are ephemeral
+        (not persisted) and can be dropped under back-pressure without data loss.
+
+        **Conflict resolution**: operations are transformed relative to concurrent ops by
+        the server before acknowledgment. The client applies operations optimistically
+        (for feel) and reconciles when the server ack arrives with the transformed operation.
+
+        **Scale path**: 500k users across thousands of documents. Each active document
+        shard handles ~50-200 concurrent editors. Shard servers are stateful within a session —
+        crash recovery replays from the operation log. Global state (document metadata,
+        user identity) lives in shared stores (Postgres, Redis) accessible to all shards.
+      staff_add: >
+        The hardest operational problem in collaborative editing isn't the algorithm — it's
+        document session lifecycle management. When was a document last active? When can we
+        evict its session from memory? When a server crashes mid-edit, which operations
+        were acknowledged vs. unacknowledged? The operation log is the source of truth:
+        design for recovery-from-log as the primary path, not an exception path.
+        At the principal level, the interviewer wants to see: awareness that CRDT vs. OT
+        is a foundational choice with real trade-offs, not just "Google uses OT so we'll do that";
+        a model for how you'd shard across documents; and a clear answer for what happens
+        on server crash mid-session.
+
+    - id: P-02
+      question: "Your WebSocket infrastructure handles 2M concurrent connections across 50 servers. How do you achieve a rolling restart with zero dropped connections?"
+      answer: >
+        A naive restart drops all connections on the restarting server simultaneously,
+        triggering 40k clients to reconnect with exponential backoff — a thundering herd
+        that can overload the reconnect target servers.
+
+        **Graceful drain protocol**:
+
+        **1. Signal the server to stop accepting new connections** — remove it from the
+        load balancer's target group (or mark it unhealthy in health checks). New connections
+        stop routing here within one health check interval (5–15s).
+
+        **2. Send Close frames to existing connections** — iterate all open connections and
+        send Close with code 1001 (Going Away) and a `Retry-After`-equivalent reconnect hint
+        in the reason string (or via a custom message before closing). This signals clients
+        to reconnect immediately rather than backing off.
+
+        **3. Reconnect hint includes server exclusion** — pass a flag in the close reason
+        that tells the client to avoid this server's address for N minutes. Implement in
+        the load balancer by removing it from rotation before draining starts.
+
+        **4. Set a drain deadline** — some clients will not respond to Close frames (backgrounded
+        mobile, misbehaving clients). Force-close all remaining connections after a timeout
+        (e.g., 60s). Accept that a small percentage will see 1006.
+
+        **5. Stagger the rolling restart** — restart one server at a time with a cooldown
+        (wait until reconnect load is absorbed before starting the next drain). Monitor
+        aggregate connection count and reconnection rate as gating signals.
+
+        **Reconnection amplification**: each closed connection generates at least one
+        reconnect request. 40k connections draining ≈ 40k reconnects in ~10s. Design
+        load balancer and server capacity for 2× normal connection rate during maintenance windows.
+      staff_add: >
+        The reconnection hint is the piece most teams skip. Without it, clients use their
+        configured backoff — which for a 10s base delay means reconnections trickle in over
+        minutes, some lagging users. With a close-frame hint, clients reconnect immediately
+        but to a healthy server. Implement this as a client-side protocol: on receipt of
+        code 1001, reconnect with no backoff delay. For all other close codes, use backoff.
+        The operational discipline is the rolling cadence: never drain more than one server
+        at a time, and use automated health gates (connection count stabilized, reconnect
+        rate back to baseline) before triggering the next drain.
+
+# ── SCENARIOS ─────────────────────────────────────────────────────────────────
+scenarios:
+  - title: "🎮 Scenario 1 — Real-Time Multiplayer Game Backend"
+    problem: >
+      Design the server-side WebSocket infrastructure for a browser-based multiplayer
+      game. Players join game rooms of up to 50 players. The server ticks game state
+      to all players in a room at 20Hz. Players send input events at up to 60Hz.
+      Target: 100k concurrent players at launch, 1M within 12 months.
+    constraints:
+      - "Game state tick: every 50ms (20 updates/sec) to all players in a room"
+      - "Input latency: player inputs must be processed within 20ms of receipt"
+      - "State consistency: all players in a room must see the same game state (same tick)"
+      - "Reconnection: a player who drops must be able to rejoin within 5s without losing their game session"
+      - "No message persistence required — game state is ephemeral"
+    discussion:
+      - "**Room-based sharding**: a game room is the unit of consistency — all players in a room must be on the same server so the game loop runs in one process without distributed coordination. Shard by room ID at the load balancer."
+      - "**Game loop vs. WebSocket layer separation**: the game loop runs on a fixed 50ms timer thread that reads all pending inputs, computes the next game state, and queues it for broadcast. The WebSocket layer is separate — it receives inputs from clients and drains the outbound queue. This prevents slow clients from stalling the game tick."
+      - "**Back-pressure per player**: if a player's outbound buffer is full (slow network), drop that player's pending state frames and send only the most recent — never block the room's game loop for one slow client. Track dropped frames per player as a metric."
+      - "**Input processing**: buffer incoming inputs per player within a tick window. At tick time, process all buffered inputs in arrival order. Inputs arriving after tick N is computed are held for tick N+1."
+      - "**Reconnection**: a rejoining player receives the current authoritative game state snapshot over the WebSocket, then resumes receiving ticks. The game session persists in server memory (or Redis for crash recovery) keyed by session ID, not connection ID."
+      - "**Scaling to 1M**: at 100k players across ~2k rooms, one room per server thread is wasteful. Use async I/O (Netty, Node.js) — a single server handles hundreds of rooms. Horizontal scale: consistent hash rooms to servers. Room migration is complex — avoid it; let rooms end when their server restarts."
+    red_flags:
+      - "One WebSocket server for all rooms with round-robin LB — players in the same room land on different servers, requiring distributed game loop synchronization; complexity is extreme and latency doubles"
+      - "Blocking the game tick on slow client writes — one lagging player causes all 50 players to miss their 50ms tick window"
+      - "Persisting every game state frame to a database — game state is ephemeral and high-frequency; database writes at 20Hz × 100k players would saturate any RDBMS"
+      - "Using HTTP polling or SSE for input events — a POST per input at 60Hz is 60 HTTP requests/second per player; at 100k players that's 6M req/s just for inputs"
+
+  - title: "💬 Scenario 2 — Chat System with 10M Daily Active Users"
+    problem: >
+      Design the WebSocket infrastructure for a chat application. Users can be in
+      multiple channels simultaneously. Messages must be delivered to all online members
+      of a channel within 100ms. Offline users receive messages when they reconnect
+      (no missed messages). The system must support 500k concurrent WebSocket connections
+      at peak.
+    constraints:
+      - "500k concurrent WebSocket connections at peak"
+      - "Message delivery to online members within 100ms p99"
+      - "At-least-once delivery to offline users on reconnect (no message loss)"
+      - "Channels can have up to 10k members (most have < 100)"
+      - "Read receipts and typing indicators are best-effort (can be lost)"
+    discussion:
+      - "**Persistence vs. fanout separation**: messages are always written to the database first (Postgres or DynamoDB), then fanned out to online users. The write path (message persistence) and the push path (WebSocket fanout) are decoupled via an async queue (Kafka topic per channel or a pub/sub bus)."
+      - "**WebSocket server design**: each server maintains an in-process map of {user_id → connection}. Servers subscribe to a Redis Pub/Sub channel per active user they're serving. When a message arrives for user X, the server holding X's connection receives it from Redis and delivers it."
+      - "**Fan-out at scale**: for a channel with 10k members, fanning out means looking up which servers hold each member's connection, then publishing 10k messages to Redis. Optimization: fan-out service reads the channel member list, groups by server, and publishes once per server with a list of target user IDs."
+      - "**Offline delivery**: when a user reconnects, the client sends a `last_seen_message_id`. The server queries the database for messages in their channels after that ID and flushes them over the WebSocket before switching to live delivery."
+      - "**Ephemeral events (typing, presence)**: publish directly to Redis Pub/Sub, not to the database. TTL of a few seconds. If a subscriber misses it, no harm — the user stopped typing."
+      - "**Sticky sessions**: not required for correctness here — reconnects re-establish subscriptions. Use IP hash at the LB for connection locality (reduces Redis pub/sub cross-server hops) but don't treat it as a hard requirement."
+    red_flags:
+      - "Delivering messages directly from the API server to WebSocket connections in-process — the API server is stateless; it doesn't know which WebSocket server holds the recipient's connection without a directory lookup"
+      - "One Redis Pub/Sub channel for all messages — at 500k connections receiving messages, one channel is a single point of serialization; shard by channel ID or user ID range"
+      - "Fanning out to 10k members synchronously in the HTTP write path — the sender's request blocks until 10k pushes complete; use async fan-out off the hot path"
+      - "Relying on WebSocket delivery for offline users without a persistent message store — WebSocket delivery is best-effort; a user offline at delivery time simply misses the message without a database fallback"
+
+  - title: "📈 Scenario 3 — Production Incident: WebSocket Connections Dropping After ~60 Seconds"
+    problem: >
+      Users report that the app disconnects every minute or so and reconnects. The reconnection
+      is seamless (the app handles it), but users notice the brief interruption. The issue
+      started after a network infrastructure change last week. Connections consistently drop
+      at 58–62 seconds regardless of activity level.
+    constraints:
+      - "Consistent drop at 58–62s — activity level doesn't matter"
+      - "Reconnections succeed immediately — server is healthy"
+      - "Close code is 1006 (abnormal — no Close frame from server or client)"
+      - "Only affects users on the production network path; staging is fine"
+      - "Infrastructure change last week: new AWS ALB was deployed in front of the WebSocket servers"
+    discussion:
+      - "**Root cause identification**: 1006 + consistent ~60s interval + new ALB = ALB idle connection timeout. AWS ALB has a default idle timeout of 60 seconds. If no data traverses the connection in 60s, the ALB silently drops the TCP connection. The server never sends a Close frame (it doesn't know the connection died) — hence 1006."
+      - "**Immediate fix**: configure the ALB idle timeout to a longer value (e.g., 3600s for long-lived WebSocket connections). This is a one-line change in the ALB settings."
+      - "**Proper fix**: implement Ping/Pong heartbeats on the server at an interval shorter than the ALB timeout (e.g., every 30s). The Ping traverses the full path including the ALB, resetting its idle timer. The connection stays alive regardless of ALB timeout setting."
+      - "**Why the proper fix is better**: ALB settings can change, other infrastructure can be added with different timeouts (WAF, CDN), and you may not always control the network path. Heartbeats make the application resilient to any intermediate timeout without relying on infrastructure config."
+      - "**Verify**: after enabling heartbeats, check that connections stay open for hours and that Ping/Pong frames are visible in a packet capture or WebSocket debug proxy."
+    red_flags:
+      - "Disabling the idle timeout entirely on the ALB — timeouts exist to reclaim resources for truly dead connections; removing them entirely causes resource leaks when clients disconnect without Close frames"
+      - "Implementing heartbeats only on the client side — the client sending data resets the client-side timer, but Ping frames from the server are what traverse the full path and reset the ALB timer; both sides should ping"
+      - "Treating 1006 as an application bug — abnormal closure is a transport-layer signal; no amount of application code changes will fix a network component terminating the connection"
+      - "Not correlating with the infrastructure change timeline — a consistent, timing-based drop after an infra change is a configuration issue until proven otherwise; don't debug application code first"
